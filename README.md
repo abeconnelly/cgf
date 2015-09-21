@@ -1,0 +1,2 @@
+# cgf
+Compact Genome Format
