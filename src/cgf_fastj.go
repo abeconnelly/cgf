@@ -12,6 +12,7 @@ type TileInfo struct {
   Seq string
   Span int
   Step int
+  VarId int
   NocallStartLen []int
 }
 
@@ -53,6 +54,19 @@ func emit_fastj_tile(path,step,span int, pretag string, seq []byte, suftag  stri
     ti.NocallStartLen = append(ti.NocallStartLen, nocall_start)
     ti.NocallStartLen = append(ti.NocallStartLen, nocall_len)
   }
+
+  //DEBUG
+  /*
+  fmt.Printf("# %04x.%04x+%x %s %s\n", path,step,span, pretag, suftag)
+  fmt.Printf("#")
+  for i:=0; i<len(ti.NocallStartLen); i+=2 {
+    fmt.Printf(" %d+%d",
+      ti.NocallStartLen[i],
+      ti.NocallStartLen[i+1] )
+  }
+  fmt.Printf("\n")
+  */
+
 
   return ti
 }

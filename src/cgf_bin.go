@@ -3,6 +3,8 @@ package main
 import "fmt"
 import "./dlug"
 
+import "io/ioutil"
+
 func create_tilemap_string_lookup2(step0,span0,step1,span1 []int) string {
   b := make([]byte, 0, 1024)
 
@@ -79,15 +81,24 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
   final_overflow.DataRecord.Code = make([]byte, 0, 256)
   final_overflow.DataRecord.Data = make([]byte, 0, 2048)
   final_overflow_count := 0
-
   _ = final_overflow
 
+
+  loq_info := LowQualityInfoStruct{}
+  _ = loq_info
+
+  //loq_info.Stride = 256
+  //loq_info.Offset = make([]uint64, 0, 1024)
+  //loq_info.Position = make([]uint64, 0, 1024)
+  //loq_info.HetHomFlag = make([]byte, 0, 1024)
+  //loq_info.Info = make([]LoqInfoStruct, 0, 1024)
+
+  /*
   loq_hom := LowQualityHomStruct{}
   loq_hom.Stride = 256
   loq_hom.Offset = make([]uint64, 0, 16)
   loq_hom.NTile = make([]uint64, 0, 16)
   loq_hom.Info = make([]LoqInfoStruct, 0, 256)
-
   _ = loq_hom
 
   loq_het := LowQualityHetStruct{}
@@ -95,12 +106,10 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
   loq_het.Offset = make([]uint64, 0, 16)
   loq_het.NTile = make([]uint64, 0, 16)
   loq_het.Info = make([]LoqAlleleInfoStruct, 0, 256)
-
   _ = loq_het
+  */
 
   buf := make([]byte, 1024)
-
-
 
   sglf_info0 := SGLFInfo{}
   sglf_info1 := SGLFInfo{}
@@ -122,6 +131,40 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
   anchor_step := 0
   update_anchor := true
   end_check := false
+  loq_tile := false
+
+  //loq_cur := LoqHetHomInfoStruct{}
+  //loq_cur.AlleleInfo = make([]LoqInfoStruct, 2)
+
+  step_idx_info_for_loq := make([][]int, 2)
+  step_idx_info_for_loq[0] = make([]int, 0, 1024)
+  step_idx_info_for_loq[1] = make([]int, 0, 1024)
+
+  loq_byte_length := uint64(0)
+  loq_bytes := make([]byte, 0, 1024)
+
+  loq_offset_bytes := make([]byte, 0, 1024) ; _ = loq_offset_bytes
+  loq_position_bytes := make([]byte, 0, 1024) ; _ = loq_position_bytes
+  loq_hethom_flag_bytes := make([]byte, 0, 1024) ; _ = loq_hethom_flag_bytes
+
+  loq_hethom_flag := make([]bool, 0, 1024)
+
+  //loq_bytes_a := make([]byte, 0, 1024)
+  //loq_bytes_b := make([]byte, 0, 1024)
+
+  //loq_stat_a := 0
+  //loq_stat_b := 0
+  //loq_stat_c := 0
+
+  //loq_stat_hom := 0
+  //loq_stat_het := 0
+  //loq_stat_ele := 0
+
+
+  // First is allele
+  // second is 3 element (varid,span,start,len)
+  //
+  //AlleleNocallInfo := make([][]int, 2)
 
   for (step_idx0<len(allele_path[0])) && (step_idx1<len(allele_path[1])) {
 
@@ -129,6 +172,10 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
     if span_sum >= 0 {
       ti0 := allele_path[0][step_idx0]
+
+      if len(ti0.NocallStartLen)>0 { loq_tile = true; }
+
+      step_idx_info_for_loq[0] = append(step_idx_info_for_loq[0], step_idx0)
 
       // sglf_info1 only holds a valid path and step
       //
@@ -170,12 +217,33 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
       var_a0 = append(var_a0, var_idx0)
       span_a0 = append(span_a0, span0)
 
+      allele_path[0][step_idx0].VarId = var_idx0
+
       span_sum -= span0
       step_idx0++
 
+      /*
+      if len(ti0.NocallStartLen) > 0 {
+        for i:=0; i<len(ti0.NocallStartLen); i+=2 {
+          AlleleNocallInfo[0] = append(AlleleNocallIInfo, var_a0)
+          AlleleNocallInfo[0] = append(AlleleNocallIInfo, span_a0)
+          AlleleNocallInfo[0] = append(AlleleNocallIInfo, ti0.NocallStartLen[i])
+          AlleleNocallInfo[0] = append(AlleleNocallIInfo, ti0.NocallStartLen[i+1])
+        }
+      } else {
+        AlleleNocallInfo[0] = append(AlleleNocallIInfo, var_a0)
+        AlleleNocallInfo[0] = append(AlleleNocallIInfo, span_a0)
+        AlleleNocallInfo[0] = append(AlleleNocallIInfo, 0)
+        AlleleNocallInfo[0] = append(AlleleNocallIInfo, 0)
+      }
+      */
 
     } else {
       ti1 := allele_path[1][step_idx1]
+
+      if len(ti1.NocallStartLen)>0 { loq_tile = true; }
+
+      step_idx_info_for_loq[1] = append(step_idx_info_for_loq[1], step_idx1)
 
       // sglf_info1 only holds a valid path and step
       //
@@ -213,13 +281,233 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
       var_a1 = append(var_a1, var_idx1)
       span_a1 = append(span_a1, span1)
 
+      allele_path[1][step_idx1].VarId = var_idx1
+
       span_sum += span1
       step_idx1++
+
+      /*
+      if len(ti1.NocallStartLen) > 0 {
+        for i:=0; i<len(ti1.NocallStartLen); i+=2 {
+          AlleleNocallInfo[1] = append(AlleleNocallIInfo, var_a1)
+          AlleleNocallInfo[1] = append(AlleleNocallIInfo, span_a1)
+          AlleleNocallInfo[1] = append(AlleleNocallIInfo, ti1.NocallStartLen[i])
+          AlleleNocallInfo[1] = append(AlleleNocallIInfo, ti1.NocallStartLen[i+1])
+        }
+      } else {
+        AlleleNocallInfo[1] = append(AlleleNocallIInfo, var_a1)
+        AlleleNocallInfo[1] = append(AlleleNocallIInfo, span_a1)
+        AlleleNocallInfo[1] = append(AlleleNocallIInfo, 0)
+        AlleleNocallInfo[1] = append(AlleleNocallIInfo, 0)
+      }
+      */
 
     }
 
 
     if span_sum==0 {
+
+
+      // *********************
+      // *********************
+      // ---------------------
+      // STORE LOQ INFORMATION
+      //
+
+      if loq_tile {
+        buf := make([]byte, 16)
+        var dn int
+
+        hom_flag := true
+        if len(step_idx_info_for_loq[0]) != len(step_idx_info_for_loq[1]) {
+          hom_flag = false
+        } else {
+          for ii:=0; ii<len(step_idx_info_for_loq[0]); ii++ {
+            step_idx0 := step_idx_info_for_loq[0][ii]
+            step_idx1 := step_idx_info_for_loq[1][ii]
+
+            step0 := allele_path[0][step_idx0].Step
+            step1 := allele_path[1][step_idx1].Step
+
+            if step0 != step1 {
+              hom_flag = false
+              break
+            }
+
+            if len(allele_path[0][step_idx0].NocallStartLen) != len(allele_path[1][step_idx1].NocallStartLen) {
+              hom_flag = false
+              break
+            }
+
+            for jj:=0; jj<len(allele_path[0][step_idx0].NocallStartLen); jj++ {
+
+              if allele_path[0][step_idx0].NocallStartLen[jj] != allele_path[1][step_idx1].NocallStartLen[jj] {
+                hom_flag = false
+                break
+              }
+
+            }
+
+            /*
+            if allele_path[0][step0].VarId != allele_path[1][step1].VarId {
+              hom_flag = false
+
+              fmt.Printf("#### %d %d\n", allele_path[0][step0].VarId, allele_path[1][step1].VarId)
+              debug_str = "cp2"
+
+              break
+            }
+            */
+
+          }
+        }
+
+        loq_hethom_flag = append(loq_hethom_flag, hom_flag)
+
+        //fmt.Printf("### (%s) %v %v %v\n", debug_str, hom_flag, step_idx_info_for_loq[0], step_idx_info_for_loq[1])
+
+        // (NTile)
+        // Number of tile in this record
+        //
+        dn = dlug.FillSliceUint64(buf, uint64(len(step_idx_info_for_loq[0])))
+        loq_bytes = append(loq_bytes, buf[0:dn]...)
+
+        //loq_stat_a += dn
+        //fmt.Printf(" len_tile_a %d\n", len(step_idx_info_for_loq[0]))
+
+        if !hom_flag {
+
+
+          // (NTile) (B allele)
+          // Number of Allele B tiles in this record
+          //
+          dn = dlug.FillSliceUint64(buf, uint64(len(step_idx_info_for_loq[1])))
+          loq_bytes = append(loq_bytes, buf[0:dn]...)
+
+          //loq_stat_a += dn
+          //fmt.Printf(" len_tile_b %d\n", len(step_idx_info_for_loq[1]))
+
+          //loq_stat_het++
+        } else {
+          //loq_stat_hom++
+        }
+
+        for i:=0; i<len(step_idx_info_for_loq[0]); i++ {
+          step_idx0 := step_idx_info_for_loq[0][i]
+          ti := allele_path[0][step_idx0]
+
+
+          //DEBUG
+          //fmt.Printf("  [%d] len %d\n", i, len(step_idx_info_for_loq[1]))
+
+          // (LoqTile[].Len)
+          // Number of noc entries for this tile
+          //
+          dn = dlug.FillSliceUint64(buf, uint64(len(ti.NocallStartLen)))
+          loq_bytes = append(loq_bytes, buf[0:dn]...)
+
+          //loq_stat_b += dn
+
+          prev_start := 0
+          for jj:=0; jj<len(ti.NocallStartLen); jj+=2 {
+
+            //DEBUG
+            //fmt.Printf("    [%d.%d] s%d+%d\n", i, jj, ti.NocallStartLen[jj], ti.NocallStartLen[jj+1])
+
+
+            // (LoqTile[].LoqEntry[].DelPos)
+            // Start position
+            //
+            //dn = dlug.FillSliceUint64(buf, uint64(ti.NocallStartLen[jj]))
+            dn = dlug.FillSliceUint64(buf, uint64(ti.NocallStartLen[jj]-prev_start))
+            loq_bytes = append(loq_bytes, buf[0:dn]...)
+
+            //DEBUG
+            //fmt.Printf("#del: %d\n", ti.NocallStartLen[jj]-prev_start)
+
+            //loq_stat_c += dn
+
+            // (LoqTile[].LoqEntry[].LoqLen)
+            // Length of noc
+            //
+            dn = dlug.FillSliceUint64(buf, uint64(ti.NocallStartLen[jj+1]))
+            loq_bytes = append(loq_bytes, buf[0:dn]...)
+
+            //loq_stat_c += dn
+
+            prev_start = ti.NocallStartLen[jj]
+
+            //loq_stat_ele++
+
+          }
+        }
+
+
+        if !hom_flag {
+
+          for i:=0; i<len(step_idx_info_for_loq[1]); i++ {
+            step_idx1 := step_idx_info_for_loq[1][i]
+            ti := allele_path[1][step_idx1]
+
+            //DEBUG
+            fmt.Printf("  [%d] len %d\n", i, len(step_idx_info_for_loq[1]))
+
+            // (LoqTile[].Len)
+            // Number of noc entries
+            //
+            dn = dlug.FillSliceUint64(buf, uint64(len(ti.NocallStartLen)))
+            loq_bytes = append(loq_bytes, buf[0:dn]...)
+
+            //loq_stat_b += dn
+
+            prev_start := 0
+            for jj:=0; jj<len(ti.NocallStartLen); jj+=2 {
+
+              //DEBUG
+              fmt.Printf("    [%d.%d] s%d+%d\n", i, jj, ti.NocallStartLen[jj], ti.NocallStartLen[jj+1])
+
+
+              // (LoqTile[].LoqEntry[].DelPos)
+              // Start of nocall
+              //
+              //dn = dlug.FillSliceUint64(buf, uint64(ti.NocallStartLen[jj]))
+              dn = dlug.FillSliceUint64(buf, uint64(ti.NocallStartLen[jj]-prev_start))
+              loq_bytes = append(loq_bytes, buf[0:dn]...)
+
+              //DEBUG
+              fmt.Printf("#del: %d\n", ti.NocallStartLen[jj]-prev_start)
+
+              //loq_stat_c += dn
+
+              // (LoqTile[].LoqEntry[].LoqLen)
+              // Noc length
+              //
+              dn = dlug.FillSliceUint64(buf, uint64(ti.NocallStartLen[jj+1]))
+              loq_bytes = append(loq_bytes, buf[0:dn]...)
+
+              //loq_stat_c += dn
+
+              prev_start = ti.NocallStartLen[jj]
+
+              //loq_stat_ele++
+            }
+          }
+
+        }
+
+        fmt.Printf(">>>>> %v\n", hom_flag)
+
+      }
+
+      //
+      // STORE LOQ INFORMATION
+      // ---------------------
+      // *********************
+      // *********************
+
+
+
+
 
       end_check = true
 
@@ -241,19 +529,25 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
       }
 
       // Check to see if there are any nocalls
-      has_nocall := false
+      //has_nocall := false
+      //_ = has_nocall
 
       if _,ok := ctx.TileMapLookup[tilemap_key] ; ok {
 
         tilemap_pos := ctx.TileMapPosition[tilemap_key]
 
-        if tilemap_pos < 13 {
+        //if tilemap_pos < 13 {
+        if (!loq_tile) && (tilemap_pos < 13) {
           ivec[anchor_step] = tilemap_pos
         } else {
 
           // overflow
           //
-          ivec[anchor_step] = 254
+          if loq_tile {
+            ivec[anchor_step] = -254
+          } else {
+            ivec[anchor_step] = 254
+          }
 
           // --------
           // OVERFLOW
@@ -281,7 +575,11 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
         //final overflow
         //
-        ivec[anchor_step] = 255
+        if loq_tile {
+          ivec[anchor_step] = -255
+        } else {
+          ivec[anchor_step] = 255
+        }
 
         // --------------
         // FINAL OVERFLOW
@@ -372,6 +670,12 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
       tile_zipper_seq[0] = tile_zipper_seq[0][0:0]
       tile_zipper_seq[1] = tile_zipper_seq[1][0:0]
+
+      loq_tile = false
+
+      step_idx_info_for_loq[0] = step_idx_info_for_loq[0][0:0]
+      step_idx_info_for_loq[1] = step_idx_info_for_loq[1][0:0]
+
 
     }
 
@@ -546,6 +850,50 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
       }
 
     }
+
+
+    //fmt.Printf("# loq_stat_hom %d, loq_stat_het %d, loq_stat_ele %d\n", loq_stat_hom, loq_stat_het, loq_stat_ele)
+    //fmt.Printf("# loq_stats %d %d %d\n", loq_stat_a, loq_stat_b, loq_stat_c)
+    fmt.Printf("# loq_bytes(%d)", len(loq_bytes))
+
+    //fmt.Printf("# loq_bytes(%d) loq_bytes_b(%d) loq_bytes_a(%d)", len(loq_bytes), len(loq_bytes_b), len(loq_bytes_a))
+
+    fin_loq_bytes := make([]byte, 8)
+
+    tobyte64(buf, loq_byte_length)
+    fin_loq_bytes = append(fin_loq_bytes, buf...)
+
+    code := uint64(0)
+    tobyte64(buf, code)
+    fin_loq_bytes = append(fin_loq_bytes, buf...)
+
+    stride := uint64(256)
+    tobyte64(buf, stride)
+    fin_loq_bytes = append(fin_loq_bytes, buf...)
+
+    fin_loq_bytes = append(fin_loq_bytes, loq_offset_bytes...)
+    fin_loq_bytes = append(fin_loq_bytes, loq_position_bytes...)
+    fin_loq_bytes = append(fin_loq_bytes, loq_hethom_flag_bytes...)
+
+    fin_loq_bytes = append(fin_loq_bytes, loq_bytes...)
+
+    for i:=0; i<len(fin_loq_bytes); i++ {
+      if (i%16)==0 { fmt.Printf("\n") }
+      fmt.Printf(" %2x", fin_loq_bytes[i])
+    }
+    fmt.Printf("\n")
+
+
+    //DEBUG
+    err := ioutil.WriteFile("./loq_bytes.bin", fin_loq_bytes, 0644)
+    if err!=nil { panic(err); }
+
+    /*
+    err = ioutil.WriteFile("./loq_bytes_b.bin", loq_bytes_b, 0644)
+    if err!=nil { panic(err); }
+    err = ioutil.WriteFile("./loq_bytes_a.bin", loq_bytes_a, 0644)
+    if err!=nil { panic(err); }
+    */
 
 
   }

@@ -83,6 +83,15 @@ type FinalOverflowStruct struct {
 }
 
 
+type LowQualityInfoStruct struct {
+  Length      uint64
+  Stride      uint64
+  Offset      []uint64
+  Position    []uint64
+  HetHomFlag  []byte
+  Info []LoqHetHomInfoStruct
+}
+
 type LowQualityHomStruct struct {
   Length uint64
   Stride uint64
@@ -123,6 +132,10 @@ type DataRecordStruct struct {
   // in derived structures
   //
   Data []byte
+}
+
+type LoqHetHomInfoStruct struct {
+  AllelInfo [][]LoqInfoStruct
 }
 
 type LoqInfoStruct struct {
