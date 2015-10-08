@@ -117,13 +117,13 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
   loq_offset_bytes := make([]byte, 0, 1024) ; _ = loq_offset_bytes
   loq_position_bytes := make([]byte, 0, 1024) ; _ = loq_position_bytes
-  loq_hethom_flag_bytes := make([]byte, 0, 1024) ; _ = loq_hethom_flag_bytes
+  loq_hom_flag_bytes := make([]byte, 0, 1024) ; _ = loq_hom_flag_bytes
 
   // We might need to fill this in after the fact
   //
   loq_offset := make([]uint64, 0, 1024) ; _ = loq_offset
   loq_position := make([]uint64, 0, 1024) ; _ = loq_position
-  loq_hethom_flag := make([]bool, 0, 1024)
+  loq_hom_flag := make([]bool, 0, 1024)
 
   loq_count := uint64(0)
   loq_stride := uint64(256)
@@ -254,6 +254,23 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
         buf := make([]byte, 16)
         var dn int
 
+        if (loq_count%loq_stride)==0 {
+          tobyte64(buf, uint64(len(loq_bytes)))
+          loq_offset_bytes = append(loq_offset_bytes, buf[0:8]...)
+
+          tobyte64(buf, uint64(anchor_step))
+          loq_position_bytes = append(loq_position_bytes, buf[0:8]...)
+
+          //DEBUG
+          fmt.Printf("### loq_count: %d\n", loq_count)
+          fmt.Printf("### loq_offset %d\n",len(loq_bytes))
+          fmt.Printf("### tile_position: %d\n", anchor_step)
+
+        }
+        loq_count++
+
+
+
         hom_flag := true
         if len(step_idx_info_for_loq[0]) != len(step_idx_info_for_loq[1]) {
           hom_flag = false
@@ -286,7 +303,7 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
           }
         }
 
-        loq_hethom_flag = append(loq_hethom_flag, hom_flag)
+        loq_hom_flag = append(loq_hom_flag, hom_flag)
 
         // (NTile)
         // Number of tile in this record
@@ -302,7 +319,8 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
           dn = dlug.FillSliceUint64(buf, uint64(len(step_idx_info_for_loq[1])))
           loq_bytes = append(loq_bytes, buf[0:dn]...)
 
-        } else {
+          fmt.Printf("++ Ballele %d\n", len(step_idx_info_for_loq[1]))
+
         }
 
         for i:=0; i<len(step_idx_info_for_loq[0]); i++ {
@@ -312,7 +330,7 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
           // (LoqTile[].Len)
           // Number of noc entries for this tile
           //
-          dn = dlug.FillSliceUint64(buf, uint64(len(ti.NocallStartLen)))
+          dn = dlug.FillSliceUint64(buf, uint64(len(ti.NocallStartLen)/2))
           loq_bytes = append(loq_bytes, buf[0:dn]...)
 
           prev_start := 0
@@ -344,7 +362,7 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
             // (LoqTile[].Len)
             // Number of noc entries
             //
-            dn = dlug.FillSliceUint64(buf, uint64(len(ti.NocallStartLen)))
+            dn = dlug.FillSliceUint64(buf, uint64(len(ti.NocallStartLen)/2))
             loq_bytes = append(loq_bytes, buf[0:dn]...)
 
             prev_start := 0
@@ -369,18 +387,6 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
         }
 
-
-        loq_count++
-        if (loq_count%loq_stride)==0 {
-          //loq_offset = append(loq_offset, loq_byte_count)
-          //loq_position = append(loq_position, uint64(anchor_step))
-
-          tobyte64(buf, loq_byte_length)
-          loq_offset_bytes = append(loq_offset_bytes, buf[0:8]...)
-
-          tobyte64(buf, uint64(anchor_step))
-          loq_position_bytes = append(loq_offset_bytes, buf[0:8]...)
-        }
 
       }
 
@@ -706,23 +712,36 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
     // -------------
 
     var byt byte
-    for i:=0; i<len(loq_hethom_flag); i++ {
+    for i:=0; i<len(loq_hom_flag); i++ {
       if (i>0) && ((i%8)==0) {
-        loq_hethom_flag_bytes = append(loq_hethom_flag_bytes, byt)
+        loq_hom_flag_bytes = append(loq_hom_flag_bytes, byt)
         byt = 0
       }
 
-      if loq_hethom_flag[i] { byt |= (1<<uint8(i%8)); }
+      if loq_hom_flag[i] { byt |= (1<<uint8(i%8)); }
     }
-    if len(loq_hethom_flag)>0 {
-      loq_hethom_flag_bytes = append(loq_hethom_flag_bytes, byt)
+    if len(loq_hom_flag)>0 {
+      loq_hom_flag_bytes = append(loq_hom_flag_bytes, byt)
     }
 
     fmt.Printf("# loq_bytes(%d)", len(loq_bytes))
 
-    fin_loq_bytes := make([]byte, 8)
+    fin_loq_bytes := make([]byte, 0, 1024)
+
+    loq_byte_length = 0
+    loq_byte_length += 8  // length (this field)
+    loq_byte_length += 8  // NRecord
+    loq_byte_length += 8  // code
+    loq_byte_length += 8  // stride
+    loq_byte_length += uint64(len(loq_offset_bytes))
+    loq_byte_length += uint64(len(loq_position_bytes))
+    loq_byte_length += uint64(len(loq_hom_flag_bytes))
+    loq_byte_length += uint64(len(loq_bytes))
 
     tobyte64(buf, loq_byte_length)
+    fin_loq_bytes = append(fin_loq_bytes, buf[0:8]...)
+
+    tobyte64(buf, uint64(loq_count))
     fin_loq_bytes = append(fin_loq_bytes, buf[0:8]...)
 
     code := uint64(0)
@@ -735,7 +754,7 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
     fin_loq_bytes = append(fin_loq_bytes, loq_offset_bytes...)
     fin_loq_bytes = append(fin_loq_bytes, loq_position_bytes...)
-    fin_loq_bytes = append(fin_loq_bytes, loq_hethom_flag_bytes...)
+    fin_loq_bytes = append(fin_loq_bytes, loq_hom_flag_bytes...)
 
     fin_loq_bytes = append(fin_loq_bytes, loq_bytes...)
 
@@ -745,6 +764,7 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
     }
     fmt.Printf("\n")
 
+    print_low_quality_information(fin_loq_bytes)
 
     //DEBUG
     err := ioutil.WriteFile("./loq_bytes.bin", fin_loq_bytes, 0644)
@@ -755,5 +775,172 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
   ctx.CGF.Path[path_idx].Vector = packed_vec
 
   return nil
+
+}
+
+
+// debugging check...
+
+
+func print_low_quality_information(b []byte) {
+  n:=0
+
+  loq_len := byte2uint64(b[n:n+8])
+  n+=8
+  fmt.Printf("Length: %d (len(b) %d)\n", loq_len, len(b))
+
+  loq_rec := byte2uint64(b[n:n+8])
+  n+=8
+  fmt.Printf("NRecord: %d\n", loq_rec)
+
+  code := byte2uint64(b[n:n+8])
+  n+=8
+  fmt.Printf("Code: %d\n", code)
+
+  stride := byte2uint64(b[n:n+8])
+  n+=8
+  fmt.Printf("Stride: %d\n", stride)
+
+  n_ele := uint64((loq_rec+(stride-1))/stride)
+
+
+  fmt.Printf("Offset:")
+  for i:=uint64(0); i<n_ele; i++ {
+    k := byte2uint64(b[n:n+8])
+    n+=8
+
+    fmt.Printf(" %d", k)
+  }
+  fmt.Printf("\n")
+
+  fmt.Printf("StepPosition:")
+  for i:=uint64(0); i<n_ele; i++ {
+    k := byte2uint64(b[n:n+8])
+    n+=8
+
+    fmt.Printf(" %d", k)
+  }
+  fmt.Printf("\n")
+
+  hom_flag := make([]bool, 0, 8)
+
+  fmt.Printf("HomFlag:")
+  for i:=uint64(0); i<((loq_rec+7)/8); i++ {
+    fmt.Printf(" (%d)(%d):%02x", i*8, i, b[n:n+1])
+
+    v := uint8(b[n])
+    for ii:=uint8(0); ii<8; ii++ {
+      if (v&(1<<ii)) != 0 {
+        hom_flag = append(hom_flag, true)
+      } else {
+        hom_flag = append(hom_flag, false)
+      }
+    }
+
+    n++
+  }
+  fmt.Printf("\n")
+
+  fmt.Printf("LoqInfo[]:\n")
+
+  dn:=0
+  var ntile uint64
+
+  rec_no := 0
+  var n_entry, delpos, loqlen uint64
+  var ntilea,ntileb uint64
+
+  for n<len(b) {
+
+    if hom_flag[rec_no] {
+
+      ntile,dn = dlug.ConvertUint64(b[n:])
+      n+=dn
+
+      fmt.Printf("  [%d] (rec_no: %d, (rec_no/8): %d)\n", ntile, rec_no, rec_no/8)
+
+      for i:=uint64(0); i<ntile; i++ {
+
+        n_entry,dn = dlug.ConvertUint64(b[n:])
+        n+=dn
+
+        fmt.Printf("    [%d]", n_entry)
+
+        for j:=uint64(0); j<n_entry; j++ {
+          delpos,dn = dlug.ConvertUint64(b[n:])
+          n+=dn
+
+          loqlen,dn = dlug.ConvertUint64(b[n:])
+          n+=dn
+
+          fmt.Printf(" %d+%d", delpos, loqlen)
+        }
+
+        fmt.Printf("\n")
+
+      }
+
+    } else {
+
+      ntilea,dn = dlug.ConvertUint64(b[n:])
+      n+=dn
+
+      ntileb,dn = dlug.ConvertUint64(b[n:])
+      n+=dn
+
+      fmt.Printf("  [%d,%d] (rec_no: %d, (rec_no/8): %d)\n", ntilea,ntileb, rec_no, rec_no/8)
+
+      for i:=uint64(0); i<ntilea; i++ {
+
+        n_entry,dn = dlug.ConvertUint64(b[n:])
+        n+=dn
+
+        fmt.Printf("    A [%d]", n_entry)
+
+        for j:=uint64(0); j<n_entry; j++ {
+          delpos,dn = dlug.ConvertUint64(b[n:])
+          n+=dn
+
+          loqlen,dn = dlug.ConvertUint64(b[n:])
+          n+=dn
+
+          fmt.Printf(" %d+%d", delpos, loqlen)
+        }
+
+        fmt.Printf("\n")
+
+      }
+
+      for i:=uint64(0); i<ntileb; i++ {
+
+        n_entry,dn = dlug.ConvertUint64(b[n:])
+        n+=dn
+
+        fmt.Printf("    B [%d]", n_entry)
+
+        for j:=uint64(0); j<n_entry; j++ {
+          delpos,dn = dlug.ConvertUint64(b[n:])
+          n+=dn
+
+          loqlen,dn = dlug.ConvertUint64(b[n:])
+          n+=dn
+
+          fmt.Printf(" %d+%d", delpos, loqlen)
+        }
+
+        fmt.Printf("\n")
+
+      }
+
+
+    }
+
+    rec_no++
+
+    fmt.Printf("\n")
+
+  }
+
+
 
 }
