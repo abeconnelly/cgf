@@ -283,6 +283,8 @@ func print_zipper(sglf SGLF, allele_path [][]TileInfo) {
 
 func _main( c *cli.Context ) {
 
+
+  /*
   if c.String("input") == "" {
     fmt.Fprintf( os.Stderr, "Input required, exiting\n" )
     cli.ShowAppHelp( c )
@@ -295,6 +297,27 @@ func _main( c *cli.Context ) {
     os.Exit(1)
   }
   defer ain.Close()
+  */
+
+  inp_slice := c.StringSlice("input")
+  if len(inp_slice)==0 {
+    fmt.Fprintf( os.Stderr, "Input required, exiting\n" )
+    cli.ShowAppHelp( c )
+    os.Exit(1)
+  }
+
+  ain_slice := make([]autoio.AutoioHandle, 0, 8)
+  for i:=0; i<len(inp_slice); i++ {
+    inp_fn := inp_slice[i]
+    ain,err := autoio.OpenReadScanner(inp_fn) ; _ = ain
+    if err!=nil {
+      fmt.Fprintf(os.Stderr, "%v", err)
+      os.Exit(1)
+    }
+    defer ain.Close()
+    ain_slice = append(ain_slice, ain)
+  }
+
 
   aout,err := autoio.CreateWriter( c.String("output") ) ; _ = aout
   if err!=nil {
@@ -336,8 +359,8 @@ func _main( c *cli.Context ) {
 
   // Assumes a single path
   //
-  allele_path,e := load_sample_fastj(&ain)
-  if e!=nil { log.Fatal(e) }
+  //allele_path,e := load_sample_fastj(&ain)
+  //if e!=nil { log.Fatal(e) }
 
   //print_lookup(sglf, allele_path)
 
@@ -353,10 +376,25 @@ func _main( c *cli.Context ) {
   ctx.SGLF = &sglf
   CGFContext_construct_tilemap_lookup(&ctx)
 
-  //print_zipper(sglf, allele_path);
-  e = update_vector_path_simple(&ctx, 0x2c5, allele_path)
+  for i:=0; i<len(ain_slice); i++ {
+    ain := ain_slice[i]
 
-  fmt.Printf(">>>>> %v\n", e)
+    allele_path,e := load_sample_fastj(&ain)
+    if e!=nil { log.Fatal(e) }
+
+    p := 0x247
+    if i>0 { p = 0x2c5 }
+    e = update_vector_path_simple(&ctx, p, allele_path)
+    fmt.Printf(">>>>> [%d] (%x) %v\n", i, p, e)
+
+  }
+
+
+  write_cgf(&ctx, "out.cgf")
+
+
+  //print_zipper(sglf, allele_path);
+  //e = update_vector_path_simple(&ctx, 0x2c5, allele_path)
 
   /*
   for allele_idx:=0; allele_idx<len(allele_path); allele_idx++ {
@@ -388,7 +426,15 @@ func main() {
   app.Action = func( c *cli.Context ) { _main(c) }
 
   app.Flags = []cli.Flag{
+
+    /*(
     cli.StringFlag{
+      Name: "input, i",
+      Usage: "INPUT",
+    },
+    */
+
+    cli.StringSliceFlag{
       Name: "input, i",
       Usage: "INPUT",
     },

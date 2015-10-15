@@ -42,8 +42,10 @@ type PathStruct struct {
   Overflow OverflowStruct
   FinalOverflow FinalOverflowStruct
 
-  LowQualityHom LowQualityHomStruct
-  LowQualityHet LowQualityHetStruct
+  LowQualityBytes []byte
+
+  //LowQualityHom LowQualityHomStruct
+  //LowQualityHet LowQualityHetStruct
 }
 
 // --

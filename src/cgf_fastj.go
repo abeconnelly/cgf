@@ -190,7 +190,16 @@ func load_sample_fastj(scan *autoio.AutoioHandle) ([][]TileInfo, error) {
   if !first_tile {
     m5 := md5sum2str( md5.Sum(cur_seq) )
     if m5!=md5sum_str { return nil,fmt.Errorf("md5sums do not match %s != %s (line %d)", m5, md5sum_str, line_no) }
-    emit_fastj_tile(tilepath, tilestep, span_len, s_tag, cur_seq, e_tag)
+    ti := emit_fastj_tile(tilepath, tilestep, span_len, s_tag, cur_seq, e_tag)
+
+    if tilevar==0 {
+      allele_path[0] = append(allele_path[0], ti)
+    } else if tilevar==1 {
+      allele_path[1] = append(allele_path[1], ti)
+    } else {
+      return nil,fmt.Errorf("invalid tile variant allele %d", tilevar)
+    }
+
   }
 
   return allele_path,nil
