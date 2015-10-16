@@ -10,7 +10,8 @@ import "../src/dlug"
 
 const CGF_DEFAULT_LIBRARY_FILE string = "default_tile_map_v0.1.0.txt"
 const CGF_DEFAULT_LIBRARY_VERSION string = "0.1.0"
-const CGF_MAGIC uint64 = 0x7b226367662e6222
+//const CGF_MAGIC uint64 = 0x7b226367662e6222
+var CGF_MAGIC []byte = []byte{ '"', 'c', 'g', 'f', '.', 'b', '"', '{' }
 
 type TileMapEntry struct {
   Variant [][]int
@@ -141,10 +142,16 @@ func cgf_default_header_bytes() []byte {
   n := 0
   var dn int
 
+  /*
   Magic := uint64(CGF_MAGIC)
   tobyte64(tbuf[:8], Magic)
   buf = append(buf, tbuf[0:8]...)
   n+=8
+  */
+
+  buf = append(buf, CGF_MAGIC...)
+  n+=8
+
 
   // CGFVersion string
   //

@@ -3,6 +3,49 @@ package main
 import "fmt"
 import "strings"
 import "strconv"
+import "./dlug"
+
+func fill_slice_string(buf []byte, s string) ([]byte, int) {
+  var dn int
+  n:=0
+  tbuf := make([]byte, 8)
+
+  dn = dlug.FillSliceUint32(tbuf, uint32(len(s)))
+  buf = append(buf, tbuf[0:dn]...)
+  n += dn
+
+  buf = append(buf, []byte(s)...)
+  n+=len(s)
+
+  return buf, n
+
+}
+
+func create_tilemap_string_lookup2(step0,span0,step1,span1 []int) string {
+  b := make([]byte, 0, 1024)
+
+  for i:=0; i<len(step0); i++ {
+    if i>0 { b = append(b, ';') }
+    b = append(b, fmt.Sprintf("%x", step0[i])...)
+    if span0[i]>1 {
+      b = append(b, fmt.Sprintf("+%x", span0[i])...)
+    }
+  }
+
+  b = append(b, ':')
+
+  for i:=0; i<len(step1); i++ {
+    if i>0 { b = append(b, ';') }
+    b = append(b, fmt.Sprintf("%x", step1[i])...)
+    if span1[i]>1 {
+      b = append(b, fmt.Sprintf("+%x", span1[i])...)
+    }
+  }
+
+  return string(b)
+
+}
+
 
 func simple_text_field(line, field string) (string, int) {
 

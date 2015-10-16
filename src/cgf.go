@@ -283,6 +283,24 @@ func print_zipper(sglf SGLF, allele_path [][]TileInfo) {
 
 func _main( c *cli.Context ) {
 
+  inp_slice := c.StringSlice("input")
+  if len(inp_slice)==0 {
+    fmt.Fprintf( os.Stderr, "Input required, exiting\n" )
+    cli.ShowAppHelp( c )
+    os.Exit(1)
+  }
+
+
+  action := c.String("action")
+  if action == "debug" {
+
+    for i:=0; i<len(inp_slice); i++ {
+      debug_read(inp_slice[i])
+    }
+
+    return
+  }
+
 
   /*
   if c.String("input") == "" {
@@ -298,13 +316,6 @@ func _main( c *cli.Context ) {
   }
   defer ain.Close()
   */
-
-  inp_slice := c.StringSlice("input")
-  if len(inp_slice)==0 {
-    fmt.Fprintf( os.Stderr, "Input required, exiting\n" )
-    cli.ShowAppHelp( c )
-    os.Exit(1)
-  }
 
   ain_slice := make([]autoio.AutoioHandle, 0, 8)
   for i:=0; i<len(inp_slice); i++ {
@@ -376,6 +387,7 @@ func _main( c *cli.Context ) {
   ctx.SGLF = &sglf
   CGFContext_construct_tilemap_lookup(&ctx)
 
+
   for i:=0; i<len(ain_slice); i++ {
     ain := ain_slice[i]
 
@@ -387,8 +399,25 @@ func _main( c *cli.Context ) {
     e = update_vector_path_simple(&ctx, p, allele_path)
     fmt.Printf(">>>>> [%d] (%x) %v\n", i, p, e)
 
+    //ctx.CGF.StepPerPath[i] = uint64(len(allele_path))
+
+    if len(ctx.CGF.StepPerPath) < len(ain_slice) {
+      ctx.CGF.StepPerPath = append(ctx.CGF.StepPerPath, uint64(len(sglf.Lib[p])))
+    }
+
   }
 
+  ctx.CGF.PathCount = uint64(len(cgf.Path))
+  ctx.CGF.StepPerPath = make([]uint64, ctx.CGF.PathCount)
+  for i:=uint64(0); i<ctx.CGF.PathCount; i++ {
+    ctx.CGF.StepPerPath[i] = uint64(len(sglf.Lib[int(i)]))
+
+    /*
+    if len(ctx.CGF.LowQualityBytes[i])==0 {
+      ctx.CGF.LowQualityBytes[i] = append(ctx.CGF.LowQualityBytes[i], [24]byte{}...)
+    }
+    */
+  }
 
   write_cgf(&ctx, "out.cgf")
 

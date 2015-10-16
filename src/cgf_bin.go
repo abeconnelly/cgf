@@ -10,6 +10,7 @@ func write_cgf(ctx *CGFContext, ofn string) error {
   return write_cgf_bytes(b, ofn)
 }
 
+/*
 func fill_slice_string(buf []byte, s string) ([]byte, int) {
   var dn int
   n:=0
@@ -25,10 +26,10 @@ func fill_slice_string(buf []byte, s string) ([]byte, int) {
   return buf, n
 
 }
+*/
 
 func create_cgf_bytes(ctx *CGFContext) []byte {
   var dn int
-
 
   fin_bytes := make([]byte, 0, 1024*1024)
   buf := make([]byte, 128)
@@ -82,7 +83,7 @@ func create_cgf_bytes(ctx *CGFContext) []byte {
 
   PathOffset := make([]uint64, len(cgf.Path)+1)
   path_bytes := make([]byte, 0, 1024)
-  path_n:=0
+  //path_n:=0
   for i:=0; i<len(cgf.Path); i++ {
 
     PathOffset[i] = uint64(len(path_bytes))
@@ -90,19 +91,19 @@ func create_cgf_bytes(ctx *CGFContext) []byte {
 
     dn = dlug.FillSliceUint32(buf, uint32(len(p.Name)))
     path_bytes = append(path_bytes, buf[0:dn]...)
-    path_n += dn
+    //path_n += dn
 
     path_bytes = append(path_bytes, []byte(p.Name)...)
-    path_n += len(p.Name)
+    //path_n += len(p.Name)
 
     tobyte64(buf, uint64(len(p.Vector)))
     path_bytes = append(path_bytes, buf[0:8]...)
-    path_n+=8
+    //path_n+=8
 
     for j:=0; j<len(p.Vector); j++ {
       tobyte64(buf, p.Vector[j])
       path_bytes = append(path_bytes, buf[0:8]...)
-      path_n+=8
+      //path_n+=8
     }
 
     // Overflow
@@ -110,49 +111,53 @@ func create_cgf_bytes(ctx *CGFContext) []byte {
 
     tobyte64(buf, uint64(p.Overflow.Length))
     path_bytes = append(path_bytes, buf[0:8]...)
-    path_n+=8
+
     tobyte64(buf, uint64(p.Overflow.Stride))
     path_bytes = append(path_bytes, buf[0:8]...)
-    path_n+=8
 
     for j:=0; j<len(p.Overflow.Offset); j++ {
-      tobyte64(path_bytes, uint64(p.Overflow.Offset[j]))
+      tobyte64(buf, uint64(p.Overflow.Offset[j]))
       path_bytes = append(path_bytes, buf[0:8]...)
-      path_n+=8
     }
 
     for j:=0; j<len(p.Overflow.Position); j++ {
       tobyte64(buf, uint64(p.Overflow.Position[j]))
       path_bytes = append(path_bytes, buf[0:8]...)
-      path_n+=8
     }
 
+
     path_bytes = append(path_bytes, p.Overflow.Map...)
+
 
     // FinalOverflow
     //
 
     tobyte64(buf, uint64(p.FinalOverflow.Length))
     path_bytes = append(path_bytes, buf[0:8]...)
-    path_n+=8
-    tobyte64(path_bytes, uint64(p.FinalOverflow.Stride))
+
+    tobyte64(buf, uint64(p.FinalOverflow.Stride))
     path_bytes = append(path_bytes, buf[0:8]...)
-    path_n+=8
 
     for j:=0; j<len(p.FinalOverflow.Offset); j++ {
       tobyte64(buf, uint64(p.FinalOverflow.Offset[j]))
       path_bytes = append(path_bytes, buf[0:8]...)
-      path_n+=8
     }
 
     for j:=0; j<len(p.FinalOverflow.Position); j++ {
       tobyte64(buf, uint64(p.FinalOverflow.Position[j]))
       path_bytes = append(path_bytes, buf[0:8]...)
-      path_n+=8
     }
 
     path_bytes = append(path_bytes, p.FinalOverflow.DataRecord.Code...)
     path_bytes = append(path_bytes, p.FinalOverflow.DataRecord.Data...)
+
+    if len(p.LowQualityBytes)<24 {
+      b := make([]byte, 24)
+      path_bytes = append(path_bytes, b...)
+    } else {
+      path_bytes = append(path_bytes, p.LowQualityBytes...)
+    }
+
 
   }
 
@@ -176,6 +181,7 @@ func write_cgf_bytes(cgf_bytes []byte, ofn string) error {
   return nil
 }
 
+/*
 func create_tilemap_string_lookup2(step0,span0,step1,span1 []int) string {
   b := make([]byte, 0, 1024)
 
@@ -200,6 +206,8 @@ func create_tilemap_string_lookup2(step0,span0,step1,span1 []int) string {
   return string(b)
 
 }
+*/
+
 
 // Will overwrite cgf path structure if it exists, create a new path if it doesn't.
 // It will create a new PathStruct if one doesn't already exist.
@@ -615,7 +623,7 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
           p := overflow_count
           if (uint64(p)%overflow.Stride)==0 {
             overflow.Offset = append(overflow.Offset, uint64(len(overflow.Map)))
-            overflow.Position = append(overflow.Position, uint64(overflow_count))
+            overflow.Position = append(overflow.Position, uint64(anchor_step))
           }
 
           dn := dlug.FillSliceUint64(buf, uint64(tilemap_pos))
@@ -651,11 +659,14 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
         p := final_overflow_count
         if (uint64(p)%overflow.Stride)==0 {
-          final_overflow.Offset = append(final_overflow.Offset, uint64(len(final_overflow.Offset)))
-          final_overflow.Position = append(final_overflow.Position, uint64(final_overflow_count))
+          //final_overflow.Offset = append(final_overflow.Offset, uint64(len(final_overflow.Offset)))
+          final_overflow.Offset = append(final_overflow.Offset, uint64(len(final_overflow.DataRecord.Data)))
+          //final_overflow.Position = append(final_overflow.Position, uint64(final_overflow_count))
+          final_overflow.Position = append(final_overflow.Position, uint64(anchor_step))
         }
 
         final_overflow.DataRecord.Code = append(final_overflow.DataRecord.Code, uint8(1))
+
         dn := dlug.FillSliceUint64(buf, uint64(len(var_a0)))
         final_overflow.DataRecord.Data = append(final_overflow.DataRecord.Data, buf[:dn]...)
 
@@ -723,17 +734,38 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
   // Now we know the final size of the overflow structures so
   // fill in their length
   //
-  overflow.Length = 8 +
-    uint64(len(overflow.Offset)) +
-    uint64(len(overflow.Position)) +
-    uint64(len(overflow.Map))
 
-  final_overflow.Length = 8 +
-    uint64(len(final_overflow.Offset)) +
-    uint64(len(final_overflow.Position)) +
+  /*
+  overflow.Length = 8 + 8 +
+    uint64(len(overflow.Offset)*8) +
+    uint64(len(overflow.Position)*8) +
+    uint64(len(overflow.Map))
+  */
+  overflow.Length = uint64(overflow_count)
+
+  // Add in final byte position of Map
+  //if int( (uint64(len(overflow.Offset)) + overflow.Stride - 1) / overflow.Stride ) > len(overflow.Offset) {
+  if (overflow.Length%overflow.Stride) != 0 {
+    overflow.Offset = append(overflow.Offset, uint64(len(overflow.Map)))
+  }
+
+  //DEBUG
+  fmt.Printf("### DEBUG>>>>>> overflow.Length %d\n", overflow.Length)
+
+  /*
+  final_overflow.Length = 8 + 8 +
+    uint64(len(final_overflow.Offset)*8) +
+    uint64(len(final_overflow.Position)*8) +
     uint64(len(final_overflow.DataRecord.Code)) +
     uint64(len(final_overflow.DataRecord.Data))
+  */
+  final_overflow.Length = uint64(final_overflow_count)
 
+  // Add in final byte position of Map
+  //if int( (uint64(len(final_overflow.Offset)) + final_overflow.Stride - 1) / final_overflow.Stride ) > len(final_overflow.Offset) {
+  if (final_overflow.Length%final_overflow.Stride) != 0 {
+    final_overflow.Offset = append(final_overflow.Offset, uint64(len(final_overflow.DataRecord.Data)))
+  }
 
   packed_len := (len(ivec)+31)/32
   packed_vec := make([]uint64, packed_len)
