@@ -86,32 +86,47 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
   }
   fmt.Printf("\n")
 
-  tile_vec_offset := make([]uint64, pathcount+1)
+  path_struct_offset := make([]uint64, pathcount+1)
   for i:=uint64(0); i<=pathcount; i++  {
-    tile_vec_offset[i] = byte2uint64(cgf_bytes[n:n+8])
+    path_struct_offset[i] = byte2uint64(cgf_bytes[n:n+8])
     n+=8
   }
 
-  fmt.Printf("TileVectorOffset(%d):", len(tile_vec_offset))
+  fmt.Printf("PathOffset(%d):", len(path_struct_offset))
 
   for i:=uint64(0); i<=pathcount; i++  {
-    fmt.Printf(" %d", tile_vec_offset[i])
+    fmt.Printf(" %d", path_struct_offset[i])
   }
   fmt.Printf("\n")
 
+  skip_dots:=0
+
   path_bytes := cgf_bytes[n:]
-  for i:=1; i<len(tile_vec_offset); i++ {
+  for i:=1; i<len(path_struct_offset); i++ {
     tn := 0
-    offset := tile_vec_offset[i] ; _ = offset
-    path_b := path_bytes[tile_vec_offset[i-1]:tile_vec_offset[i]]
+    offset := path_struct_offset[i] ; _ = offset
+    path_b := path_bytes[path_struct_offset[i-1]:path_struct_offset[i]]
 
     s,dn = byte2string(path_b)
     tn += dn
 
-    fmt.Printf("  [%x] %s\n", i-1, s)
-
     z := byte2uint64(path_b[tn:tn+8])
     tn+=8
+
+    if z==0 {
+      if skip_dots%40 == 0 {
+        fmt.Printf("\n")
+      }
+
+      fmt.Printf(".")
+      skip_dots++
+      continue
+    }
+
+    skip_dots=0
+
+    fmt.Printf("\n")
+    fmt.Printf("  [%x] %s\n", i-1, s)
     fmt.Printf("  VectorLen: %d", z)
 
     if z>0 {
@@ -242,8 +257,8 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
         a1len,dn := dlug.ConvertUint64(path_b[tn:])
         tn+=dn
 
-        fmt.Printf("  Code:%d\n", code_bytes[i])
-        fmt.Printf("    A[%d]:", a0len)
+        fmt.Printf("  Code:%d ", code_bytes[i])
+        fmt.Printf(" A[%d]{", a0len)
 
         for ii:=uint64(0); ii<a0len; ii++ {
           a0var,dn := dlug.ConvertUint64(path_b[tn:])
@@ -254,9 +269,9 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
 
           fmt.Printf(" %x+%x", a0var, a0span)
         }
-        fmt.Printf("\n")
+        fmt.Printf(" }")
 
-        fmt.Printf("    B[%d]:", a1len)
+        fmt.Printf("    B[%d]{", a1len)
 
         for ii:=uint64(0); ii<a1len; ii++ {
           a1var,dn := dlug.ConvertUint64(path_b[tn:])
@@ -267,7 +282,7 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
 
           fmt.Printf(" %x+%x", a1var, a1span)
         }
-        fmt.Printf("\n")
+        fmt.Printf(" }\n")
 
       }
 
@@ -343,15 +358,13 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
           ntile,dn := dlug.ConvertUint64(path_b[tn:])
           tn+=dn
 
-          fmt.Printf("    Hom[%d]:\n", ntile)
+          fmt.Printf("    [%d] Hom[%d]:", i, ntile)
 
           for ii:=uint64(0); ii<ntile; ii++ {
             entry_len,dn := dlug.ConvertUint64(path_b[tn:])
             tn+=dn
 
-            fmt.Printf("      [%d]:", entry_len)
-
-            if ntile > 1000 { panic("sanity hom") }
+            fmt.Printf(" [%d]{", entry_len)
 
             for jj:=uint64(0); jj<entry_len; jj++ {
               delpos,dn := dlug.ConvertUint64(path_b[tn:])
@@ -362,7 +375,7 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
 
               fmt.Printf(" %x+%x", delpos, loqlen)
             }
-            fmt.Printf("\n")
+            fmt.Printf(" }\n")
 
           }
 
@@ -374,15 +387,13 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
           ntileb,dn := dlug.ConvertUint64(path_b[tn:])
           tn+=dn
 
-          fmt.Printf("    Het[%d,%d]:\n", ntilea,ntileb)
-
-          if ntilea > 1000 || ntileb > 1000 { panic("sanity het") }
+          fmt.Printf("    [%d] Het[%d,%d]:", i, ntilea,ntileb)
 
           for ii:=uint64(0); ii<ntilea; ii++ {
             entry_len,dn := dlug.ConvertUint64(path_b[tn:])
             tn+=dn
 
-            fmt.Printf("      A[%d]:", entry_len)
+            fmt.Printf(" A[%d]{", entry_len)
 
             for jj:=uint64(0); jj<entry_len; jj++ {
               delpos,dn := dlug.ConvertUint64(path_b[tn:])
@@ -393,14 +404,14 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
 
               fmt.Printf(" %x+%x", delpos, loqlen)
             }
-            fmt.Printf("\n")
+            fmt.Printf("}")
           }
 
           for ii:=uint64(0); ii<ntileb; ii++ {
             entry_len,dn := dlug.ConvertUint64(path_b[tn:])
             tn+=dn
 
-            fmt.Printf("      B[%d]:", entry_len)
+            fmt.Printf("    B[%d]{", entry_len)
 
             for jj:=uint64(0); jj<entry_len; jj++ {
               delpos,dn := dlug.ConvertUint64(path_b[tn:])
@@ -411,7 +422,7 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
 
               fmt.Printf(" %x+%x", delpos, loqlen)
             }
-            fmt.Printf("\n")
+            fmt.Printf(" }\n")
 
           }
 
@@ -421,10 +432,6 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
       }
 
     }
-
-
-
-    fmt.Printf("   >>>> tn %d, dn %d\n", tn, tile_vec_offset[i] - tile_vec_offset[i-1])
 
   }
 

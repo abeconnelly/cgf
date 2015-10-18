@@ -21,7 +21,7 @@ type CGF struct {
   TileMapLen          uint64
   TileMap             []byte
   StepPerPath         []uint64
-  TileVectorOffset    []uint64
+  PathOffset          []uint64
   Path                []PathStruct
 }
 

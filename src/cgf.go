@@ -299,6 +299,9 @@ func _main( c *cli.Context ) {
     }
 
     return
+  } else if action == "inspect" {
+
+
   }
 
 
@@ -493,7 +496,7 @@ func main() {
     cli.StringFlag{
       Name: "action, A",
       Value: "",
-      Usage: "(help|fastj2cgf)",
+      Usage: "(help|fastj2cgf|inspect)",
     },
 
     cli.IntFlag{

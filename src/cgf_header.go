@@ -209,7 +209,7 @@ func cgf_default_header_bytes() []byte {
     }
   }
 
-  // TileVectorOffset
+  // PathOffset
   //
   tile_vector_offset := make([]uint64, 0, 1024)
   if len(tile_vector_offset)>0 {
@@ -257,9 +257,9 @@ func fill_header_struct_from_bytes(cgf *CGF, b []byte) {
     n+=8
   }
 
-  cgf.TileVectorOffset = make([]uint64, cgf.PathCount)
+  cgf.PathOffset = make([]uint64, cgf.PathCount)
   for i:=uint64(0); i<cgf.PathCount; i++ {
-    cgf.TileVectorOffset[i] = byte2uint64(b[n:])
+    cgf.PathOffset[i] = byte2uint64(b[n:])
     n+=8
   }
 
