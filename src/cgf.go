@@ -20,6 +20,8 @@ var gProfileFile string = "cgf.pprof"
 var gMemProfileFlag bool
 var gMemProfileFile string = "cgf.mprof"
 
+var use_SGLF bool = false
+
 func tile_cmp(tile, lib string) bool {
   if len(tile) != len(lib) { return false }
   for i:=0; i<len(tile); i++ {
@@ -290,6 +292,8 @@ func _main( c *cli.Context ) {
     os.Exit(1)
   }
 
+  cglf_lib_location := c.String("cglf")
+
 
   action := c.String("action")
   if action == "debug" {
@@ -300,10 +304,48 @@ func _main( c *cli.Context ) {
 
     return
   } else if action == "inspect" {
+  } else if action == "fastj" {
 
 
+    tilepos_str := c.String("tilepos")
+    if len(tilepos_str)==0 { log.Fatal("missing tilepos") }
+
+    if use_SGLF {
+      sglf,e := LoadGenomeLibraryCSV(c.String("sglf"))
+      if e!=nil { log.Fatal(e) }
+
+      for i:=0; i<len(inp_slice); i++ {
+        e = print_tile(inp_slice[i], tilepos_str, sglf)
+        if e!=nil { log.Fatal(e) }
+      }
+    } else {
+      for i:=0; i<len(inp_slice); i++ {
+        e := print_tile2(inp_slice[i], tilepos_str, cglf_lib_location)
+        if e!=nil { log.Fatal(e) }
+      }
+
+    }
+
+    return
+  } else if action == "sglfbarf" {
+
+    sglf,e := LoadGenomeLibraryCSV(c.String("sglf"))
+    if e!=nil { log.Fatal(e) }
+
+    for path := range sglf.LibInfo {
+      for step := range sglf.LibInfo[path] {
+        for i:=0; i<len(sglf.LibInfo[path][step]); i++ {
+          fmt.Printf("%x,%x,%x.%x.%x+%x\n", path, step,
+            sglf.LibInfo[path][step][i].Path,
+            sglf.LibInfo[path][step][i].Step,
+            sglf.LibInfo[path][step][i].Variant,
+            sglf.LibInfo[path][step][i].Span)
+        }
+      }
+    }
+
+    return
   }
-
 
   /*
   if c.String("input") == "" {
@@ -384,7 +426,8 @@ func _main( c *cli.Context ) {
   cgf := CGF{}
 
   header_bytes := cgf_default_header_bytes()
-  fill_header_struct_from_bytes(&cgf, header_bytes)
+  //fill_header_struct_from_bytes(&cgf, header_bytes)
+  CGFFillHeader(&cgf, header_bytes)
 
   ctx.CGF = &cgf
   ctx.SGLF = &sglf
@@ -397,8 +440,9 @@ func _main( c *cli.Context ) {
     allele_path,e := load_sample_fastj(&ain)
     if e!=nil { log.Fatal(e) }
 
-    p := 0x247
-    if i>0 { p = 0x2c5 }
+    p := 0x2c5
+    if i>0 { p = 0x247 }
+
     e = update_vector_path_simple(&ctx, p, allele_path)
     fmt.Printf(">>>>> [%d] (%x) %v\n", i, p, e)
 
@@ -479,6 +523,11 @@ func main() {
     cli.StringFlag{
       Name: "sglf, S",
       Usage: "SGLF",
+    },
+
+    cli.StringFlag{
+      Name: "tilepos, p",
+      Usage: "Tile Position",
     },
 
     cli.StringFlag{

@@ -229,14 +229,15 @@ func cgf_default_header_bytes() []byte {
   return buf
 }
 
-func fill_header_struct_from_bytes(cgf *CGF, b []byte) {
+//func fill_header_struct_from_bytes(cgf *CGF, b []byte) {
+func CGFFillHeader(cgf *CGF, b []byte) {
   var dn int
   n:=0 ; _ = n
 
   cgf.Magic = byte2uint64(b)
   n+=8
 
-  cgf.CGFVersion,dn = byte2string(b[n:])
+  cgf.Version,dn = byte2string(b[n:])
   n+=dn
 
   cgf.LibraryVersion,dn = byte2string(b[n:])
@@ -257,11 +258,15 @@ func fill_header_struct_from_bytes(cgf *CGF, b []byte) {
     n+=8
   }
 
-  cgf.PathOffset = make([]uint64, cgf.PathCount)
-  for i:=uint64(0); i<cgf.PathCount; i++ {
-    cgf.PathOffset[i] = byte2uint64(b[n:])
-    n+=8
+  if cgf.PathCount>0 {
+    cgf.PathOffset = make([]uint64, cgf.PathCount+1)
+    for i:=uint64(0); i<=cgf.PathCount; i++ {
+      cgf.PathOffset[i] = byte2uint64(b[n:])
+      n+=8
+    }
   }
+
+  cgf.PathByteOffset = uint64(n)
 
   cgf.Path = make([]PathStruct, 0, 11000)
 
@@ -305,7 +310,7 @@ func print_header_info(cgf *CGF) {
 
   fmt.Printf("Magic %08x (%c %c %c %c %c %c %c %c)\n", cgf.Magic,
     magic_buf[0], magic_buf[1], magic_buf[2], magic_buf[3], magic_buf[4], magic_buf[5], magic_buf[6], magic_buf[7] )
-  fmt.Printf("CGFVersion %s\n", cgf.CGFVersion)
+  fmt.Printf("Version %s\n", cgf.Version)
   fmt.Printf("LibraryVersion %s\n", cgf.LibraryVersion)
   fmt.Printf("PathCount %d\n", cgf.PathCount)
   fmt.Printf("TileMapLen %d\n", cgf.TileMapLen)

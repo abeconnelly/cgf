@@ -15,7 +15,7 @@ type CGFContext struct {
 
 type CGF struct {
   Magic               uint64
-  CGFVersion          string
+  Version             string
   LibraryVersion      string
   PathCount           uint64
   TileMapLen          uint64
@@ -23,6 +23,8 @@ type CGF struct {
   StepPerPath         []uint64
   PathOffset          []uint64
   Path                []PathStruct
+
+  PathByteOffset      uint64
 }
 
 // --

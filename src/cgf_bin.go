@@ -5,6 +5,14 @@ import "./dlug"
 
 import "io/ioutil"
 
+//import "crypto/md5"
+
+/*
+  These set of functions are used to encode the sample
+  into it's binary format (the actual compact genome
+  format).
+*/
+
 func write_cgf(ctx *CGFContext, ofn string) error {
   b := create_cgf_bytes(ctx)
   return write_cgf_bytes(b, ofn)
@@ -28,6 +36,13 @@ func fill_slice_string(buf []byte, s string) ([]byte, int) {
 }
 */
 
+// ctx holds the populated CGF structure along with a
+// filled in SGLF structure, populated TileMapArray
+// and the variaous TileMapLookup and TileMapPosition.
+//
+// This returns the raw bytes as they're to be stored
+// on disk (or in memory presumably).
+//
 func create_cgf_bytes(ctx *CGFContext) []byte {
   var dn int
 
@@ -41,27 +56,11 @@ func create_cgf_bytes(ctx *CGFContext) []byte {
   fin_bytes = append(fin_bytes, buf[0:8]...)
   n+=8
 
-  fin_bytes, dn = fill_slice_string(fin_bytes, cgf.CGFVersion)
+  fin_bytes, dn = fill_slice_string(fin_bytes, cgf.Version)
   n += dn
-
-  /*
-  dn = dlug.FillSliceUint32(buf, uint32(len(cgf.CGFVersion)))
-  fin_bytes = append(fin_bytes[n:], buf[0:dn]...)
-  n += dn
-
-  fin_bytes = append(fin_bytes[n:], []byte(cgf.CGFVersion)...)
-  n+=len(cgf.CGFVersion)
-  */
-
-  //tobyte64(fin_bytes[n:], cgf.CGFVersion)
-  //n+=8
-
 
   fin_bytes, dn = fill_slice_string(fin_bytes, cgf.LibraryVersion)
   n += dn
-
-  //tobyte64(fin_bytes[n:], cgf.LibraryVersion)
-  //n+=8
 
   tobyte64(buf, cgf.PathCount)
   fin_bytes = append(fin_bytes, buf[0:8]...)
@@ -83,27 +82,29 @@ func create_cgf_bytes(ctx *CGFContext) []byte {
 
   PathOffset := make([]uint64, len(cgf.Path)+1)
   path_bytes := make([]byte, 0, 1024)
-  //path_n:=0
   for i:=0; i<len(cgf.Path); i++ {
+
+    // PathOffset is from the beginning of PathStruct array
+    //
 
     PathOffset[i] = uint64(len(path_bytes))
     p := cgf.Path[i]
 
+    // Name of this Path
+    //
     dn = dlug.FillSliceUint32(buf, uint32(len(p.Name)))
     path_bytes = append(path_bytes, buf[0:dn]...)
-    //path_n += dn
 
     path_bytes = append(path_bytes, []byte(p.Name)...)
-    //path_n += len(p.Name)
 
+    // The 'cache' Vector structure
+    //
     tobyte64(buf, uint64(len(p.Vector)))
     path_bytes = append(path_bytes, buf[0:8]...)
-    //path_n+=8
 
     for j:=0; j<len(p.Vector); j++ {
       tobyte64(buf, p.Vector[j])
       path_bytes = append(path_bytes, buf[0:8]...)
-      //path_n+=8
     }
 
     // Overflow
@@ -162,7 +163,6 @@ func create_cgf_bytes(ctx *CGFContext) []byte {
   }
 
   PathOffset[len(cgf.Path)] = uint64(len(path_bytes))
-  //for i:=0; i<len(PathOffset); i++ { cgf.TileVectorOffset[i] = PathOffset[i] }
 
   for i:=0; i<len(PathOffset); i++ {
     tobyte64(buf, PathOffset[i])
@@ -181,38 +181,10 @@ func write_cgf_bytes(cgf_bytes []byte, ofn string) error {
   return nil
 }
 
-/*
-func create_tilemap_string_lookup2(step0,span0,step1,span1 []int) string {
-  b := make([]byte, 0, 1024)
-
-  for i:=0; i<len(step0); i++ {
-    if i>0 { b = append(b, ';') }
-    b = append(b, fmt.Sprintf("%x", step0[i])...)
-    if span0[i]>1 {
-      b = append(b, fmt.Sprintf("+%x", span0[i])...)
-    }
-  }
-
-  b = append(b, ':')
-
-  for i:=0; i<len(step1); i++ {
-    if i>0 { b = append(b, ';') }
-    b = append(b, fmt.Sprintf("%x", step1[i])...)
-    if span1[i]>1 {
-      b = append(b, fmt.Sprintf("+%x", span1[i])...)
-    }
-  }
-
-  return string(b)
-
-}
-*/
-
 
 // Will overwrite cgf path structure if it exists, create a new path if it doesn't.
 // It will create a new PathStruct if one doesn't already exist.
 //
-//func update_vector_path_simple(cgf *CGF, sglf *SGLF, path_idx int, allele_path [][]TileInfo) {
 func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) error {
   cgf := ctx.CGF
   sglf := ctx.SGLF
@@ -400,6 +372,7 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
       var_idx1,e := lookup_variant_index(ti1.Seq, sglf.Lib[path1][step1])
       if e!=nil { return e }
 
+
       sglf_info1 = sglf.LibInfo[path1][step1][var_idx1]
 
       sglf_info1.Variant = var_idx1
@@ -442,9 +415,9 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
           loq_position_bytes = append(loq_position_bytes, buf[0:8]...)
 
           //DEBUG
-          fmt.Printf("### loq_count: %d\n", loq_count)
-          fmt.Printf("### loq_offset %d\n",len(loq_bytes))
-          fmt.Printf("### tile_position: %d\n", anchor_step)
+          //fmt.Printf("### loq_count: %d\n", loq_count)
+          //fmt.Printf("### loq_offset %d\n",len(loq_bytes))
+          //fmt.Printf("### tile_position: %d\n", anchor_step)
 
         }
         loq_count++
@@ -606,6 +579,7 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
         //if tilemap_pos < 13 {
         if (!loq_tile) && (tilemap_pos < 13) {
           ivec[anchor_step] = tilemap_pos
+
         } else {
 
           // overflow
@@ -749,9 +723,6 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
     overflow.Offset = append(overflow.Offset, uint64(len(overflow.Map)))
   }
 
-  //DEBUG
-  fmt.Printf("### DEBUG>>>>>> overflow.Length %d\n", overflow.Length)
-
   /*
   final_overflow.Length = 8 + 8 +
     uint64(len(final_overflow.Offset)*8) +
@@ -783,7 +754,8 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
       // 32/4 hexits available
       // fill in from right to left
       //
-      if hexit_ovf_count < (16) {
+      //if hexit_ovf_count < (16) {
+      if hexit_ovf_count < (32/4) {
 
 
         if ivec[ivec_pos] == -1 {
@@ -812,7 +784,8 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
           // otherwise we can encode the tile lookup in the hexit
           //
-          packed_vec[i] |= (uint64(ivec[ivec_pos]&0xff)<<(4*hexit_ovf_count))
+          //packed_vec[i] |= (uint64(ivec[ivec_pos]&0xff)<<(4*hexit_ovf_count))
+          packed_vec[i] |= (uint64(ivec[ivec_pos]&0xf)<<(4*hexit_ovf_count))
 
         }
 
@@ -986,8 +959,8 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
     print_low_quality_information(fin_loq_bytes)
 
     //DEBUG
-    err := ioutil.WriteFile("./loq_bytes.bin", fin_loq_bytes, 0644)
-    if err!=nil { panic(err); }
+    //err := ioutil.WriteFile("./loq_bytes.bin", fin_loq_bytes, 0644)
+    //if err!=nil { panic(err); }
 
   }
 

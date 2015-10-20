@@ -92,7 +92,7 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
     n+=8
   }
 
-  fmt.Printf("PathOffset(%d):", len(path_struct_offset))
+  fmt.Printf("PathOffset(%d, offset %d):", len(path_struct_offset), n)
 
   for i:=uint64(0); i<=pathcount; i++  {
     fmt.Printf(" %d", path_struct_offset[i])

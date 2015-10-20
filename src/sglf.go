@@ -1,1 +1,1 @@
-../../cglf/src/sglf.go
+../../cglf/sglf.go
