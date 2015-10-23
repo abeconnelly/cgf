@@ -60,7 +60,12 @@ func _fofsi_knot(vid []int) (cgfintermediate,int) {
   return knot,pos
 }
 
-func get_knot(pathi pathintermediate, anchor_step int) {
+func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, anchor_step int) [][]TileInfo {
+
+  tia := make([][]TileInfo, 2)
+  tia[0] = make([]TileInfo, 0, 1)
+  tia[1] = make([]TileInfo, 0, 1)
+
 
   // DEBUG
   //====
@@ -72,7 +77,14 @@ func get_knot(pathi pathintermediate, anchor_step int) {
 
   if (pathi.veci[vec_slice] & (1<<uint(32+m))) == 0 {
     fmt.Printf("canonical tile\n")
-    return
+
+    ti:=TileInfo{}
+    ti.Span = tilemap[0].Span[0][0]
+    ti.VarId = tilemap[0].Variant[0][0]
+
+    tia[0] = append(tia[0], ti)
+    tia[1] = append(tia[1], ti)
+    return tia
   }
 
   cache_counter := 0
@@ -88,12 +100,29 @@ func get_knot(pathi pathintermediate, anchor_step int) {
 
     if hexit == 0 {
       fmt.Printf("span tile\n")
-      return
+      return nil
     }
 
     if hexit < 0xd {
       fmt.Printf("cache mapped %d\n", hexit)
-      return
+
+      for allele:=0; allele<2; allele++ {
+        for i:=0; i<len(tilemap[hexit].Variant[allele]); i++ {
+          ti:=TileInfo{}
+          ti.Span = tilemap[hexit].Span[allele][i]
+          ti.VarId = tilemap[hexit].Variant[allele][i]
+          tia[allele] = append(tia[allele], ti)
+        }
+      }
+
+      /*
+      ti1:=TileInfo{}
+      ti1.Span = tilemap[hexit].Span[1][0]
+      ti1.VarId = tilemap[hexit].Variant[1][0]
+      tia[1] = append(tia[1], ti1)
+      */
+
+      return tia
     }
 
   }
@@ -107,7 +136,7 @@ func get_knot(pathi pathintermediate, anchor_step int) {
 
   if pathi.ofsi.span_flag[ovf_pos] {
     fmt.Printf(" oveflow spanning tile (loq %v)\n", loq_flag)
-    return
+    return nil
   }
 
   if !pathi.ofsi.final_overflow_flag[ovf_pos] {
@@ -118,7 +147,20 @@ func get_knot(pathi pathintermediate, anchor_step int) {
       if pathi.loqi.loq_flag[anchor_step] { loq_flag = true }
       fmt.Printf(" overflow: tilemap %d (loq %v)\n", pathi.ofsi.tilemap[ovf_pos], loq_flag)
     }
-    return
+
+    tm := pathi.ofsi.tilemap[ovf_pos]
+
+    for allele:=0; allele<2; allele++ {
+      for i:=0; i<len(tilemap[tm].Variant[allele]); i++ {
+        ti:=TileInfo{}
+        ti.Span = tilemap[tm].Span[allele][i]
+        ti.VarId = tilemap[tm].Variant[allele][i]
+        tia[allele] = append(tia[allele], ti)
+      }
+    }
+
+
+    return tia
   }
 
   if pathi.loqi.loq_flag[anchor_step] { loq_flag = true }
@@ -128,7 +170,17 @@ func get_knot(pathi pathintermediate, anchor_step int) {
     if pathi.fofsi.tilepos[i] == anchor_step {
       knot,_ := _fofsi_knot(pathi.fofsi.variant_ints[cur_pos:])
       fmt.Printf(" final oveflow: (loq %v) %v\n", loq_flag, knot)
-      return
+
+      for allele:=0; allele<2; allele++ {
+        for i:=0; i<len(knot.varid[allele]); i++ {
+          ti:=TileInfo{}
+          ti.Span = knot.span[allele][i]
+          ti.VarId = knot.varid[allele][i]
+          tia[allele] = append(tia[allele], ti)
+        }
+      }
+
+      return tia
     }
 
     dn := _skip_fofsi(pathi.fofsi.variant_ints[cur_pos:])
@@ -138,5 +190,6 @@ func get_knot(pathi pathintermediate, anchor_step int) {
 
   fmt.Printf("error\n")
 
+  return nil
 
 }

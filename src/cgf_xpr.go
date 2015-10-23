@@ -785,7 +785,7 @@ func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
   loq_info_byte_count := int(dummy) ; _ = loq_info_byte_count
 
 
-  // man loq array
+  // main loq array
   //
   rec_pos:=0
   byte_offset := 0
@@ -1169,7 +1169,64 @@ func pathintermediate_from_bytes(b []byte) (pathintermediate,int) {
   return pathi,n
 }
 
-//====                 _ _
+
+func construct_loq_map(loqi loqintermediate) map[int]map[int][]int {
+  loq_map := make(map[int]map[int][]int)
+
+  pos := 0
+  for i:=0; i<len(loqi.tilepos); i++ {
+    anchor_step := loqi.tilepos[i]
+
+    fmt.Printf("construct_loq_map anchor_step %d\n", anchor_step)
+
+    loq_map[anchor_step] = make(map[int][]int)
+
+    ntile := make([]int, 1)
+    ntile[0] = loqi.loqinfo_ints[pos]
+    pos++
+
+    fmt.Printf("  %v\n", ntile)
+
+    if loqi.homflag[anchor_step] {
+      ntile = append(ntile, loqi.loqinfo_ints[pos])
+      pos++
+
+      fmt.Printf(" +%v\n", ntile)
+
+    }
+
+    for allele:=0; allele<len(ntile); allele++ {
+      for ii:=0; ii<ntile[allele]; ii++ {
+        l := loqi.loqinfo_ints[pos]
+        pos++
+
+        fmt.Printf("   [%d][%d] m %d\n", allele, ii, l)
+
+
+        for jj:=0; jj<l; jj+=2 {
+          delpos := loqi.loqinfo_ints[pos] ; _ = delpos
+          pos++
+
+          fmt.Printf("      [%d][%d] delpos %d\n", allele, ii, delpos)
+
+          loqlen := loqi.loqinfo_ints[pos] ; _ = loqlen
+          pos++
+
+          fmt.Printf("      [%d][%d] loqlen %d\n", allele, ii, loqlen)
+
+
+        }
+      }
+    }
+
+  }
+
+  return loq_map
+
+}
+
+
+//====                  _ _
 //====    ___ _ __ ___ (_) |_
 //====   / _ \ '_ ` _ \| | __|
 //====  |  __/ | | | | | | |_
@@ -1874,18 +1931,82 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
 
   patho,_ := pathintermediate_from_bytes(path_bytes)
 
+  fmt.Printf("LOQDUMP\n")
+  for i:=0; i<len(patho.loqi.loqinfo_ints); i++ {
+    fmt.Printf("[%d] %d\n", i, patho.loqi.loqinfo_ints[i])
+  }
+
+  loq_map := construct_loq_map(patho.loqi) ; _ = loq_map
+
   //TESTING
 
-  get_knot(patho, 0x9)
-  get_knot(patho, 0x2f)
-  get_knot(patho, 0x41)
-  get_knot(patho, 0x42)
-  get_knot(patho, 0x6f)
-  get_knot(patho, 0x2a2)
-  get_knot(patho, 0x2b4)
-  get_knot(patho, 0x2b6)
-  get_knot(patho, 0x798)
-  get_knot(patho, 0x991)
+  tilemap := unpack_tilemap(ctx.CGF.TileMap)
+
+  /*
+  fmt.Printf("TILEMAP (%d)\n", len(tilemap))
+  for i:=0; i<len(tilemap); i++ {
+    fmt.Printf("%d %v %v\n", tilemap[i].TileMap, tilemap[i].Variant, tilemap[i].Span)
+  }
+  return path_bytes, nil
+  */
+
+  //sglf = ctx.SGLF
+
+  fmt.Printf("knots\n")
+
+  for step:=0; step<0x991; step++ {
+
+    ti := get_knot(ctx, tilemap, patho, step)
+    fmt.Printf("0x9 %v\n", ti)
+
+    if ti!=nil {
+
+      for allele:=0; allele<len(ti); allele++ {
+        cur_step := step
+        for i:=0; i<len(ti[allele]); i++ {
+          seq := sglf.Lib[path_idx][cur_step][ti[allele][i].VarId]
+          fmt.Printf("\n\n")
+          fmt.Printf("> { \"%x.%x.%x.%x+%x\" }\n",
+            path_idx, 0, cur_step, ti[allele][i].VarId, ti[allele][i].Span)
+          print_fold_seq(seq, 50)
+
+          cur_step += ti[allele][i].Span
+          //fmt.Printf("%s\n", seq)
+        }
+      }
+    }
+
+  }
+
+
+  /*
+  ti := get_knot(ctx, tilemap, patho, 0x2f)
+  fmt.Printf("0x2f %v\n", ti)
+
+  ti = get_knot(ctx, tilemap, patho, 0x41)
+  fmt.Printf("0x41 %v\n", ti)
+
+  ti = get_knot(ctx, tilemap, patho, 0x42)
+  fmt.Printf("0x42 %v\n", ti)
+
+  ti = get_knot(ctx, tilemap, patho, 0x6f)
+  fmt.Printf("0x6f %v\n", ti)
+
+  ti = get_knot(ctx, tilemap, patho, 0x2a2)
+  fmt.Printf("0x2a2 %v\n", ti)
+
+  ti = get_knot(ctx, tilemap, patho, 0x2b4)
+  fmt.Printf("0x2b4 %v\n", ti)
+
+  ti = get_knot(ctx, tilemap, patho, 0x2b6)
+  fmt.Printf("0x2b6 %v\n", ti)
+
+  ti = get_knot(ctx, tilemap, patho, 0x798)
+  fmt.Printf("0x798 %v\n", ti)
+
+  ti = get_knot(ctx, tilemap, patho, 0x991)
+  fmt.Printf("0x991 %v\n", ti)
+  */
 
   /*
   get_knot(pathi, 0x9)
