@@ -202,7 +202,12 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
   //DEBUG
   fmt.Printf("INTERMEDIATE\n")
-  emit_intermediate(ctx, path_idx, allele_path)
+  //emit_intermediate(ctx, path_idx, allele_path)
+  path_bytes,err := emit_path_bytes(ctx, path_idx, allele_path)
+  _ = path_bytes
+  _ = err
+
+
 
   g_debug := true
 

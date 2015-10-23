@@ -5,6 +5,15 @@ import "./dlug"
 
 //import "crypto/md5"
 
+type pathintermediate struct {
+  name string
+  veci []uint64
+  cgfi cgfintermediate
+  ofsi overflowintermediate
+  fofsi finaloverflowintermediate
+  loqi loqintermediate
+}
+
 type cgfintermediate struct {
   step  [][]int
   seq   [][]string
@@ -19,7 +28,7 @@ type cgfintermediate struct {
   tot_span int
 }
 
-type offsetintermediate struct {
+type overflowintermediate struct {
   recno int
   stride int
   tilepos []int
@@ -32,10 +41,11 @@ type offsetintermediate struct {
   span_flag []bool
 }
 
-type finaloffsetintermediate struct {
+type finaloverflowintermediate struct {
   recno int
   tilepos []int
-  variant_ints []int
+  variant_ints []int  // format is { step { nallele { l0 { var + span , ... } } { l1 { var + span ... } } } }
+                      // NOTE: l0 and l1 are number of record.  i.e. l0 will be 1 if there is only one var+span combo
 }
 
 type vectorelement struct {
@@ -179,14 +189,14 @@ func _init_knot(knot *cgfintermediate) {
   knot.nocall_start_len = make([][][]int, 2)
 }
 
-//=====         __  __          _   _       _                               _ _       _
-//=====   ___  / _|/ _|___  ___| |_(_)_ __ | |_ ___ _ __ _ __ ___   ___  __| (_) __ _| |_ ___
-//=====  / _ \| |_| |_/ __|/ _ \ __| | '_ \| __/ _ \ '__| '_ ` _ \ / _ \/ _` | |/ _` | __/ _ \
-//===== | (_) |  _|  _\__ \  __/ |_| | | | | ||  __/ |  | | | | | |  __/ (_| | | (_| | ||  __/
-//=====  \___/|_| |_| |___/\___|\__|_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
-//=====
+//====                        __ _               _       _                               _ _       _
+//====    _____   _____ _ __ / _| | _____      _(_)_ __ | |_ ___ _ __ _ __ ___   ___  __| (_) __ _| |_ ___
+//====   / _ \ \ / / _ \ '__| |_| |/ _ \ \ /\ / / | '_ \| __/ _ \ '__| '_ ` _ \ / _ \/ _` | |/ _` | __/ _ \
+//====  | (_) \ V /  __/ |  |  _| | (_) \ V  V /| | | | | ||  __/ |  | | | | | |  __/ (_| | | (_| | ||  __/
+//====   \___/ \_/ \___|_|  |_| |_|\___/ \_/\_/ |_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
+//====
 
-func offsetintermediate_cmp(ofsi0, ofsi1 offsetintermediate) error {
+func overflowintermediate_cmp(ofsi0, ofsi1 overflowintermediate) error {
   if ofsi0.stride != ofsi1.stride { return fmt.Errorf("stride mismatch") }
   if len(ofsi0.tilepos) != len(ofsi1.tilepos) { return fmt.Errorf("tilepos length mismatch") }
   if len(ofsi0.tilemap) != len(ofsi1.tilemap) { return fmt.Errorf("tilemap length mismatch") }
@@ -216,8 +226,8 @@ func offsetintermediate_cmp(ofsi0, ofsi1 offsetintermediate) error {
   return nil
 }
 
-func offsetintermediate_from_bytes(b []byte) offsetintermediate {
-  ofsi := offsetintermediate{}
+func overflowintermediate_from_bytes(b []byte) (overflowintermediate,int) {
+  ofsi := overflowintermediate{}
 
   var dummy uint64
   var dn int
@@ -299,17 +309,10 @@ func offsetintermediate_from_bytes(b []byte) offsetintermediate {
 
   }
 
-  /*
-  fmt.Printf("converted tilemap %d (read_rec %d, |span_flag| = %d):\n", len(ofsi.tilemap), read_rec, len(ofsi.span_flag))
-  for i:=0; i<len(ofsi.tilemap); i++ {
-    fmt.Printf("  [%d] %d\n", i, ofsi.tilemap[i])
-  }
-  */
-
-  return ofsi
+  return ofsi,n
 }
 
-func bytes_from_offsetintermediate(ofsi offsetintermediate) []byte {
+func bytes_from_overflowintermediate(ofsi overflowintermediate) []byte {
   buf := make([]byte, 64)
   offset_bytes := make([]byte, 0, 1024)
 
@@ -365,8 +368,8 @@ func bytes_from_offsetintermediate(ofsi offsetintermediate) []byte {
 
 }
 
-func construct_offset_intermediate(ctx *CGFContext, prep_vector []vectorelement) offsetintermediate {
-  ofsi := offsetintermediate{}
+func construct_offset_intermediate(ctx *CGFContext, prep_vector []vectorelement) overflowintermediate {
+  ofsi := overflowintermediate{}
 
   ofsi.tilepos = make([]int, 0, 1024)
   ofsi.tilemap = make([]int, 0, 1024)
@@ -407,13 +410,14 @@ func construct_offset_intermediate(ctx *CGFContext, prep_vector []vectorelement)
 //========================================================================
 //========================================================================
 
-//====    __ _             _        __  __          _   _       _                               _ _       _
-//====   / _(_)_ __   __ _| | ___  / _|/ _|___  ___| |_(_)_ __ | |_ ___ _ __ _ __ ___   ___  __| (_) __ _| |_ ___
-//====  | |_| | '_ \ / _` | |/ _ \| |_| |_/ __|/ _ \ __| | '_ \| __/ _ \ '__| '_ ` _ \ / _ \/ _` | |/ _` | __/ _ \
-//====  |  _| | | | | (_| | | (_) |  _|  _\__ \  __/ |_| | | | | ||  __/ |  | | | | | |  __/ (_| | | (_| | ||  __/
-//====  |_| |_|_| |_|\__,_|_|\___/|_| |_| |___/\___|\__|_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
+//====    __ _             _                      __ _               _       _                               _ _       _
+//====   / _(_)_ __   __ _| | _____   _____ _ __ / _| | _____      _(_)_ __ | |_ ___ _ __ _ __ ___   ___  __| (_) __ _| |_ ___
+//====  | |_| | '_ \ / _` | |/ _ \ \ / / _ \ '__| |_| |/ _ \ \ /\ / / | '_ \| __/ _ \ '__| '_ ` _ \ / _ \/ _` | |/ _` | __/ _ \
+//====  |  _| | | | | (_| | | (_) \ V /  __/ |  |  _| | (_) \ V  V /| | | | | ||  __/ |  | | | | | |  __/ (_| | | (_| | ||  __/
+//====  |_| |_|_| |_|\__,_|_|\___/ \_/ \___|_|  |_| |_|\___/ \_/\_/ |_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
+//====
 
-func finaloffsetintermediate_cmp(fofsi0, fofsi1 finaloffsetintermediate) error {
+func finaloverflowintermediate_cmp(fofsi0, fofsi1 finaloverflowintermediate) error {
   if len(fofsi0.tilepos)!=len(fofsi1.tilepos) {
     return fmt.Errorf( fmt.Sprintf("tilepos length mismatch: %d != %d", len(fofsi0.tilepos), len(fofsi1.tilepos)) )
   }
@@ -431,8 +435,8 @@ func finaloffsetintermediate_cmp(fofsi0, fofsi1 finaloffsetintermediate) error {
   return nil
 }
 
-func finaloffsetintermediate_from_bytes(b []byte) finaloffsetintermediate {
-  fofsi := finaloffsetintermediate{}
+func finaloverflowintermediate_from_bytes(b []byte) (finaloverflowintermediate,int) {
+  fofsi := finaloverflowintermediate{}
 
   fofsi.tilepos = make([]int, 0, 1024)
 
@@ -508,11 +512,11 @@ func finaloffsetintermediate_from_bytes(b []byte) finaloffsetintermediate {
 
   }
 
-  return fofsi
+  return fofsi,n
 
 }
 
-func bytes_from_finaloffsetintermediate(fofsi finaloffsetintermediate) []byte {
+func bytes_from_finaloverflowintermediate(fofsi finaloverflowintermediate) []byte {
   buf := make([]byte, 64)
   fof_bytes := make([]byte, 0, 1024)
 
@@ -547,8 +551,8 @@ func bytes_from_finaloffsetintermediate(fofsi finaloffsetintermediate) []byte {
   return fof_bytes
 }
 
-func construct_final_offset_intermediate(ctx *CGFContext, prep_vector []vectorelement) finaloffsetintermediate {
-  fofsi := finaloffsetintermediate{}
+func construct_final_offset_intermediate(ctx *CGFContext, prep_vector []vectorelement) finaloverflowintermediate {
+  fofsi := finaloverflowintermediate{}
 
   fofsi.tilepos = make([]int, 0, 1024)
   fofsi.variant_ints = make([]int, 0, 1024)
@@ -601,15 +605,20 @@ func construct_uint64_vector(ctx *CGFContext, prep_vector []vectorelement) []uin
         //
         if prep_vector[i+j].span_flag { continue }
 
+        hexit := 0xf
+        if prep_vector[i+j].loq_flag { hexit = 0xe }
+
 
         // generic overflow
         //
         if prep_vector[i+j].ovf_flag {
-          cur_v |= 0xf << (4*uint(prep_vector[i+j].hexit_pos))
+          //cur_v |= 0xf << (4*uint(prep_vector[i+j].hexit_pos))
+          cur_v |= uint64(uint(hexit) << (4*uint(prep_vector[i+j].hexit_pos)))
           continue
         }
 
-        cur_v |= uint64( (uint(prep_vector[i+j].knot.tilemap_pos) & 0xf) << (4*uint(prep_vector[i+j].hexit_pos)) )
+        //cur_v |= uint64( (uint(prep_vector[i+j].knot.tilemap_pos) & 0xf) << (4*uint(prep_vector[i+j].hexit_pos)) )
+        cur_v |= uint64( (uint(prep_vector[i+j].knot.tilemap_pos) & uint(hexit)) << (4*uint(prep_vector[i+j].hexit_pos)) )
 
       }
 
@@ -685,7 +694,7 @@ func loqintermediate_cmp(loqi0, loqi1 loqintermediate) error {
 
 }
 
-func loqintermediate_from_bytes(b []byte) loqintermediate {
+func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
   loqi := loqintermediate{}
 
   var dummy uint64
@@ -699,26 +708,17 @@ func loqintermediate_from_bytes(b []byte) loqintermediate {
   rec_count := int(dummy)
   loqi.count = rec_count
 
-  //DEBUG
-  fmt.Printf("rec_count %d\n", rec_count)
-
   dummy = byte2uint64(b[n:n+8])
   n+=8
 
   code := int(dummy)
   loqi.code = code
 
-  //DEBUG
-  fmt.Printf("code: %d\n", code)
-
   dummy = byte2uint64(b[n:n+8])
   n+=8
 
   stride := int(dummy)
   loqi.stride = stride
-
-  //DEBUG
-  fmt.Printf("stride: %d\n", stride)
 
   offset_idx := make([]int, (rec_count+stride-1)/stride)
   for i:=0; i<(rec_count+stride-1)/stride; i++ {
@@ -728,15 +728,6 @@ func loqintermediate_from_bytes(b []byte) loqintermediate {
     offset_idx[i] = int(dummy)
   }
 
-  //loqi.offset_idx = append(loqi.offset_idx, offset_idx...)
-
-  //DEBUG
-  for i:=0; i<len(offset_idx); i++ {
-    fmt.Printf("offset[%d]: %d\n", i, offset_idx[i])
-  }
-
-
-
 
   tilepos_idx := make([]int, (rec_count+stride-1)/stride)
   for i:=0; i<(rec_count+stride-1)/stride; i++ {
@@ -744,14 +735,6 @@ func loqintermediate_from_bytes(b []byte) loqintermediate {
     n+=8
 
     tilepos_idx[i] = int(dummy)
-  }
-
-
-  //loqi.tilepos_idx
-
-  //DEBUG
-  for i:=0; i<len(tilepos_idx); i++ {
-    fmt.Printf("tilepos[%d]: %d\n", i, tilepos_idx[i])
   }
 
 
@@ -784,8 +767,6 @@ func loqintermediate_from_bytes(b []byte) loqintermediate {
 
   loqflag_bytecount := int(dummy)
 
-  fmt.Printf("loqflag_bytecount %d\n", loqflag_bytecount)
-
   loq_flag_vec := b[n:n+loqflag_bytecount]
   n+=loqflag_bytecount
 
@@ -804,11 +785,6 @@ func loqintermediate_from_bytes(b []byte) loqintermediate {
   loq_info_byte_count := int(dummy) ; _ = loq_info_byte_count
 
 
-
-  //DEBUG
-  fmt.Printf("loq byte count %d\n", loq_info_byte_count)
-  fmt.Printf("BYTE LOQ DEBUG\n")
-
   // man loq array
   //
   rec_pos:=0
@@ -824,9 +800,6 @@ func loqintermediate_from_bytes(b []byte) loqintermediate {
     ntile[0] = int(dummy)
     loqi.loqinfo_ints = append(loqi.loqinfo_ints, int(ntile[0]))
 
-    //fmt.Printf("rec_pos %d, loqi.homflag len %d\n", rec_pos, len(loqi.homflag))
-    fmt.Printf(" loq[%d] n[0] %d\n", rec_pos, ntile[0])
-
     if !loqi.homflag[rec_pos] {
 
 
@@ -835,8 +808,6 @@ func loqintermediate_from_bytes(b []byte) loqintermediate {
       byte_offset+=dn
 
       ntile = append(ntile, int(dummy))
-
-      fmt.Printf("+loq[%d] n[1] %d\n", rec_pos, ntile[1])
 
       loqi.loqinfo_ints = append(loqi.loqinfo_ints, int(ntile[1]))
     }
@@ -855,9 +826,6 @@ func loqintermediate_from_bytes(b []byte) loqintermediate {
         m := int(dummy)
         loqi.loqinfo_ints = append(loqi.loqinfo_ints, int(m))
 
-        fmt.Printf("   loq[%d][%d] mlen %d\n", rec_pos, allele, m)
-
-        //run_sum := 0
         for j:=0; j<m; j+=2 {
           dummy,dn := dlug.ConvertUint64(b[n:])
           n+=dn
@@ -871,12 +839,8 @@ func loqintermediate_from_bytes(b []byte) loqintermediate {
 
           l:=int(dummy)
 
-          fmt.Printf("      loq[%d][%d] %d+%d\n", rec_pos, allele, delpos, l)
-
-          //loqi.loqinfo_ints = append(loqi.loqinfo_ints, run_sum+delpos)
           loqi.loqinfo_ints = append(loqi.loqinfo_ints, delpos)
           loqi.loqinfo_ints = append(loqi.loqinfo_ints, l)
-          //run_sum += delpos
         }
       }
     }
@@ -885,8 +849,7 @@ func loqintermediate_from_bytes(b []byte) loqintermediate {
 
   }
 
-  return loqi
-
+  return loqi,n
 }
 
 func bytes_from_loqintermediate(loqi loqintermediate) []byte {
@@ -995,8 +958,6 @@ func bytes_from_loqintermediate(loqi loqintermediate) []byte {
   tobyte64(buf, uint64(len(loq_flag)))
   loq_bytes = append(loq_bytes, buf[0:8]...)
   loq_bytes = append(loq_bytes, loq_flag...)
-
-  fmt.Printf("writing loq_flag %d %v\n", len(loq_flag), buf[0:8])
 
   tobyte64(buf, uint64(loq_info_byte_count))
   loq_bytes = append(loq_bytes, buf[0:8]...)
@@ -1136,6 +1097,78 @@ func construct_loq_intermediate(ctx *CGFContext, prep_vector []vectorelement) lo
   return loqi
 }
 
+//====               _   _     _       _                               _ _       _
+//====   _ __   __ _| |_| |__ (_)_ __ | |_ ___ _ __ _ __ ___   ___  __| (_) __ _| |_ ___
+//====  | '_ \ / _` | __| '_ \| | '_ \| __/ _ \ '__| '_ ` _ \ / _ \/ _` | |/ _` | __/ _ \
+//====  | |_) | (_| | |_| | | | | | | | ||  __/ |  | | | | | |  __/ (_| | | (_| | ||  __/
+//====  | .__/ \__,_|\__|_| |_|_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
+//====  |_|
+
+func bytes_from_pathintermediate(pathi pathintermediate) []byte {
+
+  path_bytes := make([]byte, 0, 1024)
+
+  buf := make([]byte, 64)
+
+  ns := len(pathi.name)
+  ns_bytes := dlug.MarshalUint64(uint64(ns))
+  path_bytes = append(path_bytes, ns_bytes...)
+  path_bytes = append(path_bytes, []byte(pathi.name)...)
+
+  tobyte64(buf, uint64(len(pathi.veci)))
+  path_bytes = append(path_bytes, buf[0:8]...)
+  for i:=0; i<len(pathi.veci); i++ {
+    tobyte64(buf, uint64(pathi.veci[i]))
+    path_bytes = append(path_bytes, buf[0:8]...)
+  }
+
+  ovf_bytes := bytes_from_overflowintermediate(pathi.ofsi)
+  fovf_bytes := bytes_from_finaloverflowintermediate(pathi.fofsi)
+  loq_bytes := bytes_from_loqintermediate(pathi.loqi)
+
+  path_bytes = append(path_bytes, ovf_bytes...)
+  path_bytes = append(path_bytes, fovf_bytes...)
+  path_bytes = append(path_bytes, loq_bytes...)
+
+
+  return path_bytes
+}
+
+func pathintermediate_from_bytes(b []byte) (pathintermediate,int) {
+  pathi := pathintermediate{}
+  n:=0
+
+  dummy,dn := dlug.ConvertUint64(b[n:])
+  n+=dn
+
+  ns := int(dummy)
+
+  pathi.name = string(b[n:n+ns])
+  n+=ns
+
+  dummy = byte2uint64(b[n:n+8])
+  n+=8
+
+  veclen := int(dummy)
+
+  for i:=0; i<veclen; i++ {
+    dummy = byte2uint64(b[n:n+8])
+    n+=8
+    pathi.veci = append(pathi.veci, dummy)
+  }
+
+  pathi.ofsi,dn = overflowintermediate_from_bytes(b[n:])
+  n+=dn
+
+  pathi.fofsi,dn = finaloverflowintermediate_from_bytes(b[n:])
+  n+=dn
+
+  pathi.loqi,dn = loqintermediate_from_bytes(b[n:])
+  n+=dn
+
+  return pathi,n
+}
+
 //====                 _ _
 //====    ___ _ __ ___ (_) |_
 //====   / _ \ '_ ` _ \| | __|
@@ -1143,7 +1176,8 @@ func construct_loq_intermediate(ctx *CGFContext, prep_vector []vectorelement) lo
 //====   \___|_| |_| |_|_|\__|
 
 
-func emit_intermediate(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) error {
+//func emit_intermediate(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) error {
+func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([]byte, error) {
   debug_output:=true
 
   cgf := ctx.CGF ; _ = cgf
@@ -1522,26 +1556,28 @@ func emit_intermediate(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) 
     fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n")
 
     fmt.Printf("BYTES FROM ofsi to byte_ofsi_test0\n")
-    byte_ofsi_test0 := bytes_from_offsetintermediate(ofsi) ; _ = byte_ofsi_test0
+    byte_ofsi_test0 := bytes_from_overflowintermediate(ofsi) ; _ = byte_ofsi_test0
 
 
     fmt.Printf("BYTES TO byte_ofsi_test0 to ofsi_throwaway\n")
-    ofsi_throwaway := offsetintermediate_from_bytes(byte_ofsi_test0) ; _ = ofsi_throwaway
+    ofsi_throwaway,dn0 := overflowintermediate_from_bytes(byte_ofsi_test0) ; _ = ofsi_throwaway
 
     for i:=0; i<len(ofsi_throwaway.tilepos_idx); i++ {
       fmt.Printf("  hrm: ofsi_throwaway.tilepos_idx[%d] %d\n", i, ofsi_throwaway.tilepos_idx[i])
     }
 
-    err := offsetintermediate_cmp(ofsi_throwaway, ofsi)
+    err := overflowintermediate_cmp(ofsi_throwaway, ofsi)
     fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %v\n", err)
 
     fmt.Printf("BYTES FROM ofsi_throwaway to byte_ofsi_test1\n")
-    byte_ofsi_test1 := bytes_from_offsetintermediate(ofsi_throwaway)
+    byte_ofsi_test1 := bytes_from_overflowintermediate(ofsi_throwaway)
     _ = byte_ofsi_test1
 
 
     fmt.Printf("BYTES TO byte_ofsi_test1 to ofsi_throwaway1\n")
-    ofsi_throwaway1 := offsetintermediate_from_bytes(byte_ofsi_test0) ; _ = ofsi_throwaway1
+    ofsi_throwaway1,dn1 := overflowintermediate_from_bytes(byte_ofsi_test0) ; _ = ofsi_throwaway1
+
+    fmt.Printf(" dn0 %d, dn1 %d\n", dn0, dn1)
 
     /*
     for i:=0; i<len(ofsi_throwaway.offset_idx); i++ {
@@ -1647,12 +1683,12 @@ func emit_intermediate(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) 
     }
 
 
-    fofsi_bytes0 := bytes_from_finaloffsetintermediate(fofsi) ; _ = fofsi_bytes0
-    fofsi_temp1 := finaloffsetintermediate_from_bytes(fofsi_bytes0) ; _ = fofsi_temp1
-    fofsi_bytes1 := bytes_from_finaloffsetintermediate(fofsi_temp1)
+    fofsi_bytes0 := bytes_from_finaloverflowintermediate(fofsi) ; _ = fofsi_bytes0
+    fofsi_temp1,dn0 := finaloverflowintermediate_from_bytes(fofsi_bytes0) ; _ = fofsi_temp1
+    fofsi_bytes1 := bytes_from_finaloverflowintermediate(fofsi_temp1)
 
-    fofsi_cnv := finaloffsetintermediate_from_bytes(fofsi_bytes1)
-    fmt.Printf("FOFSI BYTES %d %d\n", len(fofsi_bytes0), len(fofsi_bytes1))
+    fofsi_cnv,dn1 := finaloverflowintermediate_from_bytes(fofsi_bytes1)
+    fmt.Printf("FOFSI BYTES %d %d (dn %d %d)\n", len(fofsi_bytes0), len(fofsi_bytes1), dn0, dn1)
 
     if len(fofsi_bytes0) != len(fofsi_bytes1) {
       fmt.Printf("ERROR: length mismatch for fofsi_bytes %d != %d\n", len(fofsi_bytes0), len(fofsi_bytes1))
@@ -1664,7 +1700,7 @@ func emit_intermediate(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) 
       }
     }
 
-    err := finaloffsetintermediate_cmp(fofsi, fofsi_cnv)
+    err := finaloverflowintermediate_cmp(fofsi, fofsi_cnv)
     if err!=nil { fmt.Printf("ERROR: %v\n", err) }
 
   }
@@ -1765,11 +1801,11 @@ func emit_intermediate(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) 
 
 
     loq_bytes0 := bytes_from_loqintermediate(loqi) ; _ = loq_bytes0
-    loqi_test0 := loqintermediate_from_bytes(loq_bytes0)
+    loqi_test0,dn := loqintermediate_from_bytes(loq_bytes0)
     loq_bytes1 := bytes_from_loqintermediate(loqi_test0)
 
     fmt.Printf(">>> lOQ CMP: %v\n", loqintermediate_cmp(loqi, loqi_test0))
-    fmt.Printf(">>>>>>>>>>>>>> LOQ FROM/TO BYTES %d %d\n", len(loq_bytes0), len(loq_bytes1))
+    fmt.Printf(">>>>>>>>>>>>>> LOQ FROM/TO BYTES %d %d (dn %d)\n", len(loq_bytes0), len(loq_bytes1), dn)
 
     if len(loq_bytes0) != len(loq_bytes1) {
       fmt.Printf("ERROR: len(loq_bytes0) %d != len(loq_bytes1) %d\n", len(loq_bytes0), len(loq_bytes1))
@@ -1784,8 +1820,91 @@ func emit_intermediate(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) 
 
   }
 
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
 
-  return nil
+
+  pathi := pathintermediate{}
+  pathi.name = fmt.Sprintf("%04x", path_idx)
+  pathi.veci = vec64
+  pathi.ofsi = ofsi
+  pathi.fofsi = fofsi
+  pathi.loqi = loqi
+
+  path_bytes := bytes_from_pathintermediate(pathi)
+
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+
+  if debug_output {
+
+    pathi_test0,dn := pathintermediate_from_bytes(path_bytes)
+    path_bytes1 := bytes_from_pathintermediate(pathi_test0)
+
+    fmt.Printf("pathi:::\n")
+    fmt.Printf(">>>> len(path_bytes) %d, len(path_bytes1) %d (dn %d)\n", len(path_bytes), len(path_bytes1), dn)
+
+    if len(path_bytes) != len(path_bytes1) {
+      fmt.Printf("path byte length mismatch: %d != %d\n", len(path_bytes), len(path_bytes1))
+    } else {
+      for i:=0; i<len(path_bytes); i++ {
+        if path_bytes[i] != path_bytes1[i] {
+          fmt.Printf("path byte mismatch at %d: %d != %d\n", i, path_bytes[i], path_bytes1[i])
+        }
+      }
+    }
+
+  }
+
+
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+
+  patho,_ := pathintermediate_from_bytes(path_bytes)
+
+  //TESTING
+
+  get_knot(patho, 0x9)
+  get_knot(patho, 0x2f)
+  get_knot(patho, 0x41)
+  get_knot(patho, 0x42)
+  get_knot(patho, 0x6f)
+  get_knot(patho, 0x2a2)
+  get_knot(patho, 0x2b4)
+  get_knot(patho, 0x2b6)
+  get_knot(patho, 0x798)
+  get_knot(patho, 0x991)
+
+  /*
+  get_knot(pathi, 0x9)
+  get_knot(pathi, 0x2f)
+  get_knot(pathi, 0x41)
+  get_knot(pathi, 0x42)
+  get_knot(pathi, 0x6f)
+  get_knot(pathi, 0x2a2)
+  get_knot(pathi, 0x2b4)
+  get_knot(pathi, 0x2b6)
+  get_knot(pathi, 0x798)
+  get_knot(pathi, 0x991)
+  */
+
+  //TESTING
+
+
+
+  return path_bytes, nil
 
 }
 
