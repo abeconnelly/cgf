@@ -181,6 +181,17 @@ func write_cgf_bytes(cgf_bytes []byte, ofn string) error {
   return nil
 }
 
+func PathOverflowAdd(overflow *OverflowStruct, overflow_count, anchor_step, tilemap_pos int) {
+  buf := make([]byte,16)
+
+  if (uint64(overflow_count)%overflow.Stride)==0 {
+    overflow.Offset = append(overflow.Offset, uint64(len(overflow.Map)))
+    overflow.Position = append(overflow.Position, uint64(anchor_step))
+  }
+
+  dn := dlug.FillSliceUint64(buf, uint64(tilemap_pos))
+  overflow.Map = append(overflow.Map, buf[:dn]...)
+}
 
 // Will overwrite cgf path structure if it exists, create a new path if it doesn't.
 // It will create a new PathStruct if one doesn't already exist.
@@ -188,6 +199,10 @@ func write_cgf_bytes(cgf_bytes []byte, ofn string) error {
 func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) error {
   cgf := ctx.CGF
   sglf := ctx.SGLF
+
+  //DEBUG
+  fmt.Printf("INTERMEDIATE\n")
+  emit_intermediate(ctx, path_idx, allele_path)
 
   g_debug := true
 
@@ -278,6 +293,8 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
   loq_count := uint64(0)
   loq_stride := uint64(256)
+
+  cur_hexit_count := 0
 
   // First is allele
   // second is 3 element (varid,span,start,len)
@@ -396,7 +413,6 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
     if span_sum==0 {
 
-
       // *********************
       // *********************
       // ---------------------
@@ -413,15 +429,8 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
           tobyte64(buf, uint64(anchor_step))
           loq_position_bytes = append(loq_position_bytes, buf[0:8]...)
-
-          //DEBUG
-          //fmt.Printf("### loq_count: %d\n", loq_count)
-          //fmt.Printf("### loq_offset %d\n",len(loq_bytes))
-          //fmt.Printf("### tile_position: %d\n", anchor_step)
-
         }
         loq_count++
-
 
 
         hom_flag := true
@@ -570,49 +579,75 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
       //
       for ; n<=anchor_step; n++ {
         ivec = append(ivec, -1)
+
+        OVERFLOW_INDICATOR_SPAN_VALUE := 1025
+
+        if (n%32)==0 { cur_hexit_count=0 }
+        cur_hexit_count++
+        if cur_hexit_count >= (32/4) {
+          PathOverflowAdd(&overflow, overflow_count, anchor_step, OVERFLOW_INDICATOR_SPAN_VALUE)
+          overflow_count++
+        }
+
       }
 
+      final_overflow_flag := true
+      tilemap_pos := len(ctx.TileMapLookup)
       if _,ok := ctx.TileMapLookup[tilemap_key] ; ok {
+        final_overflow_flag = false
+        tilemap_pos = ctx.TileMapPosition[tilemap_key]
+      }
 
-        tilemap_pos := ctx.TileMapPosition[tilemap_key]
+      if (!loq_tile) && (tilemap_pos < 13) && (cur_hexit_count<(32/4)) {
 
-        //if tilemap_pos < 13 {
-        if (!loq_tile) && (tilemap_pos < 13) {
-          ivec[anchor_step] = tilemap_pos
+        // It's not a low quality tile and it can fit in a hexit
+        //
+        ivec[anchor_step] = tilemap_pos
 
-        } else {
-
-          // overflow
-          //
-          if loq_tile {
-            ivec[anchor_step] = -254
-          } else {
-            ivec[anchor_step] = 254
-          }
-
-          // --------
-          // OVERFLOW
-          //
-
-          p := overflow_count
-          if (uint64(p)%overflow.Stride)==0 {
-            overflow.Offset = append(overflow.Offset, uint64(len(overflow.Map)))
-            overflow.Position = append(overflow.Position, uint64(anchor_step))
-          }
-
-          dn := dlug.FillSliceUint64(buf, uint64(tilemap_pos))
-          overflow.Map = append(overflow.Map, buf[:dn]...)
-
+        if (anchor_step%32)==0 { cur_hexit_count=0 }
+        if cur_hexit_count >= (32/4) {
+          PathOverflowAdd(&overflow, overflow_count, anchor_step, tilemap_pos)
           overflow_count++
-
-          //
-          // OVERFLOW
-          // --------
-
-
-
+          cur_hexit_count++
         }
+
+
       } else {
+
+        // It's overflown.
+        // If the entry doesn't appear in the tile map, the tilemap_pos
+        // will be set to the length of the tilemap (e.g. 1024) as an indicator
+        // that the final overflow table should be consulted for the entry
+        //
+
+
+        // overflow
+        //
+        if loq_tile {
+          ivec[anchor_step] = -254
+        } else {
+          ivec[anchor_step] = 254
+        }
+
+        // --------
+        // OVERFLOW
+        //
+
+        if (anchor_step%32)==0 { cur_hexit_count=0 }
+
+        PathOverflowAdd(&overflow, overflow_count, anchor_step, tilemap_pos)
+
+        overflow_count++
+        cur_hexit_count++
+
+
+        //
+        // OVERFLOW
+        // --------
+
+      }
+
+      if final_overflow_flag {
 
         //final overflow
         //
@@ -754,7 +789,6 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
       // 32/4 hexits available
       // fill in from right to left
       //
-      //if hexit_ovf_count < (16) {
       if hexit_ovf_count < (32/4) {
 
 

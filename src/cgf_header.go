@@ -14,6 +14,7 @@ const CGF_DEFAULT_LIBRARY_VERSION string = "0.1.0"
 var CGF_MAGIC []byte = []byte{ '"', 'c', 'g', 'f', '.', 'b', '"', '{' }
 
 type TileMapEntry struct {
+  TileMap int
   Variant [][]int
   Span [][]int
 }
@@ -36,6 +37,7 @@ func unpack_tilemap(tilemap_bytes []byte) []TileMapEntry {
     n1,dn = dlug.ConvertUint64(tilemap_bytes[pos:])
     pos += dn
 
+    tme.TileMap = pos
     tme.Variant = make([][]int, 2)
     tme.Span = make([][]int, 2)
 

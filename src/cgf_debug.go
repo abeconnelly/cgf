@@ -137,7 +137,7 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
         e:=tn+int(ii*8)+8
         //vec_val := byte2uint64(path_b[tn+int(ii):tn+int(ii)+8])
         vec_val := byte2uint64(path_b[b:e])
-        fmt.Printf(" %16x", vec_val)
+        fmt.Printf(" %8x %8x |", (vec_val>>32), vec_val&0xffffffff)
       }
       fmt.Printf("\n")
 
