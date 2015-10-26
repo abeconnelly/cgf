@@ -5,6 +5,26 @@ import "strings"
 import "strconv"
 import "./dlug"
 
+func fill_noc_seq(seq string, delpos_len []int) string {
+  s := []byte(seq)
+
+  cur_pos:=0
+  for i:=0; i<len(delpos_len); i+=2 {
+    loqpos := cur_pos + delpos_len[i]
+    loqlen := delpos_len[i+1]
+
+    for j:=0; j<loqlen; j++ {
+      s[loqpos+j] = 'n'
+    }
+
+    cur_pos += delpos_len[i]
+
+  }
+
+  return string(s)
+
+}
+
 func parse_tilepos(s string) (path, ver, step int, err error) {
   parts := strings.Split(s, ".")
   if len(parts)<2 || len(parts)>3 {

@@ -14,6 +14,8 @@ import "github.com/codegangsta/cli"
 import "strconv"
 import "io/ioutil"
 
+import "crypto/md5"
+
 var VERSION_STR string = "0.1.0"
 var gVerboseFlag bool
 
@@ -333,6 +335,75 @@ func _main( c *cli.Context ) {
     return
 
   } else if action == "inspect" {
+
+    cglf_path := c.String("cglf")
+
+    cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))
+    if e!=nil { log.Fatal(e) }
+
+    hdri,dn := headerintermediate_from_bytes(cgf_bytes[:])
+    _ = hdri
+    _ = dn
+
+    path,ver,step,e := parse_tilepos(c.String("tilepos"))
+    if e!=nil { log.Fatal(e) }
+
+    if path<0 { log.Fatal("path must be positive") }
+    if step<0 { log.Fatal("step must be positive") }
+    if path >= len(hdri.step_per_path) { log.Fatal("path out of range (max ", len(hdri.step_per_path), " paths)") }
+    if step>= hdri.step_per_path[path] { log.Fatal("step out of range (max ", hdri.step_per_path[path], " steps)") }
+
+    pathi,_ := pathintermediate_from_bytes(hdri.path_bytes[path])
+
+    knot := get_knot(hdri.tilemap, pathi, step)
+    if knot==nil {
+      fmt.Printf("spanning tile?")
+    } else {
+
+      fmt.Printf("(%d)\n", len(knot))
+      for i:=0; i<len(knot); i++ {
+
+        fmt.Printf("  [%d]", i)
+        for j:=0; j<len(knot[i]); j++ {
+          fmt.Printf(" %04x.%02x.%04x.%03x+%x",
+            path, ver,
+            knot[i][j].Step,
+            knot[i][j].VarId,
+            knot[i][j].Span)
+
+          seq := cglf_get_lib_seq(uint64(path),
+                                  uint64(knot[i][j].Step),
+                                  uint64(knot[i][j].VarId),
+                                  uint64(knot[i][j].Span),
+                                  cglf_path)
+
+          m5str := md5sum2str(md5.Sum([]byte(seq)))
+          fmt.Printf("\n%s\n%s\n", m5str, seq)
+
+          if len(knot[i][j].NocallStartLen)>0 {
+            fmt.Printf("*{")
+            for p:=0; p<len(knot[i][j].NocallStartLen); p+=2 {
+              if p>0 { fmt.Printf(";") }
+              fmt.Printf("%d+%d",
+                knot[i][j].NocallStartLen[p],
+                knot[i][j].NocallStartLen[p+1])
+            }
+            fmt.Printf("}")
+
+            noc_seq := fill_noc_seq(seq, knot[i][j].NocallStartLen)
+            noc_m5str := md5sum2str(md5.Sum([]byte(noc_seq)))
+            fmt.Printf("\nnoc: %s\n%s\n", noc_m5str, noc_seq)
+
+          }
+        }
+        fmt.Printf("\n")
+      }
+
+    }
+
+    return
+
+
   } else if action == "fastj" {
 
 
@@ -370,8 +441,8 @@ func _main( c *cli.Context ) {
 
     if path<0 { log.Fatal("path must be positive") }
     if step<0 { log.Fatal("step must be positive") }
-    if path >= len(hdri.step_per_path) { log.Fatal("path out of range (max %d paths)", len(hdri.step_per_path)) }
-    if step>= hdri.step_per_path[path] { log.Fatal("step out of range (max %d steps)", hdri.step_per_path[path]) }
+    if path >= len(hdri.step_per_path) { log.Fatal("path out of range (max ", len(hdri.step_per_path), " paths)") }
+    if step>= hdri.step_per_path[path] { log.Fatal("step out of range (max ", hdri.step_per_path[path], " steps)") }
 
     pathi,_ := pathintermediate_from_bytes(hdri.path_bytes[path])
 
