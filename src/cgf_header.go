@@ -50,7 +50,8 @@ func headerintermediate_add_path(hdri *headerintermediate, path int, path_bytes 
 
     prev_off :=0
     if len(hdri.step_per_path)>0 {
-      prev_off = hdri.step_per_path[len(hdri.path_offset)-1]
+      //prev_off = hdri.step_per_path[len(hdri.path_offset)-1]
+      prev_off = hdri.path_offset[len(hdri.path_offset)-1]
     }
 
     for i:=len(hdri.step_per_path); i<=path; i++ {

@@ -377,8 +377,8 @@ func _main( c *cli.Context ) {
                                   uint64(knot[i][j].Span),
                                   cglf_path)
 
-          m5str := md5sum2str(md5.Sum([]byte(seq)))
-          fmt.Printf("\n%s\n%s\n", m5str, seq)
+          //m5str := md5sum2str(md5.Sum([]byte(seq)))
+          //fmt.Printf("\n%s\n%s\n", m5str, seq)
 
           if len(knot[i][j].NocallStartLen)>0 {
             fmt.Printf("*{")
@@ -392,9 +392,15 @@ func _main( c *cli.Context ) {
 
             noc_seq := fill_noc_seq(seq, knot[i][j].NocallStartLen)
             noc_m5str := md5sum2str(md5.Sum([]byte(noc_seq)))
-            fmt.Printf("\nnoc: %s\n%s\n", noc_m5str, noc_seq)
+            fmt.Printf("\nmd5sum: %s\n%s\n", noc_m5str, noc_seq)
+
+          } else {
+
+            m5str := md5sum2str(md5.Sum([]byte(seq)))
+            fmt.Printf("\nmd5sum: %s\n%s\n", m5str, seq)
 
           }
+
         }
         fmt.Printf("\n")
       }

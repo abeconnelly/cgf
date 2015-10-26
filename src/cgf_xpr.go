@@ -379,16 +379,12 @@ func headerintermediate_from_bytes(b []byte) (headerintermediate,int) {
 
   hdri.path_bytes = make([][]byte, hdri.pathcount)
 
-  fmt.Printf("b len %d, pathcount %d, n %d (len(b)-n %d)\n", len(b), hdri.pathcount, n, len(b)-n)
-
   path_bytes := b[n:]
   for i:=1; i<=hdri.pathcount; i++  {
     dn := int(hdri.path_offset[i] - hdri.path_offset[i-1])
     if dn==0 { continue }
 
-    z:=hdri.path_offset[i-1]
-    fmt.Printf(">>>> path_bytes[%d] %d:%d\n", i, z, z+dn)
-
+    z:=hdri.path_offset[i-1] ; _ = z
     hdri.path_bytes[i-1] = path_bytes[hdri.path_offset[i-1]:hdri.path_offset[i-1]+dn]
   }
 
