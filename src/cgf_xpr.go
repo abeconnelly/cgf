@@ -377,6 +377,21 @@ func headerintermediate_from_bytes(b []byte) (headerintermediate,int) {
     hdri.path_offset = append(hdri.path_offset, int(dummy))
   }
 
+  hdri.path_bytes = make([][]byte, hdri.pathcount)
+
+  fmt.Printf("b len %d, pathcount %d, n %d (len(b)-n %d)\n", len(b), hdri.pathcount, n, len(b)-n)
+
+  path_bytes := b[n:]
+  for i:=1; i<=hdri.pathcount; i++  {
+    dn := int(hdri.path_offset[i] - hdri.path_offset[i-1])
+    if dn==0 { continue }
+
+    z:=hdri.path_offset[i-1]
+    fmt.Printf(">>>> path_bytes[%d] %d:%d\n", i, z, z+dn)
+
+    hdri.path_bytes[i-1] = path_bytes[hdri.path_offset[i-1]:hdri.path_offset[i-1]+dn]
+  }
+
   return hdri,n
 }
 
@@ -769,7 +784,7 @@ func bytes_from_finaloverflowintermediate(fofsi finaloverflowintermediate) []byt
     data_bytes = append(data_bytes, vbytes...)
   }
 
-  // byte length of data record 
+  // byte length of data record
   //
   bytecount := uint64(len(code) + len(data_bytes))
   tobyte64(buf, bytecount)
@@ -1282,6 +1297,11 @@ func bytes_from_loqintermediate(loqi loqintermediate) []byte {
   tobyte64(buf, uint64(loq_info_byte_count))
   loq_bytes = append(loq_bytes, buf[0:8]...)
   loq_bytes = append(loq_bytes, loqinfo_bytes...)
+
+
+  //DEBUG
+  fmt.Printf("LOQ UNPEEL ## ## ##\n")
+  debug_print_loq_bytes(loq_bytes)
 
   return loq_bytes
 }
@@ -2111,7 +2131,6 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
 
   if debug_output {
 
-
     fmt.Printf("FOFSI (%d (%x))\n", len(fofsi.tilepos), len(fofsi.tilepos))
 
     cur_int_pos := 0
@@ -2186,6 +2205,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
   //=====================================================
 
   if debug_output {
+  //if true {
 
     fmt.Printf("LOQ DEBUG\n")
     fmt.Printf("loqi count %d\n", loqi.count)
@@ -2193,7 +2213,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
 
     p:=0
     for i:=0; i<len(loqi.tilepos); i++ {
-      fmt.Printf("{%x} %v ", loqi.tilepos[i], loqi.homflag[i])
+      fmt.Printf("{x%x} %v ", loqi.tilepos[i], loqi.homflag[i])
 
       if loqi.homflag[i] {
 

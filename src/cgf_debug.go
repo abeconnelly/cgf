@@ -25,6 +25,241 @@ func debug_read(ifn string) error {
   return debug_unpack_bytes(b)
 }
 
+func debug_print_loq_bytes(loq_bytes []byte) (int,error) {
+  var dummy uint64
+  var dn int ; _ = dn
+  n:=0
+
+  dummy = byte2uint64(loq_bytes[n:n+8])
+  n+=8
+  count := int(dummy)
+
+  fmt.Printf("countc: %d\n", count)
+
+  dummy = byte2uint64(loq_bytes[n:n+8])
+  n+=8
+  code := int(dummy)
+
+  fmt.Printf("code: %d\n", code)
+
+  dummy = byte2uint64(loq_bytes[n:n+8])
+  n+=8
+  stride := int(dummy)
+
+  fmt.Printf("stride: %d\n", stride)
+
+  n_offset := (count+stride-1)/stride
+
+  offset := make([]int, n_offset)
+  for i:=0; i<n_offset; i++ {
+    dummy = byte2uint64(loq_bytes[n:n+8])
+    n+=8
+    offset[i] = int(dummy)
+  }
+
+  fmt.Printf("offset[%d]:", len(offset))
+  for i:=0; i<len(offset); i++ {
+    fmt.Printf(" %d", offset[i])
+  }
+  fmt.Printf("\n")
+
+  n_step_pos := ((count+stride-1)/stride)
+  step_pos := make([]int, n_step_pos)
+  for i:=0; i<n_step_pos; i++ {
+    dummy = byte2uint64(loq_bytes[n:n+8])
+    n+=8
+    step_pos[i] = int(dummy)
+  }
+
+  fmt.Printf("step_pos[%d]:", len(step_pos))
+  for i:=0; i<len(step_pos); i++ {
+    fmt.Printf(" %d", step_pos[i])
+  }
+  fmt.Printf("\n")
+
+  n_hom_bytes := (count+7)/8
+  hom_flag := loq_bytes[n:n+n_hom_bytes]
+  n+=n_hom_bytes
+
+  fmt.Printf("homflag[%d]:\n", n_hom_bytes)
+  for i:=0; i<len(hom_flag); i++ {
+    if (i%16)==0 { fmt.Printf("\n") }
+    fmt.Printf(" %2x |", hom_flag[i])
+  }
+  fmt.Printf("\n\n")
+
+
+  dummy = byte2uint64(loq_bytes[n:n+8])
+  n+=8
+  loq_flag_byte_count := int(dummy)
+
+  fmt.Printf("loq_flag_byte_count[%d]:\n", loq_flag_byte_count)
+
+
+  loq_flag := loq_bytes[n:n+loq_flag_byte_count]
+  n+=loq_flag_byte_count
+
+  for i:=0; i<len(loq_flag); i++ {
+    if (i%16)==0 { fmt.Printf("\n") }
+    fmt.Printf(" %2x |", loq_flag[i])
+  }
+  fmt.Printf("\n")
+
+  dummy = byte2uint64(loq_bytes[n:n+8])
+  n+=8
+  loq_info_byte_count := int(dummy)
+
+  fmt.Printf("loq_inf_byte_count: %d\n", loq_info_byte_count)
+
+  for cur_rec:=0; cur_rec<count; cur_rec++ {
+
+    fmt.Printf(" [%d]\n", cur_rec)
+
+    nallele := 1
+    if (hom_flag[cur_rec/8] & (1<<uint(cur_rec%8))) == 0 {
+      nallele = 2
+    }
+
+    dummy,dn = dlug.ConvertUint64(loq_bytes[n:])
+    n+=dn
+    ntile0 := int(dummy)
+    ntile1 := 0
+
+    if nallele==2 {
+      dummy,dn = dlug.ConvertUint64(loq_bytes[n:])
+      n+=dn
+      ntile1 = int(dummy)
+    }
+
+    fmt.Printf("  [ntile0:%d]\n", ntile0)
+
+    for tileidx:=0; tileidx<ntile0; tileidx++ {
+      dummy,dn = dlug.ConvertUint64(loq_bytes[n:])
+      n+=dn
+      m0 := int(dummy)
+
+
+      fmt.Printf("    [%d] {len:%d}", tileidx, m0)
+      for ii:=0; ii<m0; ii+=2 {
+        dummy,dn = dlug.ConvertUint64(loq_bytes[n:])
+        n+=dn
+        delpos := int(dummy)
+
+        dummy,dn = dlug.ConvertUint64(loq_bytes[n:])
+        n+=dn
+        loqlen := int(dummy)
+
+        fmt.Printf(" %d+%d", delpos, loqlen)
+      }
+      fmt.Printf("\n")
+
+    }
+
+    if ntile1>0 {
+
+      fmt.Printf("  [ntile1:%d]\n", ntile1)
+      for tileidx:=0; tileidx<ntile1; tileidx++ {
+
+        dummy,dn = dlug.ConvertUint64(loq_bytes[n:])
+        n+=dn
+        m1 := int(dummy)
+
+        fmt.Printf("    [%d] {len:%d}", tileidx, m1)
+
+        for ii:=0; ii<m1; ii+=2 {
+          dummy,dn = dlug.ConvertUint64(loq_bytes[n:])
+          n+=dn
+          delpos := int(dummy)
+
+          dummy,dn = dlug.ConvertUint64(loq_bytes[n:])
+          n+=dn
+          loqlen := int(dummy)
+
+          fmt.Printf(" %d+%d", delpos, loqlen)
+        }
+        fmt.Printf("\n")
+      }
+
+
+    }
+
+  }
+
+  return n,nil
+
+}
+
+func debug_print_final_overflow_bytes(fovf_bytes []byte) error {
+  var dummy uint64
+  var dn int
+
+  n:=0
+
+  dummy = byte2uint64(fovf_bytes[n:n+8])
+  n+=8
+
+  datarecordn := int(dummy)
+
+  dummy = byte2uint64(fovf_bytes[n:n+8])
+  n+=8
+
+  datarecordbytelen := int(dummy)
+
+  code_bytes := fovf_bytes[n:n+datarecordn]
+  n+=datarecordn
+
+  fmt.Printf("datarecordn: %d\n", datarecordn)
+  fmt.Printf("datarecordbytelen: %d\n", datarecordbytelen)
+
+  cur_rec := 0
+  for (cur_rec < datarecordn) && (n<len(fovf_bytes)) {
+
+    dummy,dn = dlug.ConvertUint64(fovf_bytes[n:])
+    n+=dn
+
+    anchor_step := int(dummy)
+
+    dummy,dn = dlug.ConvertUint64(fovf_bytes[n:])
+    n+=dn
+
+    nallele := int(dummy)
+
+    fmt.Printf("[%d] %x (nallele %d) code[%d]: %d\n", cur_rec, anchor_step, nallele, cur_rec, code_bytes[cur_rec])
+
+    for allele:=0; allele<nallele; allele++ {
+      dummy,dn = dlug.ConvertUint64(fovf_bytes[n:])
+      n+=dn
+
+      m := int(dummy)
+
+      fmt.Printf("    [%d] (%d):", allele, m)
+
+      for i:=0; i<m; i++ {
+        dummy,dn = dlug.ConvertUint64(fovf_bytes[n:])
+        n+=dn
+
+        varid := int(dummy)
+
+        dummy,dn = dlug.ConvertUint64(fovf_bytes[n:])
+        n+=dn
+
+        span := int(dummy)
+
+        fmt.Printf(" %x+%d", varid, span)
+      }
+      fmt.Printf("\n")
+
+    }
+
+    fmt.Printf("\n")
+
+    cur_rec++
+  }
+
+  return nil
+
+}
+
 func debug_unpack_bytes(cgf_bytes []byte) error {
   var s string
   var dn int
@@ -237,10 +472,67 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
 
     z = byte2uint64(path_b[tn:tn+8])
     tn+=8
+    fmt.Printf("  FinalOverflow.ByteLength: %d\n", z)
+
+    //ovf_byte_len := z
+
+    /*
+    z = byte2uint64(path_b[tn:tn+8])
+    tn+=8
     fmt.Printf("  FinalOverflow.Stride: %d\n", z)
-
     ovf_stride = z
+    */
 
+    if ovf_len > 0 {
+      code_bytes := make([]byte, ovf_len)
+      for i:=uint64(0); i<ovf_len; i++ {
+        code_bytes[i] = path_b[tn]
+        tn++
+      }
+
+      var dummy uint64
+      var dn int
+
+      for i:=0; i<int(ovf_len); i++ {
+        dummy,dn = dlug.ConvertUint64(path_b[tn:])
+        tn+=dn
+        anchor_step := int(dummy)
+
+        dummy,dn = dlug.ConvertUint64(path_b[tn:])
+        tn+=dn
+        nallele := int(dummy)
+
+        fmt.Printf("  %x (%d)\n", anchor_step, nallele)
+
+        for allele:=0; allele<nallele; allele++ {
+          dummy,dn = dlug.ConvertUint64(path_b[tn:])
+          tn+=dn
+          allele_rec_len := int(dummy)
+
+          fmt.Printf("    [%d] {%d}", allele, allele_rec_len)
+
+          for ii:=0; ii<allele_rec_len; ii++ {
+
+            dummy,dn = dlug.ConvertUint64(path_b[tn:])
+            tn+=dn
+            varid := int(dummy)
+
+            dummy,dn = dlug.ConvertUint64(path_b[tn:])
+            tn+=dn
+            span := int(dummy)
+
+            fmt.Printf(" %x+%x", varid, span)
+
+          }
+          fmt.Printf("\n")
+
+        }
+
+      }
+
+    }
+
+    /*
     if ovf_len > 0 {
 
       n_pos := (ovf_len + ovf_stride - 1) / ovf_stride
@@ -308,13 +600,22 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
       }
 
     }
+    */
 
+    /*
     z = byte2uint64(path_b[tn:tn+8])
     tn+=8
     fmt.Printf("  LowQualityInfo.Length: %d\n", z)
 
     loq_len := z ; _ = loq_len
+    */
+    var e error
 
+    dn,e = debug_print_loq_bytes(path_b[tn:])
+    if e!=nil { return e }
+    tn+=dn
+
+    /*
     z = byte2uint64(path_b[tn:tn+8])
     tn+=8
     fmt.Printf("  LowQualityInfo.Count: %d\n", z)
@@ -341,7 +642,7 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
       for i:=uint64(0); i<n_loq_offset; i++ {
         z = byte2uint64(path_b[tn:tn+8])
         tn+=8
-        fmt.Printf(" [%d,%d]", z, z)
+        fmt.Printf(" [%d,%d]", i, z)
       }
       fmt.Printf("\n")
 
@@ -349,7 +650,7 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
       for i:=uint64(0); i<n_loq_offset; i++ {
         z = byte2uint64(path_b[tn:tn+8])
         tn+=8
-        fmt.Printf(" [%d,%d]", z, z)
+        fmt.Printf(" [%d,%d]", i, z)
       }
       fmt.Printf("\n")
 
@@ -374,12 +675,37 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
       }
       fmt.Printf("\n")
 
+      z = byte2uint64(path_b[tn:tn+8])
+      tn+=8
+      fmt.Printf("  LowQualityInfo.LoqFlagBytecount: %d\n", z)
+
+      loq_flag_byte_count := int(z)
+
+      loqflag := path_b[tn:tn+loq_flag_byte_count]
+      tn+=loq_flag_byte_count
+
+      for i:=0; i<len(loqflag); i++ {
+        if (i%16)==0 { fmt.Printf("\n") }
+        fmt.Printf(" %2x |", loqflag[i])
+      }
+      fmt.Printf("\n")
+
+      //--
+
+      z = byte2uint64(path_b[tn:tn+8])
+      tn+=8
+      fmt.Printf("  LowQualityInfo.LoqFlagBytecount: %d\n", z)
+
+      loq_struct_byte_count := int(z)
+
+      fmt.Printf("  LowQualityInfo.LoqInfoByteCount: %d\n", loq_struct_byte_count)
+
       for i:=uint64(0); i<loq_count; i++ {
         if hom_flag[i] {
           ntile,dn := dlug.ConvertUint64(path_b[tn:])
           tn+=dn
 
-          fmt.Printf("    [%d] Hom[%d]:", i, ntile)
+          fmt.Printf("    [%d] Hom[ntile:%d]:", i, ntile)
 
           for ii:=uint64(0); ii<ntile; ii++ {
             entry_len,dn := dlug.ConvertUint64(path_b[tn:])
@@ -453,6 +779,7 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
       }
 
     }
+    */
 
   }
 

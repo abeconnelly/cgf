@@ -20,11 +20,12 @@ type TileMapEntry struct {
   Span [][]int
 }
 
-func write_cgf_from_intermediate(hdri *headerintermediate) {
+func write_cgf_from_intermediate(ofn string, hdri *headerintermediate) {
   hdr_bytes := bytes_from_headerintermediate(*hdri)
 
 
-  f,err := os.Create("./okok.cgf")
+  //f,err := os.Create("./okok.cgf")
+  f,err := os.Create(ofn)
   if err!=nil { log.Fatal(err) }
   f.Write(hdr_bytes)
 
@@ -60,31 +61,33 @@ func headerintermediate_add_path(hdri *headerintermediate, path int, path_bytes 
     }
   }
 
+  hdri.pathcount = len(hdri.step_per_path)
+
   pathi,dn := pathintermediate_from_bytes(path_bytes)
   _ = dn
 
   hdri.step_per_path[path] = pathi.ntile
   hdri.path_bytes[path] = path_bytes
 
-  prev_off := 0
-  if path>0 { prev_off = hdri.path_offset[path-1] }
+  prev_len := hdri.path_offset[path+1] - hdri.path_offset[path]
 
-  hdri.path_offset[path] = prev_off
+  for idx:=path; idx<hdri.pathcount; idx++ {
+    hdri.path_offset[idx+1] += len(path_bytes) - prev_len
+  }
 
 
-  //EXPERIMENTAL
-  hdri.path_offset[path+1] = prev_off + len(path_bytes)
-
-  hdri.pathcount = len(hdri.step_per_path)
-
+  /*
   fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n")
-  for i:=0; i<len(hdri.step_per_path); i++ {
-    fmt.Printf("step_per_path[%d]: %d\n", i, hdri.step_per_path[i])
-  }
+  fmt.Printf("step_per_path[%d]: %v\n", len(hdri.step_per_path), hdri.step_per_path)
+  //for i:=0; i<len(hdri.step_per_path); i++ {
+  //  fmt.Printf("step_per_path[%d]: %d\n", i, hdri.step_per_path[i])
+  //}
 
-  for i:=0; i<len(hdri.path_offset); i++ {
-    fmt.Printf("path_offset[%d]: %d\n", i, hdri.path_offset[i])
-  }
+  fmt.Printf("path_offset[%d]: %v\n", len(hdri.path_offset), hdri.path_offset)
+  //for i:=0; i<len(hdri.path_offset); i++ {
+  //  fmt.Printf("path_offset[%d]: %d\n", i, hdri.path_offset[i])
+  //}
+  */
 }
 
 func unpack_tilemap(tilemap_bytes []byte) []TileMapEntry {

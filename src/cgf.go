@@ -404,6 +404,14 @@ func _main( c *cli.Context ) {
     _ = hdri
     _ = dn
 
+    //DEBUG
+    fmt.Printf("path_bytes[%d]:\n", len(hdri.path_bytes))
+    for i:=0; i<len(hdri.path_bytes); i++ {
+      fmt.Printf("path_bytes[%d]: len %d\n", i, len(hdri.path_bytes[i]))
+    }
+
+    //DEBUG
+
     headerintermediate_debug_print(hdri)
 
     //hdr_bytes := bytes_from_headerintermediate(hdri)
@@ -432,7 +440,7 @@ func _main( c *cli.Context ) {
     headerintermediate_add_path(&hdri, path, path_bytes)
 
 
-    write_cgf_from_intermediate(&hdri)
+    write_cgf_from_intermediate("okok.cgf", &hdri)
 
 
 
