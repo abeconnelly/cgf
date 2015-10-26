@@ -60,24 +60,25 @@ func _fofsi_knot(vid []int) (cgfintermediate,int) {
   return knot,pos
 }
 
-func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, anchor_step int) [][]TileInfo {
+func _fill_knot_loq(tia [][]TileInfo, pathi pathintermediate, anchor_step int) {
+  if cgfi,ok := pathi.loqi.loqi_info[anchor_step] ; ok {
+    for allele:=0; allele<len(cgfi.nocall_start_len); allele++ {
+      for idx:=0; idx<len(cgfi.nocall_start_len[allele]); idx++ {
+        tia[allele][idx].NocallStartLen = append(tia[allele][idx].NocallStartLen, cgfi.nocall_start_len[allele][idx]...)
+      }
+    }
+  }
+}
 
+func get_knot(tilemap []TileMapEntry, pathi pathintermediate, anchor_step int) [][]TileInfo {
   tia := make([][]TileInfo, 2)
   tia[0] = make([]TileInfo, 0, 1)
   tia[1] = make([]TileInfo, 0, 1)
-
-
-  // DEBUG
-  //====
-  //fmt.Printf("GET_KNOT (%x)\n", anchor_step)
-
 
   vec_slice := anchor_step/32
   m := anchor_step%32
 
   if (pathi.veci[vec_slice] & (1<<uint(32+m))) == 0 {
-    //fmt.Printf("canonical tile\n")
-
     ti:=TileInfo{}
     ti.Step = anchor_step
     ti.Span = tilemap[0].Span[0][0]
@@ -85,6 +86,8 @@ func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, a
 
     tia[0] = append(tia[0], ti)
     tia[1] = append(tia[1], ti)
+
+    _fill_knot_loq(tia, pathi, anchor_step)
     return tia
   }
 
@@ -99,14 +102,9 @@ func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, a
   if (cache_counter < 8) {
     hexit = int((pathi.veci[vec_slice] & (0xf<<uint(4*cache_counter))) >> uint(4*cache_counter))
 
-    if hexit == 0 {
-      //fmt.Printf("span tile\n")
-      return nil
-    }
+    if hexit == 0 { return nil }
 
     if hexit < 0xd {
-      //fmt.Printf("cache mapped %d\n", hexit)
-
       for allele:=0; allele<2; allele++ {
         run_span:=0
         for i:=0; i<len(tilemap[hexit].Variant[allele]); i++ {
@@ -119,14 +117,7 @@ func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, a
           run_span += ti.Span
         }
       }
-
-      /*
-      ti1:=TileInfo{}
-      ti1.Span = tilemap[hexit].Span[1][0]
-      ti1.VarId = tilemap[hexit].Variant[1][0]
-      tia[1] = append(tia[1], ti1)
-      */
-
+      _fill_knot_loq(tia, pathi, anchor_step)
       return tia
     }
 
@@ -135,26 +126,17 @@ func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, a
   loq_flag := false ; _ = loq_flag
   if hexit == 0xe { loq_flag = true }
 
-  //fmt.Printf(">>>> cache_counter %d, hexit %d\n", cache_counter, hexit)
-
   ovf_pos := CountOverflowVectorUint64(pathi.veci, 0, anchor_step)
 
-  if pathi.ofsi.span_flag[ovf_pos] {
-    //fmt.Printf(" oveflow spanning tile (loq %v)\n", loq_flag)
-    return nil
-  }
+  if pathi.ofsi.span_flag[ovf_pos] { return nil }
 
   if !pathi.ofsi.final_overflow_flag[ovf_pos] {
     if cache_counter < 8 {
-      //fmt.Printf(" overflow: tilemap %d (loq %v)\n", pathi.ofsi.tilemap[ovf_pos], loq_flag)
     } else {
-
       if pathi.loqi.loq_flag[anchor_step] { loq_flag = true }
-      //fmt.Printf(" overflow: tilemap %d (loq %v)\n", pathi.ofsi.tilemap[ovf_pos], loq_flag)
     }
 
     tm := pathi.ofsi.tilemap[ovf_pos]
-
     for allele:=0; allele<2; allele++ {
       run_span:=0
       for i:=0; i<len(tilemap[tm].Variant[allele]); i++ {
@@ -169,6 +151,7 @@ func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, a
     }
 
 
+    _fill_knot_loq(tia, pathi, anchor_step)
     return tia
   }
 
@@ -178,7 +161,6 @@ func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, a
   for i:=0; i<len(pathi.fofsi.tilepos); i++ {
     if pathi.fofsi.tilepos[i] == anchor_step {
       knot,_ := _fofsi_knot(pathi.fofsi.variant_ints[cur_pos:])
-      //fmt.Printf(" final oveflow: (loq %v) %v\n", loq_flag, knot)
 
       for allele:=0; allele<2; allele++ {
         run_span:=0
@@ -193,6 +175,7 @@ func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, a
         }
       }
 
+      _fill_knot_loq(tia, pathi, anchor_step)
       return tia
     }
 

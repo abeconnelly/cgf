@@ -2369,7 +2369,8 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
   tilemap := unpack_tilemap(ctx.CGF.TileMap)
   for anchor_step := range patho.loqi.loqi_info {
     cgfi := patho.loqi.loqi_info[anchor_step]
-    knot := get_knot(ctx, tilemap, patho, anchor_step)
+    //knot := get_knot(ctx, tilemap, patho, anchor_step)
+    knot := get_knot(tilemap, patho, anchor_step)
 
     if knot == nil {
       panic( fmt.Sprintf("anchor_step %d has no knot", anchor_step) )

@@ -356,6 +356,59 @@ func _main( c *cli.Context ) {
     }
 
     return
+  } else if action == "knot" {
+
+    cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))
+    if e!=nil { log.Fatal(e) }
+
+    hdri,dn := headerintermediate_from_bytes(cgf_bytes[:])
+    _ = hdri
+    _ = dn
+
+    path,ver,step,e := parse_tilepos(c.String("tilepos"))
+    if e!=nil { log.Fatal(e) }
+
+    if path<0 { log.Fatal("path must be positive") }
+    if step<0 { log.Fatal("step must be positive") }
+    if path >= len(hdri.step_per_path) { log.Fatal("path out of range (max %d paths)", len(hdri.step_per_path)) }
+    if step>= hdri.step_per_path[path] { log.Fatal("step out of range (max %d steps)", hdri.step_per_path[path]) }
+
+    pathi,_ := pathintermediate_from_bytes(hdri.path_bytes[path])
+
+    knot := get_knot(hdri.tilemap, pathi, step)
+    if knot==nil {
+      fmt.Printf("spanning tile?")
+    } else {
+
+      fmt.Printf("(%d)\n", len(knot))
+      for i:=0; i<len(knot); i++ {
+
+        fmt.Printf("  [%d]", i)
+        for j:=0; j<len(knot[i]); j++ {
+          fmt.Printf(" %04x.%02x.%04x.%03x+%x",
+            path, ver,
+            knot[i][j].Step,
+            knot[i][j].VarId,
+            knot[i][j].Span)
+
+          if len(knot[i][j].NocallStartLen)>0 {
+            fmt.Printf("*{")
+            for p:=0; p<len(knot[i][j].NocallStartLen); p+=2 {
+              if p>0 { fmt.Printf(";") }
+              fmt.Printf("%d+%d",
+                knot[i][j].NocallStartLen[p],
+                knot[i][j].NocallStartLen[p+1])
+            }
+            fmt.Printf("}")
+          }
+        }
+        fmt.Printf("\n")
+      }
+
+    }
+
+
+
   } else if action == "sglfbarf" {
 
     sglf,e := LoadGenomeLibraryCSV(c.String("sglf"))

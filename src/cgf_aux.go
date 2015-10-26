@@ -5,6 +5,37 @@ import "strings"
 import "strconv"
 import "./dlug"
 
+func parse_tilepos(s string) (path, ver, step int, err error) {
+  parts := strings.Split(s, ".")
+  if len(parts)<2 || len(parts)>3 {
+    err = fmt.Errorf("invalid string (must be 2 or 3 fields '.' separated)")
+    return
+  }
+
+  var u64 int64
+
+  p_pos:=0
+  u64,err = strconv.ParseInt(parts[p_pos], 16, 64)
+  if err!=nil { return }
+  p_pos++
+
+  path = int(u64)
+
+  if len(parts)==3 {
+    u64,err = strconv.ParseInt(parts[p_pos], 16, 64)
+    if err!=nil { return }
+    ver = int(u64)
+    p_pos++
+  }
+
+  u64,err = strconv.ParseInt(parts[p_pos], 16, 64)
+  if err!=nil { return }
+  step = int(u64)
+  p_pos++
+
+  return
+}
+
 func fill_slice_string(buf []byte, s string) ([]byte, int) {
   var dn int
   n:=0
