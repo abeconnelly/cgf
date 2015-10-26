@@ -24,6 +24,9 @@ type CGF struct {
   PathOffset          []uint64
   Path                []PathStruct
 
+  HeaderBytes         []byte
+  PathBytes           [][]byte
+
   PathByteOffset      uint64
 }
 

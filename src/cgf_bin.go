@@ -201,15 +201,16 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
   sglf := ctx.SGLF
 
   //DEBUG
-  fmt.Printf("INTERMEDIATE\n")
+  //fmt.Printf("INTERMEDIATE\n")
   //emit_intermediate(ctx, path_idx, allele_path)
   path_bytes,err := emit_path_bytes(ctx, path_idx, allele_path)
   _ = path_bytes
   _ = err
 
+  if err!=nil { return err }
 
 
-  g_debug := true
+  g_debug := false
 
   if len(cgf.Path) < path_idx {
     tpath := make([]PathStruct, path_idx - len(cgf.Path) + 1)
@@ -418,8 +419,8 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
     if span_sum==0 {
 
-      // *********************
-      // *********************
+      // =====================
+      // =====================
       // ---------------------
       // STORE LOQ INFORMATION
       //
@@ -486,7 +487,7 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
           dn = dlug.FillSliceUint64(buf, uint64(len(step_idx_info_for_loq[1])))
           loq_bytes = append(loq_bytes, buf[0:dn]...)
 
-          fmt.Printf("++ Ballele %d\n", len(step_idx_info_for_loq[1]))
+          //fmt.Printf("++ Ballele %d\n", len(step_idx_info_for_loq[1]))
 
         }
 
@@ -560,10 +561,8 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
       //
       // STORE LOQ INFORMATION
       // ---------------------
-      // *********************
-      // *********************
-
-
+      // =====================
+      // =====================
 
 
 

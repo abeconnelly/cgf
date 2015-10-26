@@ -114,11 +114,13 @@ func load_sample_fastj(scan *autoio.AutoioHandle) ([][]TileInfo, error) {
         ti := emit_fastj_tile(tilepath, tilestep, span_len, s_tag, cur_seq, e_tag)
 
         //DEBUG
+        /*
         fmt.Printf(" %x.%x noc:", tilepath, tilestep)
         for i:=0; i<len(ti.NocallStartLen); i+=2 {
           fmt.Printf(" %d+%d", ti.NocallStartLen[i], ti.NocallStartLen[i+1])
         }
         fmt.Printf("\n")
+        */
 
         if tilevar==0 {
           allele_path[0] = append(allele_path[0], ti)

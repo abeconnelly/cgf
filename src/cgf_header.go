@@ -1,11 +1,12 @@
 package main
 
-import _ "os"
+import "os"
 import "fmt"
 import "log"
 import "strings"
 import "strconv"
 import "../src/dlug"
+
 
 
 const CGF_DEFAULT_LIBRARY_FILE string = "default_tile_map_v0.1.0.txt"
@@ -17,6 +18,73 @@ type TileMapEntry struct {
   TileMap int
   Variant [][]int
   Span [][]int
+}
+
+func write_cgf_from_intermediate(hdri *headerintermediate) {
+  hdr_bytes := bytes_from_headerintermediate(*hdri)
+
+
+  f,err := os.Create("./okok.cgf")
+  if err!=nil { log.Fatal(err) }
+  f.Write(hdr_bytes)
+
+  for i:=0; i<len(hdri.path_bytes); i++ {
+    if len(hdri.path_bytes[i])>0 {
+
+      fmt.Printf("writing %d bytes (path %x)\n", len(hdri.path_bytes[i]), i)
+
+      f.Write(hdri.path_bytes[i])
+    }
+  }
+
+
+  f.Sync()
+  f.Close()
+
+}
+
+func headerintermediate_add_path(hdri *headerintermediate, path int, path_bytes []byte) {
+
+  if len(hdri.step_per_path)<path {
+
+    prev_off :=0
+    if len(hdri.step_per_path)>0 {
+      prev_off = hdri.step_per_path[len(hdri.path_offset)-1]
+    }
+
+    for i:=len(hdri.step_per_path); i<=path; i++ {
+      bb := []byte{}
+      hdri.step_per_path = append(hdri.step_per_path, 0)
+      hdri.path_offset = append(hdri.path_offset, prev_off)
+      hdri.path_bytes = append(hdri.path_bytes, bb)
+    }
+  }
+
+  pathi,dn := pathintermediate_from_bytes(path_bytes)
+  _ = dn
+
+  hdri.step_per_path[path] = pathi.ntile
+  hdri.path_bytes[path] = path_bytes
+
+  prev_off := 0
+  if path>0 { prev_off = hdri.path_offset[path-1] }
+
+  hdri.path_offset[path] = prev_off
+
+
+  //EXPERIMENTAL
+  hdri.path_offset[path+1] = prev_off + len(path_bytes)
+
+  hdri.pathcount = len(hdri.step_per_path)
+
+  fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n")
+  for i:=0; i<len(hdri.step_per_path); i++ {
+    fmt.Printf("step_per_path[%d]: %d\n", i, hdri.step_per_path[i])
+  }
+
+  for i:=0; i<len(hdri.path_offset); i++ {
+    fmt.Printf("path_offset[%d]: %d\n", i, hdri.path_offset[i])
+  }
 }
 
 func unpack_tilemap(tilemap_bytes []byte) []TileMapEntry {
@@ -138,6 +206,12 @@ func cgf_default_tile_map() []byte {
   return tilemap_bytes
 }
 
+/*
+func update_hader_from_path_bytes(CGFContext ctx) error {
+  return nil
+}
+*/
+
 func cgf_default_header_bytes() []byte {
   tbuf := make([]byte, 1024)
   buf := make([]byte, 0, 8192)
@@ -220,6 +294,10 @@ func cgf_default_header_bytes() []byte {
       buf = append(buf, tbuf[0:8]...)
       n+=8
     }
+  } else {
+    tobyte64(tbuf[0:8], uint64(0))
+    buf = append(buf, tbuf[0:8]...)
+    n+=8
   }
 
   PathStruct := make([]byte, 0, 1024)
@@ -232,7 +310,7 @@ func cgf_default_header_bytes() []byte {
 }
 
 //func fill_header_struct_from_bytes(cgf *CGF, b []byte) {
-func CGFFillHeader(cgf *CGF, b []byte) {
+func CGFFillHeader(cgf *CGF, b []byte) int {
   var dn int
   n:=0 ; _ = n
 
@@ -272,6 +350,7 @@ func CGFFillHeader(cgf *CGF, b []byte) {
 
   cgf.Path = make([]PathStruct, 0, 11000)
 
+  return n
 }
 
 func print_tilemap_info(cgf *CGF) {

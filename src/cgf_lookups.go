@@ -1,6 +1,6 @@
 package main
 
-import "fmt"
+import _ "fmt"
 
 func _skip_fofsi(vi []int) int {
   pos := 0
@@ -69,16 +69,17 @@ func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, a
 
   // DEBUG
   //====
-  fmt.Printf("GET_KNOT (%x)\n", anchor_step)
+  //fmt.Printf("GET_KNOT (%x)\n", anchor_step)
 
 
   vec_slice := anchor_step/32
   m := anchor_step%32
 
   if (pathi.veci[vec_slice] & (1<<uint(32+m))) == 0 {
-    fmt.Printf("canonical tile\n")
+    //fmt.Printf("canonical tile\n")
 
     ti:=TileInfo{}
+    ti.Step = anchor_step
     ti.Span = tilemap[0].Span[0][0]
     ti.VarId = tilemap[0].Variant[0][0]
 
@@ -99,19 +100,23 @@ func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, a
     hexit = int((pathi.veci[vec_slice] & (0xf<<uint(4*cache_counter))) >> uint(4*cache_counter))
 
     if hexit == 0 {
-      fmt.Printf("span tile\n")
+      //fmt.Printf("span tile\n")
       return nil
     }
 
     if hexit < 0xd {
-      fmt.Printf("cache mapped %d\n", hexit)
+      //fmt.Printf("cache mapped %d\n", hexit)
 
       for allele:=0; allele<2; allele++ {
+        run_span:=0
         for i:=0; i<len(tilemap[hexit].Variant[allele]); i++ {
           ti:=TileInfo{}
+          ti.Step = anchor_step + run_span
           ti.Span = tilemap[hexit].Span[allele][i]
           ti.VarId = tilemap[hexit].Variant[allele][i]
           tia[allele] = append(tia[allele], ti)
+
+          run_span += ti.Span
         }
       }
 
@@ -127,35 +132,39 @@ func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, a
 
   }
 
-  loq_flag := false
+  loq_flag := false ; _ = loq_flag
   if hexit == 0xe { loq_flag = true }
 
-  fmt.Printf(">>>> cache_counter %d, hexit %d\n", cache_counter, hexit)
+  //fmt.Printf(">>>> cache_counter %d, hexit %d\n", cache_counter, hexit)
 
   ovf_pos := CountOverflowVectorUint64(pathi.veci, 0, anchor_step)
 
   if pathi.ofsi.span_flag[ovf_pos] {
-    fmt.Printf(" oveflow spanning tile (loq %v)\n", loq_flag)
+    //fmt.Printf(" oveflow spanning tile (loq %v)\n", loq_flag)
     return nil
   }
 
   if !pathi.ofsi.final_overflow_flag[ovf_pos] {
     if cache_counter < 8 {
-      fmt.Printf(" overflow: tilemap %d (loq %v)\n", pathi.ofsi.tilemap[ovf_pos], loq_flag)
+      //fmt.Printf(" overflow: tilemap %d (loq %v)\n", pathi.ofsi.tilemap[ovf_pos], loq_flag)
     } else {
 
       if pathi.loqi.loq_flag[anchor_step] { loq_flag = true }
-      fmt.Printf(" overflow: tilemap %d (loq %v)\n", pathi.ofsi.tilemap[ovf_pos], loq_flag)
+      //fmt.Printf(" overflow: tilemap %d (loq %v)\n", pathi.ofsi.tilemap[ovf_pos], loq_flag)
     }
 
     tm := pathi.ofsi.tilemap[ovf_pos]
 
     for allele:=0; allele<2; allele++ {
+      run_span:=0
       for i:=0; i<len(tilemap[tm].Variant[allele]); i++ {
         ti:=TileInfo{}
+        ti.Step = anchor_step+run_span
         ti.Span = tilemap[tm].Span[allele][i]
         ti.VarId = tilemap[tm].Variant[allele][i]
         tia[allele] = append(tia[allele], ti)
+
+        run_span+=ti.Span
       }
     }
 
@@ -169,14 +178,18 @@ func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, a
   for i:=0; i<len(pathi.fofsi.tilepos); i++ {
     if pathi.fofsi.tilepos[i] == anchor_step {
       knot,_ := _fofsi_knot(pathi.fofsi.variant_ints[cur_pos:])
-      fmt.Printf(" final oveflow: (loq %v) %v\n", loq_flag, knot)
+      //fmt.Printf(" final oveflow: (loq %v) %v\n", loq_flag, knot)
 
       for allele:=0; allele<2; allele++ {
+        run_span:=0
         for i:=0; i<len(knot.varid[allele]); i++ {
           ti:=TileInfo{}
+          ti.Step = anchor_step+run_span
           ti.Span = knot.span[allele][i]
           ti.VarId = knot.varid[allele][i]
           tia[allele] = append(tia[allele], ti)
+
+          run_span += ti.Span
         }
       }
 
@@ -187,9 +200,5 @@ func get_knot(cgf *CGFContext, tilemap []TileMapEntry, pathi pathintermediate, a
     cur_pos += dn
   }
 
-
-  fmt.Printf("error\n")
-
   return nil
-
 }

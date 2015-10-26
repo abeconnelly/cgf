@@ -5,6 +5,20 @@ import "fmt"
 import "io/ioutil"
 import "./dlug"
 
+func headerintermediate_debug_print(hdri headerintermediate) {
+  fmt.Printf("Header intermediate\n")
+  fmt.Printf("Magic: %v\n", hdri.magic)
+  fmt.Printf("ver: %s\n", hdri.ver)
+  fmt.Printf("libver: %s\n", hdri.libver)
+  fmt.Printf("pathcount: %d\n", hdri.pathcount)
+
+  fmt.Printf("step_per_path[%d]:", len(hdri.step_per_path))
+  fmt.Printf(" %v\n", hdri.step_per_path)
+
+  fmt.Printf("path_offset[%d]:", len(hdri.path_offset))
+  fmt.Printf("%v\n", hdri.path_offset)
+}
+
 func debug_read(ifn string) error {
   b,e := ioutil.ReadFile(ifn)
   if e!=nil { return e }
@@ -103,17 +117,23 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
 
   path_bytes := cgf_bytes[n:]
   for i:=1; i<len(path_struct_offset); i++ {
+    var z uint64
+
     tn := 0
     offset := path_struct_offset[i] ; _ = offset
+
+    if path_struct_offset[i-1] == path_struct_offset[i] { continue }
     path_b := path_bytes[path_struct_offset[i-1]:path_struct_offset[i]]
 
     s,dn = byte2string(path_b)
     tn += dn
 
-    z := byte2uint64(path_b[tn:tn+8])
+    ntile := byte2uint64(path_b[tn:tn+8])
     tn+=8
 
-    if z==0 {
+    vectorlen := (ntile+31)/32
+
+    if vectorlen==0 {
       if skip_dots%40 == 0 {
         fmt.Printf("\n")
       }
@@ -127,10 +147,11 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
 
     fmt.Printf("\n")
     fmt.Printf("  [%x] %s\n", i-1, s)
-    fmt.Printf("  VectorLen: %d", z)
+    fmt.Printf("  NTile: %d\n", ntile)
+    fmt.Printf("  VectorLen: %d", vectorlen)
 
-    if z>0 {
-      for ii:=uint64(0); ii<z; ii++ {
+    if vectorlen>0 {
+      for ii:=uint64(0); ii<vectorlen; ii++ {
         if ii%8 == 0 { fmt.Printf("\n    [%4x]", ii*8) }
 
         b:=tn+int(ii*8)
@@ -141,7 +162,7 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
       }
       fmt.Printf("\n")
 
-      tn+=int(z)*8
+      tn+=int(vectorlen)*8
 
     } else {
       fmt.Printf("\n")

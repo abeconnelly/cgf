@@ -11,6 +11,9 @@ import "strings"
 import "github.com/abeconnelly/autoio"
 import "github.com/codegangsta/cli"
 
+import "strconv"
+import "io/ioutil"
+
 var VERSION_STR string = "0.1.0"
 var gVerboseFlag bool
 
@@ -294,7 +297,6 @@ func _main( c *cli.Context ) {
 
   cglf_lib_location := c.String("cglf")
 
-
   action := c.String("action")
   if action == "debug" {
 
@@ -303,6 +305,33 @@ func _main( c *cli.Context ) {
     }
 
     return
+  } else if action == "headercheck" {
+
+
+    header_bytes := cgf_default_header_bytes()
+
+    hdri,dn := headerintermediate_from_bytes(header_bytes) ; _ = dn
+    hdri_bytes := bytes_from_headerintermediate(hdri)
+    hdri1,dn2 := headerintermediate_from_bytes(hdri_bytes) ; _ = dn2
+
+    err := headerintermediate_cmp(hdri, hdri1)
+
+    if err!=nil { log.Fatal(err) }
+    return
+  } else if action == "header" {
+    ocgf := c.String("output")
+
+    header_bytes := cgf_default_header_bytes()
+
+    f,err := os.Create(ocgf)
+    if err!=nil { log.Fatal(err) }
+
+    f.Write(header_bytes)
+    f.Sync()
+    f.Close()
+
+    return
+
   } else if action == "inspect" {
   } else if action == "fastj" {
 
@@ -343,6 +372,111 @@ func _main( c *cli.Context ) {
         }
       }
     }
+
+    return
+  } else if action == "append" {
+
+    sglf,e := LoadGenomeLibraryCSV(c.String("sglf"))
+    if e!=nil { log.Fatal(e) }
+
+    ain_slice := make([]autoio.AutoioHandle, 0, 8)
+    for i:=0; i<len(inp_slice); i++ {
+      inp_fn := inp_slice[i]
+      ain,err := autoio.OpenReadScanner(inp_fn) ; _ = ain
+      if err!=nil {
+        fmt.Fprintf(os.Stderr, "%v", err)
+        os.Exit(1)
+      }
+      defer ain.Close()
+      ain_slice = append(ain_slice, ain)
+      break
+    }
+
+    path_str := c.String("path")
+    path_u64,e := strconv.ParseInt(path_str, 16, 64)
+    if e!=nil { log.Fatal(e) }
+    path:=int(path_u64)
+
+    cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))
+    if e!=nil { log.Fatal(e) }
+
+    hdri,dn := headerintermediate_from_bytes(cgf_bytes[:])
+    _ = hdri
+    _ = dn
+
+    headerintermediate_debug_print(hdri)
+
+    //hdr_bytes := bytes_from_headerintermediate(hdri)
+    //f,err := os.Create("./header2.cgf")
+    //if err!=nil { log.Fatal(err) }
+    //f.Write(hdr_bytes)
+    //f.Sync()
+    //f.Close()
+
+    ctx := CGFContext{}
+
+    cgf := CGF{}
+    cgf.PathBytes = make([][]byte, 0, 1024)
+    CGFFillHeader(&cgf, cgf_bytes)
+
+    ctx.CGF = &cgf
+    ctx.SGLF = &sglf
+    CGFContext_construct_tilemap_lookup(&ctx)
+
+    allele_path,e := load_sample_fastj(&ain_slice[0])
+    if e!=nil { log.Fatal(e) }
+
+    path_bytes,e := emit_path_bytes(&ctx, path, allele_path)
+    if e!=nil { log.Fatal(e) }
+
+    headerintermediate_add_path(&hdri, path, path_bytes)
+
+
+    write_cgf_from_intermediate(&hdri)
+
+
+
+    return
+
+    //ctx := CGFContext{}
+    //cgf := CGF{}
+    //cgf.PathBytes = make([][]byte, 0, 1024)
+
+    //header_bytes := cgf_default_header_bytes()
+    CGFFillHeader(&cgf, cgf_bytes)
+
+    n_path := len(cgf.Path)
+    if path>n_path { n_path = path+1 }
+    new_path_bytes := make([][]byte, n_path)
+
+    ctx.CGF = &cgf
+    ctx.SGLF = &sglf
+    CGFContext_construct_tilemap_lookup(&ctx)
+
+    for i:=1; i<len(cgf.PathOffset); i++ {
+      fmt.Printf("[%x] [%d:%d]\n", i-1, ctx.CGF.PathOffset[i-1], ctx.CGF.PathOffset[i])
+    }
+
+
+    fmt.Printf(">>>>>>>>>>>>>> len cgf_btyes %d\n", len(cgf_bytes))
+
+    //allele_path,e := load_sample_fastj(&ain_slice[0])
+    if e!=nil { log.Fatal(e) }
+
+    new_path_bytes[path],e = emit_path_bytes(&ctx, path, allele_path)
+    if e!=nil { log.Fatal(e) }
+
+    pathi,z := pathintermediate_from_bytes(new_path_bytes[path])
+    _ = pathi
+    _ = z
+
+    //ctx.CGF.StepPerPath[path] = uint64(pathi:
+
+
+
+    //update_header_from_path_bytes(ctx)
+
+    //write_cgf(&ctx, "out_ok.cgf")
 
     return
   }
@@ -444,7 +578,7 @@ func _main( c *cli.Context ) {
     if i>0 { p = 0x247 }
 
     e = update_vector_path_simple(&ctx, p, allele_path)
-    fmt.Printf(">>>>> [%d] (%x) %v\n", i, p, e)
+    //fmt.Printf(">>>>> [%d] (%x) %v\n", i, p, e)
 
     //ctx.CGF.StepPerPath[i] = uint64(len(allele_path))
 
@@ -516,6 +650,11 @@ func main() {
     },
 
     cli.StringFlag{
+      Name: "cgf, c",
+      Usage: "CGF",
+    },
+
+    cli.StringFlag{
       Name: "cglf, L",
       Usage: "CGLF",
     },
@@ -528,6 +667,11 @@ func main() {
     cli.StringFlag{
       Name: "tilepos, p",
       Usage: "Tile Position",
+    },
+
+    cli.StringFlag{
+      Name: "path, P",
+      Usage: "Path (in hex)",
     },
 
     cli.StringFlag{

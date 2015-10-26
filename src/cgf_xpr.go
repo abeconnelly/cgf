@@ -3,10 +3,30 @@ package main
 import "fmt"
 import "./dlug"
 
+import _ "os"
+
 //import "crypto/md5"
+
+type headerintermediate struct {
+  magic [8]byte
+  ver string
+  libver string
+  pathcount int
+
+  tilemap []TileMapEntry
+  tilemap_bytes []byte
+
+  step_per_path []int
+  path_offset []int
+
+  path_bytes [][]byte
+  pathis []pathintermediate
+
+}
 
 type pathintermediate struct {
   name string
+  ntile int
   veci []uint64
   cgfi cgfintermediate
   ofsi overflowintermediate
@@ -74,6 +94,9 @@ type loqintermediate struct {
   loqinfo_ints  []int
 
   loq_flag      []bool
+
+  // key is step
+  loqi_info     map[int]cgfintermediate
 }
 
 
@@ -187,6 +210,218 @@ func _init_knot(knot *cgfintermediate) {
   knot.step = make([][]int, 2)
   knot.loq = make([][]bool, 2)
   knot.nocall_start_len = make([][][]int, 2)
+}
+
+
+//====   _                    _           _       _                               _ _       _
+//====  | |__   ___  __ _  __| | ___ _ __(_)_ __ | |_ ___ _ __ _ __ ___   ___  __| (_) __ _| |_ ___
+//====  | '_ \ / _ \/ _` |/ _` |/ _ \ '__| | '_ \| __/ _ \ '__| '_ ` _ \ / _ \/ _` | |/ _` | __/ _ \
+//====  | | | |  __/ (_| | (_| |  __/ |  | | | | | ||  __/ |  | | | | | |  __/ (_| | | (_| | ||  __/
+//====  |_| |_|\___|\__,_|\__,_|\___|_|  |_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
+
+
+func headerintermediate_cmp(hdri0, hdri1 headerintermediate) error {
+
+  for i:=0; i<8; i++ {
+    if hdri0.magic[i] != hdri1.magic[i] {
+      return fmt.Errorf("magic byte mismatch at %d (%d != %d)", i, hdri0.magic[i], hdri1.magic[i])
+    }
+  }
+
+  if hdri0.ver != hdri1.ver {
+    return fmt.Errorf("version mismatch (%s != %s)", hdri0.ver, hdri1.ver)
+  }
+
+  if hdri0.libver != hdri1.libver {
+    return fmt.Errorf("libversion mismatch (%s != %s)", hdri0.libver, hdri1.libver)
+  }
+
+  if hdri0.pathcount != hdri1.pathcount {
+    return fmt.Errorf("pathcount mismatch (%v != %v)", hdri0.pathcount, hdri1.pathcount)
+  }
+
+  if len(hdri0.tilemap)!= len(hdri1.tilemap) {
+    return fmt.Errorf("tilemap length mismatch (%v != %v)", len(hdri0.tilemap), len(hdri1.tilemap))
+  }
+
+  for i:=0; i<len(hdri0.tilemap); i++ {
+    if hdri0.tilemap[i].TileMap != hdri1.tilemap[i].TileMap {
+      return fmt.Errorf("tilemap entry %d TileMap mismatch (%v != %v)", i, hdri0.tilemap[i].TileMap, hdri1.tilemap[i].TileMap)
+    }
+
+    if len(hdri0.tilemap[i].Variant) != len(hdri1.tilemap[i].Variant) {
+      return fmt.Errorf("tilemap Variant length mismatch at %d (%v != %v)", i, len(hdri0.tilemap[i].Variant), len(hdri1.tilemap[i].Variant))
+    }
+
+    if len(hdri0.tilemap[i].Span) != len(hdri1.tilemap[i].Span) {
+      return fmt.Errorf("tilemap Span length mismatch at %d (%v != %v)", i, len(hdri0.tilemap[i].Span), len(hdri1.tilemap[i].Span))
+    }
+
+    for j:=0; j<len(hdri0.tilemap[i].Variant); j++ {
+      if len(hdri0.tilemap[i].Variant[j]) != len(hdri1.tilemap[i].Variant[j]) {
+        return fmt.Errorf("tilemap Variant length mismatch at %d, %d (%v != %v)", i, j, len(hdri0.tilemap[i].Variant[j]), len(hdri1.tilemap[i].Variant[j]))
+      }
+
+      for k:=0; k<len(hdri0.tilemap[i].Variant[j]); k++ {
+        if hdri0.tilemap[i].Variant[j][k] != hdri1.tilemap[i].Variant[j][k] {
+          return fmt.Errorf("tilemap Variant element mismatch at %d, %d, %d (%v != %v)", i, j, k, (hdri0.tilemap[i].Variant[j][k]), (hdri1.tilemap[i].Variant[j][k]))
+        }
+      }
+    }
+
+    for j:=0; j<len(hdri0.tilemap[i].Span); j++ {
+      if len(hdri0.tilemap[i].Span[j]) != len(hdri1.tilemap[i].Span[j]) {
+        return fmt.Errorf("tilemap Span length mismatch at %d, %d (%v != %v)", i, j, len(hdri0.tilemap[i].Span[j]), len(hdri1.tilemap[i].Span[j]))
+      }
+
+      for k:=0; k<len(hdri0.tilemap[i].Span[j]); k++ {
+        if hdri0.tilemap[i].Span[j][k] != hdri1.tilemap[i].Span[j][k] {
+          return fmt.Errorf("tilemap Span element mismatch at %d, %d, %d (%v != %v)", i, j, k, (hdri0.tilemap[i].Span[j][k]), (hdri1.tilemap[i].Span[j][k]))
+        }
+      }
+    }
+
+  }
+
+  if len(hdri0.tilemap_bytes) != len(hdri1.tilemap_bytes) {
+    return fmt.Errorf("tilemap bytes lenght mismatch (%v != %v)", len(hdri0.tilemap_bytes), len(hdri1.tilemap_bytes))
+  }
+
+  for i:=0; i<len(hdri0.tilemap_bytes); i++ {
+    if hdri0.tilemap_bytes[i] != hdri1.tilemap_bytes[i] {
+      return fmt.Errorf("tilemap byte mismatch at %d (%v != %v)", i, (hdri0.tilemap_bytes[i]), (hdri1.tilemap_bytes[i]))
+    }
+  }
+
+  if len(hdri0.step_per_path) != len(hdri1.step_per_path) {
+    return fmt.Errorf("tilemap step_per_byte length mismatch (%v != %v)", len(hdri0.step_per_path), len(hdri1.step_per_path))
+  }
+
+  for i:=0; i<len(hdri0.step_per_path); i++ {
+    if (hdri0.step_per_path[i]) != (hdri1.step_per_path[i]) {
+      return fmt.Errorf("tilemap step_per_byte mismatch at %d (%v != %v)", i, (hdri0.step_per_path[i]), (hdri1.step_per_path[i]))
+    }
+  }
+
+  if len(hdri0.path_offset) != len(hdri1.path_offset) {
+    return fmt.Errorf("tilemap step_per_byte length mismatch (%v != %v)", len(hdri0.path_offset), len(hdri1.path_offset))
+  }
+
+  for i:=0; i<len(hdri0.path_offset); i++ {
+    if (hdri0.path_offset[i]) != (hdri1.path_offset[i]) {
+      return fmt.Errorf("tilemap step_per_byte mismatch at %d (%v != %v)", i, (hdri0.path_offset[i]), (hdri1.path_offset[i]))
+    }
+  }
+
+  if hdri0.pathcount != len(hdri0.step_per_path) {
+    return fmt.Errorf("sanity: pathcount %d does not match step_per_path %d", hdri0.pathcount, len(hdri0.step_per_path))
+  }
+
+  if hdri0.pathcount != len(hdri0.path_offset) {
+    return fmt.Errorf("sanity: pathcount %d does not match path_offset %d", hdri0.pathcount, len(hdri0.path_offset))
+  }
+
+  return nil
+}
+
+func headerintermediate_from_bytes(b []byte) (headerintermediate,int) {
+  hdri := headerintermediate{}
+  var dummy uint64
+  var dn int
+
+  n:=0
+
+  for i:=0; i<8; i++ { hdri.magic[i] = b[n+i] }
+  n+=8
+
+  dummy,dn = dlug.ConvertUint64(b[n:])
+  n+=dn
+
+  ns := int(dummy)
+
+
+  hdri.ver = string(b[n:n+ns])
+  n+=ns
+
+  dummy,dn = dlug.ConvertUint64(b[n:])
+  n+=dn
+
+  ns = int(dummy)
+
+  hdri.libver = string(b[n:n+ns])
+  n+=ns
+
+  dummy = byte2uint64(b[n:n+8])
+  n+=8
+
+  hdri.pathcount = int(dummy)
+
+  dummy = byte2uint64(b[n:n+8])
+  n+=8
+
+  tilemaplen := int(dummy)
+
+  hdri.tilemap_bytes = b[n:n+tilemaplen]
+  hdri.tilemap = unpack_tilemap(b[n:n+tilemaplen])
+  n += tilemaplen
+
+  for i:=0; i<hdri.pathcount; i++ {
+    dummy = byte2uint64(b[n:n+8])
+    n+=8
+    hdri.step_per_path = append(hdri.step_per_path, int(dummy))
+  }
+
+  for i:=0; i<=hdri.pathcount; i++ {
+    dummy = byte2uint64(b[n:n+8])
+    n+=8
+    hdri.path_offset = append(hdri.path_offset, int(dummy))
+  }
+
+  return hdri,n
+}
+
+func bytes_from_headerintermediate(hdri headerintermediate) []byte {
+  buf := make([]byte, 64)
+  b := make([]byte, 0, 1024)
+
+  b = append(b, hdri.magic[:]...)
+
+  mbytes := dlug.MarshalUint64(uint64(len(hdri.ver)))
+  b = append(b, mbytes...)
+
+  s := []byte(hdri.ver)
+  b = append(b, s...)
+
+  mbytes = dlug.MarshalUint64(uint64(len(hdri.libver)))
+  b = append(b, mbytes...)
+
+  s = []byte(hdri.libver)
+  b = append(b, s...)
+
+  tobyte64(buf, uint64(hdri.pathcount))
+  b = append(b, buf[0:8]...)
+
+  tobyte64(buf, uint64(len(hdri.tilemap_bytes)))
+  b = append(b, buf[0:8]...)
+
+  b = append(b, hdri.tilemap_bytes...)
+
+  for i:=0; i<len(hdri.step_per_path); i++ {
+    tobyte64(buf, uint64(hdri.step_per_path[i]))
+    b = append(b, buf[0:8]...)
+  }
+
+  if len(hdri.path_offset)==0 {
+    tobyte64(buf, uint64(0))
+    b = append(b, buf[0:8]...)
+  } else {
+    for i:=0; i<len(hdri.path_offset); i++ {
+      tobyte64(buf, uint64(hdri.path_offset[i]))
+      b = append(b, buf[0:8]...)
+    }
+  }
+
+  return b
 }
 
 //====                        __ _               _       _                               _ _       _
@@ -770,6 +1005,15 @@ func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
   loq_flag_vec := b[n:n+loqflag_bytecount]
   n+=loqflag_bytecount
 
+  /*
+  fmt.Printf("loqflag(%d):", loqflag_bytecount)
+  for i:=0; i<loqflag_bytecount; i++ {
+    if (i%40)==0 { fmt.Printf("\n") }
+    fmt.Printf(" %2x", loq_flag_vec[i])
+  }
+  fmt.Printf("\n")
+  */
+
   for i:=0; i<8*loqflag_bytecount; i++ {
     tf := false
     if (loq_flag_vec[i/8] & (1<<uint(i%8))) != 0 { tf = true }
@@ -787,9 +1031,39 @@ func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
 
   // main loq array
   //
+
+  loqi.loqi_info = make(map[int]cgfintermediate)
+
+
+  //DEBUG
+  //fmt.Printf("LOQ PEEL\n")
+  //DEBUG
+
+  cur_step:=0
+  max_step := loq_info_byte_count*8
+
   rec_pos:=0
   byte_offset := 0
   for byte_offset < loq_info_byte_count {
+
+    for (cur_step<max_step) && (!loqi.loq_flag[cur_step]) {
+      cur_step++
+    }
+    if cur_step==max_step {
+      panic( fmt.Sprintf("ERROR: cur_step (%d) == max_step (%d)\n", cur_step, max_step) )
+    }
+
+    //fmt.Printf("  bo: %d (/%d), rec_pos: %d, cur_step %d (0x%x)\n", byte_offset, loq_info_byte_count, rec_pos, cur_step, cur_step)
+
+
+    cgfi := cgfintermediate{}
+    cgfi.loq_flag = true
+    cgfi.step = make([][]int, 2)
+    cgfi.seq= make([][]string, 2)
+    cgfi.varid = make([][]int, 2)
+    cgfi.span = make([][]int, 2)
+    cgfi.loq = make([][]bool, 2)
+    cgfi.nocall_start_len = make([][][]int, 2)
 
     ntile := make([]int, 1)
 
@@ -800,8 +1074,12 @@ func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
     ntile[0] = int(dummy)
     loqi.loqinfo_ints = append(loqi.loqinfo_ints, int(ntile[0]))
 
-    if !loqi.homflag[rec_pos] {
+    cgfi.nocall_start_len[0] = make([][]int, ntile[0])
 
+    //DEBUG
+    //fmt.Printf("  ntile0:%d\n", ntile[0])
+
+    if !loqi.homflag[rec_pos] {
 
       dummy,dn := dlug.ConvertUint64(b[n:])
       n+=dn
@@ -810,9 +1088,20 @@ func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
       ntile = append(ntile, int(dummy))
 
       loqi.loqinfo_ints = append(loqi.loqinfo_ints, int(ntile[1]))
+      cgfi.nocall_start_len[1] = make([][]int, ntile[1])
+
+      //DEBUG
+      //fmt.Printf("  ntile1:%d\n", ntile[1])
+
+    } else {
+
+      //DEBUG
+      //fmt.Printf(" +ntile1:%d\n", ntile[0])
+
+      cgfi.nocall_start_len[1] = make([][]int, ntile[0])
     }
 
-    fmt.Printf(" %v\n", ntile)
+    //fmt.Printf(" %v\n", ntile)
 
     for allele:=0; allele<len(ntile); allele++ {
 
@@ -832,12 +1121,41 @@ func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
           byte_offset+=dn
 
           delpos:=int(dummy)
+          cgfi.nocall_start_len[allele][i] = append(cgfi.nocall_start_len[allele][i], delpos)
+
+          //DEBUG
+          //fmt.Printf("    [%d]delpos:%d\n", allele, delpos)
+          //DEBUG
+
+          if len(ntile)==1 {
+            cgfi.nocall_start_len[1][i] = append(cgfi.nocall_start_len[1][i], delpos)
+
+            //DEBUG
+            //fmt.Printf("   +[%d]delpos:%d\n", 1, delpos)
+            //DEBUG
+          }
 
           dummy,dn = dlug.ConvertUint64(b[n:])
           n+=dn
           byte_offset+=dn
 
           l:=int(dummy)
+          cgfi.nocall_start_len[allele][i] = append(cgfi.nocall_start_len[allele][i], l)
+
+          //DEBUG
+          //fmt.Printf("    [%d]len:%d\n", allele, l)
+          //DEBUG
+
+
+          if len(ntile)==1 {
+            cgfi.nocall_start_len[1][i] = append(cgfi.nocall_start_len[1][i], l)
+
+            //DEBUG
+            //fmt.Printf("   +[%d]len:%d\n", 1, l)
+            //DEBUG
+
+
+          }
 
           loqi.loqinfo_ints = append(loqi.loqinfo_ints, delpos)
           loqi.loqinfo_ints = append(loqi.loqinfo_ints, l)
@@ -845,7 +1163,9 @@ func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
       }
     }
 
+    loqi.loqi_info[cur_step] = cgfi
     rec_pos++
+    cur_step++
 
   }
 
@@ -1028,7 +1348,7 @@ func construct_loq_intermediate(ctx *CGFContext, prep_vector []vectorelement) lo
 
 
         //DEBUG
-        fmt.Printf("%x - ** N %d\n", i, len(nocall_start_len[0]))
+        //fmt.Printf("%x - ** N %d\n", i, len(nocall_start_len[0]))
 
 
 
@@ -1036,7 +1356,7 @@ func construct_loq_intermediate(ctx *CGFContext, prep_vector []vectorelement) lo
           loqi.loqinfo_ints = append(loqi.loqinfo_ints, len(nocall_start_len[0][ii]))
 
           //DEBUG
-          fmt.Printf("%x -  ** m(%d) %d\n", i, ii, len(nocall_start_len[0][ii]))
+          //fmt.Printf("%x -  ** m(%d) %d\n", i, ii, len(nocall_start_len[0][ii]))
 
 
           start := 0
@@ -1046,7 +1366,7 @@ func construct_loq_intermediate(ctx *CGFContext, prep_vector []vectorelement) lo
             start = nocall_start_len[0][ii][jj]
 
             //DEBUG
-            fmt.Printf("%x -  ** %d+%d\n", i, nocall_start_len[0][ii][jj], nocall_start_len[0][ii][jj+1])
+            //fmt.Printf("%x -  ** %d+%d\n", i, nocall_start_len[0][ii][jj], nocall_start_len[0][ii][jj+1])
 
 
           }
@@ -1063,15 +1383,15 @@ func construct_loq_intermediate(ctx *CGFContext, prep_vector []vectorelement) lo
         loqi.loqinfo_ints = append(loqi.loqinfo_ints, len(nocall_start_len[1]))
 
         //DEBUG
-        fmt.Printf("%x - ** N %d (bonk)\n", i, len(nocall_start_len[0]))
-        fmt.Printf("%x - ** N %d (bonk)\n", i, len(nocall_start_len[1]))
+        //fmt.Printf("%x - ** N %d (bonk)\n", i, len(nocall_start_len[0]))
+        //fmt.Printf("%x - ** N %d (bonk)\n", i, len(nocall_start_len[1]))
 
         for allele:=0; allele<2; allele++ {
           for ii:=0; ii<len(nocall_start_len[allele]); ii++ {
             loqi.loqinfo_ints = append(loqi.loqinfo_ints, len(nocall_start_len[allele][ii]))
 
             //DEBUG
-            fmt.Printf("%x -  ** m(%d) %d\n", i, ii, len(nocall_start_len[allele][ii]))
+            //fmt.Printf("%x -  ** m(%d) %d\n", i, ii, len(nocall_start_len[allele][ii]))
 
 
             start := 0
@@ -1081,7 +1401,7 @@ func construct_loq_intermediate(ctx *CGFContext, prep_vector []vectorelement) lo
               start = nocall_start_len[allele][ii][jj]
 
               //DEBUG
-              fmt.Printf("%x -  ** %d+%d\n", i, nocall_start_len[allele][ii][jj], nocall_start_len[allele][ii][jj+1])
+              //fmt.Printf("%x -  ** %d+%d\n", i, nocall_start_len[allele][ii][jj], nocall_start_len[allele][ii][jj+1])
 
             }
 
@@ -1115,7 +1435,8 @@ func bytes_from_pathintermediate(pathi pathintermediate) []byte {
   path_bytes = append(path_bytes, ns_bytes...)
   path_bytes = append(path_bytes, []byte(pathi.name)...)
 
-  tobyte64(buf, uint64(len(pathi.veci)))
+  //tobyte64(buf, uint64(len(pathi.veci)))
+  tobyte64(buf, uint64(pathi.ntile))
   path_bytes = append(path_bytes, buf[0:8]...)
   for i:=0; i<len(pathi.veci); i++ {
     tobyte64(buf, uint64(pathi.veci[i]))
@@ -1149,7 +1470,11 @@ func pathintermediate_from_bytes(b []byte) (pathintermediate,int) {
   dummy = byte2uint64(b[n:n+8])
   n+=8
 
-  veclen := int(dummy)
+  //veclen := int(dummy)
+  ntile := int(dummy)
+  veclen := (ntile+31)/32
+
+  pathi.ntile = ntile
 
   for i:=0; i<veclen; i++ {
     dummy = byte2uint64(b[n:n+8])
@@ -1166,7 +1491,82 @@ func pathintermediate_from_bytes(b []byte) (pathintermediate,int) {
   pathi.loqi,dn = loqintermediate_from_bytes(b[n:])
   n+=dn
 
+  //DEBUG
+  /*
+  fmt.Printf("LOQI INFO DUMP")
+  for step := range pathi.loqi.loqi_info {
+    fmt.Printf("step %d:", step)
+
+    loqi_info := pathi.loqi.loqi_info[step]
+    for i:=0; i<len(loqi_info.nocall_start_len); i++ {
+      fmt.Printf(" <%d>", i)
+      for j:=0; j<len(loqi_info.nocall_start_len[i]); j++ {
+        fmt.Printf(" {%d} %d(", i, j)
+        for k:=0; k<len(loqi_info.nocall_start_len[i][j]); k+=2 {
+          fmt.Printf(" %d+%d",
+            loqi_info.nocall_start_len[i][j][k],
+            loqi_info.nocall_start_len[i][j][k+1])
+        }
+        fmt.Printf(")")
+      }
+    }
+    fmt.Printf("\n")
+
+  }
+  */
+  //DEBUG
+
   return pathi,n
+}
+
+func _loq_skip(loqi loqintermediate, step int) int {
+  pos:=0
+  for i:=0; i<len(loqi.tilepos); i++ {
+    anchor_step := loqi.tilepos[i]
+    if anchor_step == step { return pos }
+
+    ntile := make([]int, 1)
+    ntile[0] = loqi.loqinfo_ints[pos]
+    pos++
+
+    //fmt.Printf("  %v\n", ntile)
+
+    if loqi.homflag[anchor_step] {
+      ntile = append(ntile, loqi.loqinfo_ints[pos])
+      pos++
+
+      //fmt.Printf(" +%v\n", ntile)
+
+    }
+
+    for allele:=0; allele<len(ntile); allele++ {
+      for ii:=0; ii<ntile[allele]; ii++ {
+        l := loqi.loqinfo_ints[pos]
+        pos++
+
+        //fmt.Printf("   [%d][%d] m %d\n", allele, ii, l)
+
+
+        for jj:=0; jj<l; jj+=2 {
+          delpos := loqi.loqinfo_ints[pos] ; _ = delpos
+          pos++
+
+          //fmt.Printf("      [%d][%d] delpos %d\n", allele, ii, delpos)
+
+          loqlen := loqi.loqinfo_ints[pos] ; _ = loqlen
+          pos++
+
+          //fmt.Printf("      [%d][%d] loqlen %d\n", allele, ii, loqlen)
+
+
+        }
+      }
+    }
+
+
+  }
+
+  return pos
 }
 
 
@@ -1235,7 +1635,9 @@ func construct_loq_map(loqi loqintermediate) map[int]map[int][]int {
 
 //func emit_intermediate(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) error {
 func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([]byte, error) {
-  debug_output:=true
+  debug_output:=false
+
+  max_tile := 0
 
   cgf := ctx.CGF ; _ = cgf
   sglf := ctx.SGLF
@@ -1271,6 +1673,10 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
       _knot_tot_span(&knot)
       knot.tilemap_key = create_tilemap_string_lookup2(knot.varid[0], knot.span[0], knot.varid[1], knot.span[1])
       tileKnot = append(tileKnot, knot)
+
+      if max_tile < (knot.step[0][0] + knot.tot_span) {
+        max_tile = knot.step[0][0] + knot.tot_span
+      }
 
       knot = cgfintermediate{}
       _init_knot(&knot)
@@ -1887,6 +2293,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
 
   pathi := pathintermediate{}
   pathi.name = fmt.Sprintf("%04x", path_idx)
+  pathi.ntile = max_tile+1
   pathi.veci = vec64
   pathi.ofsi = ofsi
   pathi.fofsi = fofsi
@@ -1906,7 +2313,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
     pathi_test0,dn := pathintermediate_from_bytes(path_bytes)
     path_bytes1 := bytes_from_pathintermediate(pathi_test0)
 
-    fmt.Printf("pathi:::\n")
+    fmt.Printf("pathi::: (ntile %d, %d)\n", pathi.ntile, pathi_test0.ntile)
     fmt.Printf(">>>> len(path_bytes) %d, len(path_bytes1) %d (dn %d)\n", len(path_bytes), len(path_bytes1), dn)
 
     if len(path_bytes) != len(path_bytes1) {
@@ -1931,16 +2338,118 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
 
   patho,_ := pathintermediate_from_bytes(path_bytes)
 
-  fmt.Printf("LOQDUMP\n")
-  for i:=0; i<len(patho.loqi.loqinfo_ints); i++ {
-    fmt.Printf("[%d] %d\n", i, patho.loqi.loqinfo_ints[i])
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+
+  // FILL IN LOQINTERMEDIATE
+  tilemap := unpack_tilemap(ctx.CGF.TileMap)
+  for anchor_step := range patho.loqi.loqi_info {
+    cgfi := patho.loqi.loqi_info[anchor_step]
+    knot := get_knot(ctx, tilemap, patho, anchor_step)
+
+    if knot == nil {
+      panic( fmt.Sprintf("anchor_step %d has no knot", anchor_step) )
+    }
+
+    for allele:=0; allele<2; allele++ {
+      for idx:=0; idx<len(knot[allele]); idx++ {
+        cgfi.varid[allele] = append(cgfi.varid[allele], knot[allele][idx].VarId)
+        cgfi.span[allele]  = append(cgfi.span[allele], knot[allele][idx].Span)
+        cgfi.step[allele]  = append(cgfi.step[allele], knot[allele][idx].Step)
+      }
+    }
+
+    patho.loqi.loqi_info[anchor_step] = cgfi
+
   }
 
-  loq_map := construct_loq_map(patho.loqi) ; _ = loq_map
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+  //=====================================================
+
+
+  if debug_output {
+
+    fmt.Printf("LOQDUMP\n")
+    for i:=0; i<len(patho.loqi.loqinfo_ints); i++ {
+      fmt.Printf("[%d] %d\n", i, patho.loqi.loqinfo_ints[i])
+    }
+
+    // FILL IN LOQINTERMEDIATE
+    /*
+    tilemap := unpack_tilemap(ctx.CGF.TileMap)
+    for anchor_step := range patho.loqi.loqi_info {
+      cgfi := patho.loqi.loqi_info[anchor_step]
+      knot := get_knot(ctx, tilemap, patho, anchor_step)
+
+      if knot == nil {
+        panic( fmt.Sprintf("anchor_step %d has no knot", anchor_step) )
+      }
+
+      fmt.Printf("???? len knot %d\n", len(knot))
+
+      for allele:=0; allele<2; allele++ {
+        for idx:=0; idx<len(knot[allele]); idx++ {
+          //cgfi.varid[allele][idx] = knot[allele][idx].VarId
+          //cgfi.span[allele][idx] = knot[allele][idx].Span
+          //cgfi.step[allele][idx] = knot[allele][idx].Step
+          cgfi.varid[allele] = append(cgfi.varid[allele], knot[allele][idx].VarId)
+          cgfi.span[allele]  = append(cgfi.span[allele], knot[allele][idx].Span)
+          cgfi.step[allele]  = append(cgfi.step[allele], knot[allele][idx].Step)
+        }
+      }
+
+      patho.loqi.loqi_info[anchor_step] = cgfi
+
+
+    }
+    */
+
+    for anchor_step := range patho.loqi.loqi_info {
+
+      fmt.Printf("anchor_step(%d):\n", anchor_step)
+      cgfi := patho.loqi.loqi_info[anchor_step]
+
+
+      for allele:=0; allele<2; allele++ {
+
+        run_span := 0
+
+        fmt.Printf("  [%d]\n", allele)
+        for idx:=0; idx<len(cgfi.step[allele]); idx++ {
+
+          fmt.Printf("    %x(%x).%x+%x:",
+            cgfi.step[allele][idx],
+            anchor_step + run_span,
+            cgfi.varid[allele][idx],
+            cgfi.span[allele][idx])
+
+          for i:=0; i<len(cgfi.nocall_start_len[allele][idx]); i+=2 {
+            fmt.Printf(" %d+%d",
+              cgfi.nocall_start_len[allele][idx][i],
+              cgfi.nocall_start_len[allele][idx][i+1])
+          }
+          fmt.Printf("\n")
+
+          run_span += cgfi.span[allele][idx]
+
+        }
+      }
+
+    }
+
+  }
 
   //TESTING
 
-  tilemap := unpack_tilemap(ctx.CGF.TileMap)
+  //tilemap := unpack_tilemap(ctx.CGF.TileMap)
 
   /*
   fmt.Printf("TILEMAP (%d)\n", len(tilemap))
@@ -1952,6 +2461,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
 
   //sglf = ctx.SGLF
 
+  /*
   fmt.Printf("knots\n")
 
   for step:=0; step<0x991; step++ {
@@ -1977,6 +2487,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
     }
 
   }
+  */
 
 
   /*
