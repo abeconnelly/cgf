@@ -294,7 +294,7 @@ func cgf_default_header_bytes() []byte {
   tile_vector_offset := make([]uint64, 0, 1024)
   if len(tile_vector_offset)>0 {
     for i:=0; i<len(step_per_path); i++ {
-      tobyte64(tbuf[0:8], step_per_path[i])
+      tobyte64(tbuf[0:8], tile_vector_offset[i])
       buf = append(buf, tbuf[0:8]...)
       n+=8
     }

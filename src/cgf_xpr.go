@@ -317,7 +317,7 @@ func headerintermediate_cmp(hdri0, hdri1 headerintermediate) error {
     return fmt.Errorf("sanity: pathcount %d does not match step_per_path %d", hdri0.pathcount, len(hdri0.step_per_path))
   }
 
-  if hdri0.pathcount != len(hdri0.path_offset) {
+  if (hdri0.pathcount+1) != len(hdri0.path_offset) {
     return fmt.Errorf("sanity: pathcount %d does not match path_offset %d", hdri0.pathcount, len(hdri0.path_offset))
   }
 

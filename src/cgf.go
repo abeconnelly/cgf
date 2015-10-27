@@ -25,6 +25,8 @@ var gProfileFile string = "cgf.pprof"
 var gMemProfileFlag bool
 var gMemProfileFile string = "cgf.mprof"
 
+var gShowKnotNocallInfoFlag bool = true
+
 var use_SGLF bool = false
 
 func tile_cmp(tile, lib string) bool {
@@ -289,23 +291,39 @@ func print_zipper(sglf SGLF, allele_path [][]TileInfo) {
 }
 
 func _main( c *cli.Context ) {
+  gShowKnotNocallInfoFlag = !c.Bool("hide-knot-low-quality")
 
   inp_slice := c.StringSlice("input")
+
+  /*
   if len(inp_slice)==0 {
     fmt.Fprintf( os.Stderr, "Input required, exiting\n" )
     cli.ShowAppHelp( c )
     os.Exit(1)
   }
+  */
+
+  //default_cgf_fn := inp_slice[0]
 
   cglf_lib_location := c.String("cglf")
 
   action := c.String("action")
   if action == "debug" {
 
+
+    /*
+    if len(inp_slice)==0 {
+      fmt.Fprintf( os.Stderr, "Input required, exiting\n" )
+      cli.ShowAppHelp( c )
+      os.Exit(1)
+    }
+
     for i:=0; i<len(inp_slice); i++ {
       debug_read(inp_slice[i])
     }
+    */
 
+    debug_read(c.String("cgf"))
     return
   } else if action == "headercheck" {
 
@@ -321,6 +339,7 @@ func _main( c *cli.Context ) {
     if err!=nil { log.Fatal(err) }
     return
   } else if action == "header" {
+
     ocgf := c.String("output")
 
     header_bytes := cgf_default_header_bytes()
@@ -334,11 +353,17 @@ func _main( c *cli.Context ) {
 
     return
 
-  } else if action == "inspect" {
+  } else if action == "knot" {
 
     cglf_path := c.String("cglf")
+    if len(cglf_path)==0 {
+      fmt.Fprintf( os.Stderr, "Provide CGLF\n" )
+      cli.ShowAppHelp(c)
+      os.Exit(1)
+    }
 
     cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))
+    //cgf_bytes,e := ioutil.ReadFile(default_cgf_fn)
     if e!=nil { log.Fatal(e) }
 
     hdri,dn := headerintermediate_from_bytes(cgf_bytes[:])
@@ -357,15 +382,16 @@ func _main( c *cli.Context ) {
 
     knot := get_knot(hdri.tilemap, pathi, step)
     if knot==nil {
-      fmt.Printf("spanning tile?")
+      fmt.Printf("spanning tile?\n")
     } else {
 
-      fmt.Printf("(%d)\n", len(knot))
       for i:=0; i<len(knot); i++ {
+        phase_str := "A"
+        if i==1 { phase_str = "B" }
 
-        fmt.Printf("  [%d]", i)
         for j:=0; j<len(knot[i]); j++ {
-          fmt.Printf(" %04x.%02x.%04x.%03x+%x",
+          fmt.Printf("%s %04x.%02x.%04x.%03x+%x",
+            phase_str,
             path, ver,
             knot[i][j].Step,
             knot[i][j].VarId,
@@ -376,9 +402,6 @@ func _main( c *cli.Context ) {
                                   uint64(knot[i][j].VarId),
                                   uint64(knot[i][j].Span),
                                   cglf_path)
-
-          //m5str := md5sum2str(md5.Sum([]byte(seq)))
-          //fmt.Printf("\n%s\n%s\n", m5str, seq)
 
           if len(knot[i][j].NocallStartLen)>0 {
             fmt.Printf("*{")
@@ -392,17 +415,14 @@ func _main( c *cli.Context ) {
 
             noc_seq := fill_noc_seq(seq, knot[i][j].NocallStartLen)
             noc_m5str := md5sum2str(md5.Sum([]byte(noc_seq)))
-            fmt.Printf("\nmd5sum: %s\n%s\n", noc_m5str, noc_seq)
-
+            fmt.Printf(" %s\n%s\n", noc_m5str, noc_seq)
           } else {
-
             m5str := md5sum2str(md5.Sum([]byte(seq)))
-            fmt.Printf("\nmd5sum: %s\n%s\n", m5str, seq)
-
+            fmt.Printf(" %s\n%s\n", m5str, seq)
           }
 
         }
-        fmt.Printf("\n")
+        //fmt.Printf("\n")
       }
 
     }
@@ -421,21 +441,26 @@ func _main( c *cli.Context ) {
       if e!=nil { log.Fatal(e) }
 
       for i:=0; i<len(inp_slice); i++ {
-        e = print_tile(inp_slice[i], tilepos_str, sglf)
+        e = print_tile_sglf(inp_slice[i], tilepos_str, sglf)
         if e!=nil { log.Fatal(e) }
       }
     } else {
+      if len(c.String("cgf"))!=0 {
+        inp_slice = append(inp_slice, c.String("cgf"))
+      }
+
       for i:=0; i<len(inp_slice); i++ {
-        e := print_tile2(inp_slice[i], tilepos_str, cglf_lib_location)
+        e := print_tile_cglf(inp_slice[i], tilepos_str, cglf_lib_location)
         if e!=nil { log.Fatal(e) }
       }
 
     }
 
     return
-  } else if action == "knot" {
+  } else if action == "knot-2" {
 
     cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))
+    //cgf_bytes,e := ioutil.ReadFile(default_cgf_fn)
     if e!=nil { log.Fatal(e) }
 
     hdri,dn := headerintermediate_from_bytes(cgf_bytes[:])
@@ -457,26 +482,28 @@ func _main( c *cli.Context ) {
       fmt.Printf("spanning tile?")
     } else {
 
-      fmt.Printf("(%d)\n", len(knot))
       for i:=0; i<len(knot); i++ {
 
-        fmt.Printf("  [%d]", i)
+        //fmt.Printf("[%d]", i)
         for j:=0; j<len(knot[i]); j++ {
-          fmt.Printf(" %04x.%02x.%04x.%03x+%x",
+          if j>0 { fmt.Printf(" ") }
+          fmt.Printf("%04x.%02x.%04x.%03x+%x",
             path, ver,
             knot[i][j].Step,
             knot[i][j].VarId,
             knot[i][j].Span)
 
-          if len(knot[i][j].NocallStartLen)>0 {
-            fmt.Printf("*{")
-            for p:=0; p<len(knot[i][j].NocallStartLen); p+=2 {
-              if p>0 { fmt.Printf(";") }
-              fmt.Printf("%d+%d",
-                knot[i][j].NocallStartLen[p],
-                knot[i][j].NocallStartLen[p+1])
+          if gShowKnotNocallInfoFlag {
+            if len(knot[i][j].NocallStartLen)>0 {
+              fmt.Printf("*{")
+              for p:=0; p<len(knot[i][j].NocallStartLen); p+=2 {
+                if p>0 { fmt.Printf(";") }
+                fmt.Printf("%d+%d",
+                  knot[i][j].NocallStartLen[p],
+                  knot[i][j].NocallStartLen[p+1])
+              }
+              fmt.Printf("}")
             }
-            fmt.Printf("}")
           }
         }
         fmt.Printf("\n")
@@ -485,6 +512,7 @@ func _main( c *cli.Context ) {
     }
 
 
+    return
 
   } else if action == "sglfbarf" {
 
@@ -528,31 +556,14 @@ func _main( c *cli.Context ) {
     path:=int(path_u64)
 
     cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))
+    //cgf_bytes,e := ioutil.ReadFile(default_cgf_fn)
     if e!=nil { log.Fatal(e) }
 
-    hdri,dn := headerintermediate_from_bytes(cgf_bytes[:])
-    _ = hdri
-    _ = dn
+    hdri,_ := headerintermediate_from_bytes(cgf_bytes[:])
 
-    //DEBUG
-    fmt.Printf("path_bytes[%d]:\n", len(hdri.path_bytes))
-    for i:=0; i<len(hdri.path_bytes); i++ {
-      fmt.Printf("path_bytes[%d]: len %d\n", i, len(hdri.path_bytes[i]))
-    }
-
-    //DEBUG
-
-    headerintermediate_debug_print(hdri)
-
-    //hdr_bytes := bytes_from_headerintermediate(hdri)
-    //f,err := os.Create("./header2.cgf")
-    //if err!=nil { log.Fatal(err) }
-    //f.Write(hdr_bytes)
-    //f.Sync()
-    //f.Close()
+    //headerintermediate_debug_print(hdri)
 
     ctx := CGFContext{}
-
     cgf := CGF{}
     cgf.PathBytes = make([][]byte, 0, 1024)
     CGFFillHeader(&cgf, cgf_bytes)
@@ -568,53 +579,8 @@ func _main( c *cli.Context ) {
     if e!=nil { log.Fatal(e) }
 
     headerintermediate_add_path(&hdri, path, path_bytes)
-
-
-    write_cgf_from_intermediate("okok.cgf", &hdri)
-
-
-
-    return
-
-    //ctx := CGFContext{}
-    //cgf := CGF{}
-    //cgf.PathBytes = make([][]byte, 0, 1024)
-
-    //header_bytes := cgf_default_header_bytes()
-    CGFFillHeader(&cgf, cgf_bytes)
-
-    n_path := len(cgf.Path)
-    if path>n_path { n_path = path+1 }
-    new_path_bytes := make([][]byte, n_path)
-
-    ctx.CGF = &cgf
-    ctx.SGLF = &sglf
-    CGFContext_construct_tilemap_lookup(&ctx)
-
-    for i:=1; i<len(cgf.PathOffset); i++ {
-      fmt.Printf("[%x] [%d:%d]\n", i-1, ctx.CGF.PathOffset[i-1], ctx.CGF.PathOffset[i])
-    }
-
-
-    fmt.Printf(">>>>>>>>>>>>>> len cgf_btyes %d\n", len(cgf_bytes))
-
-    //allele_path,e := load_sample_fastj(&ain_slice[0])
-    if e!=nil { log.Fatal(e) }
-
-    new_path_bytes[path],e = emit_path_bytes(&ctx, path, allele_path)
-    if e!=nil { log.Fatal(e) }
-
-    pathi,z := pathintermediate_from_bytes(new_path_bytes[path])
-    _ = pathi
-    _ = z
-
-    //ctx.CGF.StepPerPath[path] = uint64(pathi:
-
-
-
-    //update_header_from_path_bytes(ctx)
-
-    //write_cgf(&ctx, "out_ok.cgf")
+    //write_cgf_from_intermediate("okok.cgf", &hdri)
+    write_cgf_from_intermediate(c.String("output"), &hdri)
 
     return
   }
@@ -775,21 +741,14 @@ func main() {
 
   app.Flags = []cli.Flag{
 
-    /*(
-    cli.StringFlag{
-      Name: "input, i",
-      Usage: "INPUT",
-    },
-    */
-
-    cli.StringSliceFlag{
-      Name: "input, i",
-      Usage: "INPUT",
-    },
-
     cli.StringFlag{
       Name: "cgf, c",
       Usage: "CGF",
+    },
+
+    cli.StringSliceFlag{
+      Name: "input,i",
+      Usage: "INPUT",
     },
 
     cli.StringFlag{
@@ -813,7 +772,7 @@ func main() {
     },
 
     cli.StringFlag{
-      Name: "output, o",
+      Name: "ocgf, output, o",
       Value: "-",
       Usage: "OUTPUT",
     },
@@ -822,6 +781,11 @@ func main() {
       Name: "append, a",
       Value: "-",
       Usage: "OUTPUT",
+    },
+
+    cli.BoolFlag{
+      Name: "hide-knot-low-quality",
+      Usage: "Don't show low quality information for knot",
     },
 
     cli.StringFlag{
