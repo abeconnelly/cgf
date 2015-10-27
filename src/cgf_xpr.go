@@ -1815,7 +1815,6 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
 
   }
 
-
   // ======================================================
   // ======================================================
   // ======================================================
@@ -2309,7 +2308,8 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
 
   pathi := pathintermediate{}
   pathi.name = fmt.Sprintf("%04x", path_idx)
-  pathi.ntile = max_tile+1
+  //pathi.ntile = max_tile+1
+  pathi.ntile = max_tile
   pathi.veci = vec64
   pathi.ofsi = ofsi
   pathi.fofsi = fofsi
