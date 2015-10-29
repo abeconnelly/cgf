@@ -457,6 +457,116 @@ func _main( c *cli.Context ) {
     }
 
     return
+  } else if action == "fastj-range" {
+
+    tilepos_str := c.String("tilepos")
+
+    pos_parts := strings.Split(tilepos_str, ".")
+    if (len(pos_parts)!=2) && (len(pos_parts)!=3) {
+      fmt.Fprintf(os.Stderr, "Invalid tilepos\n")
+      cli.ShowAppHelp(c)
+      os.Exit(1)
+    }
+
+    path_range,e := parseIntOption(pos_parts[0], 16)
+    if e!=nil {
+      fmt.Fprintf(os.Stderr, "Invalid path in tilepos: %v\n", e)
+      cli.ShowAppHelp(c)
+      os.Exit(1)
+    }
+
+    pp:=1
+    if len(pos_parts)==3 { pp=2 }
+
+    step_range,e := parseIntOption(pos_parts[pp], 16)
+    if e!=nil {
+      fmt.Fprintf(os.Stderr, "Invalid step in tilepos: %v\n", e)
+      cli.ShowAppHelp(c)
+      os.Exit(1)
+    }
+
+    //fmt.Printf("path_range: %v\n", path_range)
+    //fmt.Printf("step_range: %v\n", step_range)
+
+
+    if len(tilepos_str)==0 { log.Fatal("missing tilepos") }
+
+    if len(c.String("sglf"))>0 { use_SGLF = true }
+
+    if use_SGLF {
+      sglf,e := LoadGenomeLibraryCSV(c.String("sglf")) ; _ = sglf
+      if e!=nil { log.Fatal(e) }
+
+      if len(c.String("cgf"))!=0 {
+        inp_slice = append(inp_slice, c.String("cgf"))
+      }
+
+      for i:=0; i<len(inp_slice); i++ {
+        cgf_bytes,e := ioutil.ReadFile(inp_slice[i])
+        if e!=nil { log.Fatal(e) }
+
+        path := path_range[0][0]
+
+        hdri,_ := headerintermediate_from_bytes(cgf_bytes) ; _ = hdri
+        pathi,_ := pathintermediate_from_bytes(hdri.path_bytes[path]) ; _ = pathi
+
+        hdri,dn := headerintermediate_from_bytes(cgf_bytes)
+        if dn<0 { log.Fatal("could not construct header from bytes") }
+
+        patho,dn := pathintermediate_from_bytes(hdri.path_bytes[path])
+        if dn<0 { log.Fatal("could not construct path") }
+
+        tilemap_bytes,_ := CGFTilemapBytes(cgf_bytes)
+        tilemap := unpack_tilemap(tilemap_bytes)
+
+        for step_idx:=0; step_idx<len(step_range); step_idx++ {
+          if step_range[step_idx][1] == -1 {
+            step_range[step_idx][1] = int64(hdri.step_per_path[path])
+          }
+        }
+
+        for stepr_idx:=0; stepr_idx<len(step_range); stepr_idx++ {
+          for step:=step_range[stepr_idx][0]; step<step_range[stepr_idx][1]; step++ {
+            //fmt.Printf("%04x.%04x\n", path, step)
+            knot := get_knot(tilemap, patho, int(step))
+
+
+            print_knot_fastj_sglf(knot, sglf, uint64(path), 0, hdri)
+
+            /*
+            for ii:=0; ii<len(knot); ii++ {
+              cur_step := step
+              for jj:=0; jj<len(knot[ii]); jj++ {
+
+                fmt.Printf("> %04x.00.%04x.%03x+%x\n",
+                  path, cur_step,
+                  knot[ii][jj].VarId,
+                  knot[ii][jj].Span)
+
+                fmt.Printf("%s\n", sglf.Lib[int(path)][int(cur_step)][knot[ii][jj].VarId])
+
+              }
+            }
+            */
+
+          }
+        }
+
+      }
+      return
+    } else {
+      if len(c.String("cgf"))!=0 {
+        inp_slice = append(inp_slice, c.String("cgf"))
+      }
+
+      for i:=0; i<len(inp_slice); i++ {
+        e := print_tile_cglf(inp_slice[i], tilepos_str, cglf_lib_location)
+        if e!=nil { log.Fatal(e) }
+      }
+
+    }
+
+    return
   } else if action == "knot-2" {
 
     cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))

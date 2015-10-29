@@ -116,10 +116,8 @@ func cglf_get_lib_seq(path, step, varid, span uint64, cglf_path string) string {
 
 
 func print_tile_cglf(cgf_fn string, tilepos string, cglf_path string) error {
+  var e error
   tagset_version := 0 ; _ = tagset_version
-
-  cgf_bytes,e := ioutil.ReadFile(cgf_fn)
-  if e!=nil { return e }
 
   tilepos_parts := strings.Split(tilepos, ".")
   if (len(tilepos_parts)!=2) && (len(tilepos_parts)!=3) { return fmt.Errorf("invalid tilepos (must be of form <PATH>.<VER>.<STEP>)") }
@@ -141,6 +139,15 @@ func print_tile_cglf(cgf_fn string, tilepos string, cglf_path string) error {
   step,e = strconv.ParseUint(tilepos_parts[ind], 16, 64) ; _ = step
   if e!=nil { return e }
   ind++
+
+  cgf_bytes,e := ioutil.ReadFile(cgf_fn)
+  if e!=nil { return e }
+
+  return print_tile_cglf_i(cgf_bytes, path,ver,step, cglf_path)
+}
+
+func print_tile_cglf_i(cgf_bytes []byte, path,ver,step uint64, cglf_path string) error {
+  tagset_version := 0 ; _ = tagset_version
 
   //path_vec,e := CGFVectorUint64(cgf_bytes, int(path)) ; _ = path_vec
   //if e!=nil { return e }
@@ -393,9 +400,7 @@ func print_tile_cglf(cgf_fn string, tilepos string, cglf_path string) error {
 }
 
 func print_tile_sglf(cgf_fn string, tilepos string, sglf SGLF) error {
-
-  cgf_bytes,e := ioutil.ReadFile(cgf_fn)
-  if e!=nil { return e }
+  var e error
 
   tilepos_parts := strings.Split(tilepos, ".")
   if (len(tilepos_parts)!=2) && (len(tilepos_parts)!=3) { return fmt.Errorf("invalid tilepos (must be of form <PATH>.<VER>.<STEP>)") }
@@ -418,8 +423,29 @@ func print_tile_sglf(cgf_fn string, tilepos string, sglf SGLF) error {
   if e!=nil { return e }
   ind++
 
-  path_vec,e := CGFVectorUint64(cgf_bytes, int(path)) ; _ = path_vec
+  cgf_bytes,e := ioutil.ReadFile(cgf_fn)
   if e!=nil { return e }
+
+  hdri,dn := headerintermediate_from_bytes(cgf_bytes) ; _ = hdri
+  if dn<0 { return fmt.Errorf("could not construct header from bytes") }
+
+  patho,dn := pathintermediate_from_bytes(hdri.path_bytes[path])
+  if dn<0 { return fmt.Errorf("could not construct path") }
+
+  tilemap_bytes,_ := CGFTilemapBytes(cgf_bytes)
+  tilemap := unpack_tilemap(tilemap_bytes)
+
+  return print_tile_sglf_i(tilemap, patho.veci, path,ver,step, sglf)
+
+  //return print_tile_sglf_i(cgf_bytes, path,ver,step, sglf)
+
+}
+
+//func print_tile_sglf_i(cgf_bytes []byte, path,ver,step uint64, sglf SGLF) error {
+func print_tile_sglf_i(tilemap []TileMapEntry, path_vec []uint64, path,ver,step uint64, sglf SGLF) error {
+
+  //path_vec,e := CGFVectorUint64(cgf_bytes, int(path)) ; _ = path_vec
+  //if e!=nil { return e }
 
   pos := step/32
   pos_offset := uint8(step%32)
@@ -429,8 +455,8 @@ func print_tile_sglf(cgf_fn string, tilepos string, sglf SGLF) error {
 
   x := path_vec[pos]
 
-  tilemap_bytes,_ := CGFTilemapBytes(cgf_bytes)
-  tilemap := unpack_tilemap(tilemap_bytes)
+  //tilemap_bytes,_ := CGFTilemapBytes(cgf_bytes)
+  //tilemap := unpack_tilemap(tilemap_bytes)
 
   if (x & (1<<(pos_offset+32))) > 0 {
     fmt.Printf("non canonical tile\n")

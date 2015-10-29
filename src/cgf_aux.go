@@ -5,6 +5,8 @@ import "strings"
 import "strconv"
 import "./dlug"
 
+
+
 func fill_noc_seq(seq string, delpos_len []int) string {
   s := []byte(seq)
 
@@ -14,6 +16,11 @@ func fill_noc_seq(seq string, delpos_len []int) string {
     loqlen := delpos_len[i+1]
 
     for j:=0; j<loqlen; j++ {
+
+      if ((loqpos+j)>=len(s)) {
+        panic( fmt.Sprintf("!!!! %v, %s", delpos_len, seq))
+      }
+
       s[loqpos+j] = 'n'
     }
 
