@@ -1,9 +1,12 @@
-package main
+package cgf
 
 import "fmt"
 import "crypto/md5"
 
-func print_knot_fastj_sglf(knot [][]TileInfo, sglf SGLF, path, ver uint64, hdri headerintermediate) {
+import "github.com/abeconnelly/cglf"
+
+//func print_knot_fastj_sglf(knot [][]TileInfo, sglf SGLF, path, ver uint64, hdri headerintermediate) {
+func PrintKnotFastjSGLF(knot [][]TileInfo, sglf cglf.SGLF, path, ver uint64, hdri HeaderIntermediate) {
   if len(knot)==0 { return }
 
   for i:=0; i<len(knot); i++ {
@@ -36,7 +39,8 @@ func print_knot_fastj_sglf(knot [][]TileInfo, sglf SGLF, path, ver uint64, hdri 
         fmt.Printf(", \"startTile\":false")
       }
 
-      if (knot[i][j].Step+1)==hdri.step_per_path[int(path)] {
+      //if (knot[i][j].Step+1)==hdri.step_per_path[int(path)] {
+      if (knot[i][j].Step+1)==hdri.StepPerPath[int(path)] {
         endTile = true
         fmt.Printf(", \"endTile\":true")
       } else {
@@ -57,8 +61,11 @@ func print_knot_fastj_sglf(knot [][]TileInfo, sglf SGLF, path, ver uint64, hdri 
 
 
       if len(knot[i][j].NocallStartLen)>0 {
-        noc_seq := fill_noc_seq(seq, knot[i][j].NocallStartLen)
-        noc_m5str := md5sum2str(md5.Sum([]byte(noc_seq)))
+        //noc_seq := fill_noc_seq(seq, knot[i][j].NocallStartLen)
+        //noc_m5str := md5sum2str(md5.Sum([]byte(noc_seq)))
+
+        noc_seq := FillNocSeq(seq, knot[i][j].NocallStartLen)
+        noc_m5str := Md5sum2str(md5.Sum([]byte(noc_seq)))
 
         noc_count := 0
         for ii:=0; ii<len(knot[i][j].NocallStartLen); ii+=2 {
@@ -97,7 +104,7 @@ func print_knot_fastj_sglf(knot [][]TileInfo, sglf SGLF, path, ver uint64, hdri 
         print_fold_seq(noc_seq, 50)
         fmt.Printf("\n")
       } else {
-        m5str := md5sum2str(md5.Sum([]byte(seq)))
+        m5str := Md5sum2str(md5.Sum([]byte(seq)))
         //fmt.Printf(" %s\n%s\n", m5str, seq)
 
         fmt.Printf(", \"md5sum\":\"%s\"", m5str)

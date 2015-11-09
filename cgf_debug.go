@@ -1,25 +1,29 @@
-package main
+//package main
+package cgf
 
 
 import "fmt"
 import "io/ioutil"
-import "./dlug"
+//import "./dlug"
+import "github.com/abeconnelly/dlug"
 
-func headerintermediate_debug_print(hdri headerintermediate) {
+//func headerintermediate_debug_print(hdri headerintermediate) {
+func HeaderIntermediateDebugPrint(hdri HeaderIntermediate) {
   fmt.Printf("Header intermediate\n")
   fmt.Printf("Magic: %v\n", hdri.magic)
   fmt.Printf("ver: %s\n", hdri.ver)
   fmt.Printf("libver: %s\n", hdri.libver)
   fmt.Printf("pathcount: %d\n", hdri.pathcount)
 
-  fmt.Printf("step_per_path[%d]:", len(hdri.step_per_path))
-  fmt.Printf(" %v\n", hdri.step_per_path)
+  fmt.Printf("StepPerPath[%d]:", len(hdri.StepPerPath))
+  fmt.Printf(" %v\n", hdri.StepPerPath)
 
   fmt.Printf("path_offset[%d]:", len(hdri.path_offset))
   fmt.Printf("%v\n", hdri.path_offset)
 }
 
-func debug_read(ifn string) error {
+//func debug_read(ifn string) error {
+func DebugRead(ifn string) error {
   b,e := ioutil.ReadFile(ifn)
   if e!=nil { return e }
   return debug_unpack_bytes(b)
@@ -297,7 +301,8 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
 
   fmt.Printf("TileMapLen: %d\n", tmaplen)
 
-  tmea := unpack_tilemap(cgf_bytes[n:n+int(tmaplen)])
+  //tmea := unpack_tilemap(cgf_bytes[n:n+int(tmaplen)])
+  tmea := UnpackTileMap(cgf_bytes[n:n+int(tmaplen)])
   n+=int(tmaplen)
 
   fmt.Printf("TileMap(%d):", len(tmea))
@@ -323,15 +328,15 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
   }
   fmt.Printf("\n")
 
-  step_per_path := make([]uint64, pathcount)
+  StepPerPath := make([]uint64, pathcount)
   for i:=uint64(0); i<pathcount; i++ {
-    step_per_path[i] = byte2uint64(cgf_bytes[n:n+8])
+    StepPerPath[i] = byte2uint64(cgf_bytes[n:n+8])
     n+=8
   }
 
   fmt.Printf("StepPerPath(%d):", pathcount)
   for i:=uint64(0); i<pathcount; i++ {
-    fmt.Printf(" %d", step_per_path[i])
+    fmt.Printf(" %d", StepPerPath[i])
   }
   fmt.Printf("\n")
 

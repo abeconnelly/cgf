@@ -1,8 +1,12 @@
-package main
+//package main
+package cgf
+
+import "github.com/abeconnelly/cglf"
 
 type CGFContext struct {
   CGF             *CGF
-  SGLF            *SGLF
+  //SGLF            *SGLF
+  SGLF            *cglf.SGLF
   TileMapArray    []TileMapEntry
   TileMapLookup   map[string]TileMapEntry
   TileMapPosition map[string]int

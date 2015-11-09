@@ -1,22 +1,22 @@
-package main
+//package main
+package cgf
 
 import "fmt"
-import "os"
-import "runtime"
-import "runtime/pprof"
+//import "os"
+//import "runtime"
+//import "runtime/pprof"
 
 import "log"
 import "strings"
 
-import "github.com/abeconnelly/autoio"
-import "github.com/codegangsta/cli"
+//import "github.com/abeconnelly/autoio"
+//import "github.com/codegangsta/cli"
 
-import "strconv"
-import "io/ioutil"
+//import "strconv"
+//import "io/ioutil"
 
-import "crypto/md5"
+//import "crypto/md5"
 
-import "github.com/abeconnelly/cgf"
 import "github.com/abeconnelly/cglf"
 
 var VERSION_STR string = "0.1.0"
@@ -32,7 +32,6 @@ var gShowKnotNocallInfoFlag bool = true
 
 var use_SGLF bool = false
 
-/*
 func tile_cmp(tile, lib string) bool {
   if len(tile) != len(lib) { return false }
   for i:=0; i<len(tile); i++ {
@@ -73,14 +72,16 @@ func nocall_string(tile string) string {
 
 }
 
-func print_lookup(sglf SGLF, allele_path [][]TileInfo) {
+//func print_lookup(sglf SGLF, allele_path [][]TileInfo) {
+func print_lookup(sglf cglf.SGLF, allele_path [][]TileInfo) {
   var ok bool
 
   for allele_idx:=0; allele_idx<len(allele_path); allele_idx++ {
     for path_idx:=0; path_idx<len(allele_path[allele_idx]); path_idx++ {
 
       ti := allele_path[allele_idx][path_idx]
-      sglf_info := SGLFInfo{}
+      //sglf_info := SGLFInfo{}
+      sglf_info := cglf.SGLFInfo{}
       if path_idx>0 {
         sglf_info,ok = sglf.PfxTagLookup[ti.PfxTag]
       } else {
@@ -133,7 +134,8 @@ func lookup_variant_index(seq string, var_lib []string) (int,error) {
 
 var test_cgf CGF
 
-func print_zipper(sglf SGLF, allele_path [][]TileInfo) {
+//func print_zipper(sglf SGLF, allele_path [][]TileInfo) {
+func print_zipper(sglf cglf.SGLF, allele_path [][]TileInfo) {
 
   var ok bool
 
@@ -146,10 +148,13 @@ func print_zipper(sglf SGLF, allele_path [][]TileInfo) {
   var step0 int
   var step1 int
 
-  sglf_info0 := SGLFInfo{}
-  sglf_info1 := SGLFInfo{}
+  //sglf_info0 := SGLFInfo{}
+  //sglf_info1 := SGLFInfo{}
 
-  tile_zipper := make([][]SGLFInfo, 2)
+  sglf_info0 := cglf.SGLFInfo{}
+  sglf_info1 := cglf.SGLFInfo{}
+
+  tile_zipper := make([][]cglf.SGLFInfo, 2)
   tile_zipper_seq := make([][]string, 2)
 
   span_sum := 0
@@ -159,21 +164,12 @@ func print_zipper(sglf SGLF, allele_path [][]TileInfo) {
     if span_sum >= 0 {
       ti0 := allele_path[0][step_idx0]
 
-      //DEBUG
-      //fmt.Printf("ti0 %s %s\n", ti0.PfxTag, ti0.SfxTag)
-
       // sglf_info1 only holds a valid path and step
       //
       if step_idx0>0 {
         sglf_info0,ok = sglf.PfxTagLookup[ti0.PfxTag]
-
-        //DEBUG
-        //fmt.Printf("  pfx\n")
       } else {
         sglf_info0,ok = sglf.SfxTagLookup[ti0.SfxTag]
-
-        //DEBUG
-        //fmt.Printf("  sfx\n")
       }
 
       if !ok {
@@ -183,8 +179,6 @@ func print_zipper(sglf SGLF, allele_path [][]TileInfo) {
 
       path0 = sglf_info0.Path
       step0 = sglf_info0.Step
-
-      //fmt.Printf("  path.step %04x.00.%04x (%d,%d)\n", path0,step0,  path0,step0)
 
       // We need to search for the variant in the Lib to find
       // the rest of the information, including span
@@ -287,7 +281,8 @@ func print_zipper(sglf SGLF, allele_path [][]TileInfo) {
   }
 
 }
-*/
+
+/*
 
 func _main( c *cli.Context ) {
   gShowKnotNocallInfoFlag = !c.Bool("hide-knot-low-quality")
@@ -298,24 +293,18 @@ func _main( c *cli.Context ) {
 
   action := c.String("action")
   if action == "debug" {
-    //debug_read(c.String("cgf"))
-    cgf.DebugRead(c.String("cgf"))
+    debug_read(c.String("cgf"))
     return
   } else if action == "headercheck" {
 
 
-    //header_bytes := cgf_default_header_bytes()
-    header_bytes := cgf.CGFDefaultHeaderBytes()
+    header_bytes := cgf_default_header_bytes()
 
-    //hdri,dn := headerintermediate_from_bytes(header_bytes) ; _ = dn
-    hdri,dn := cgf.HeaderIntermediateFromBytes(header_bytes) ; _ = dn
-    //hdri_bytes := bytes_from_headerintermediate(hdri)
-    hdri_bytes := cgf.BytesFromHeaderIntermediate(hdri)
-    //hdri1,dn2 := headerintermediate_from_bytes(hdri_bytes) ; _ = dn2
-    hdri1,dn2 := cgf.HeaderIntermediateFromBytes(hdri_bytes) ; _ = dn2
+    hdri,dn := headerintermediate_from_bytes(header_bytes) ; _ = dn
+    hdri_bytes := bytes_from_headerintermediate(hdri)
+    hdri1,dn2 := headerintermediate_from_bytes(hdri_bytes) ; _ = dn2
 
-    //err := headerintermediate_cmp(hdri, hdri1)
-    err := cgf.HeaderIntermediateCmp(hdri, hdri1)
+    err := headerintermediate_cmp(hdri, hdri1)
 
     if err!=nil { log.Fatal(err) }
     return
@@ -323,8 +312,7 @@ func _main( c *cli.Context ) {
 
     ocgf := c.String("output")
 
-    //header_bytes := cgf_default_header_bytes()
-    header_bytes := cgf.CGFDefaultHeaderBytes()
+    header_bytes := cgf_default_header_bytes()
 
     f,err := os.Create(ocgf)
     if err!=nil { log.Fatal(err) }
@@ -347,27 +335,21 @@ func _main( c *cli.Context ) {
     cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))
     if e!=nil { log.Fatal(e) }
 
-    //hdri,dn := headerintermediate_from_bytes(cgf_bytes[:])
-    hdri,dn := cgf.HeaderIntermediateFromBytes(cgf_bytes[:])
+    hdri,dn := headerintermediate_from_bytes(cgf_bytes[:])
     _ = hdri
     _ = dn
 
-    //path,ver,step,e := parse_tilepos(c.String("tilepos"))
-    path,ver,step,e := cgf.ParseTilepos(c.String("tilepos"))
+    path,ver,step,e := parse_tilepos(c.String("tilepos"))
     if e!=nil { log.Fatal(e) }
 
     if path<0 { log.Fatal("path must be positive") }
     if step<0 { log.Fatal("step must be positive") }
-    //if path >= len(hdri.step_per_path) { log.Fatal("path out of range (max ", len(hdri.step_per_path), " paths)") }
-    //if step>= hdri.step_per_path[path] { log.Fatal("step out of range (max ", hdri.step_per_path[path], " steps)") }
+    if path >= len(hdri.step_per_path) { log.Fatal("path out of range (max ", len(hdri.step_per_path), " paths)") }
+    if step>= hdri.step_per_path[path] { log.Fatal("step out of range (max ", hdri.step_per_path[path], " steps)") }
 
-    if path >= len(hdri.StepPerPath) { log.Fatal("path out of range (max ", len(hdri.StepPerPath), " paths)") }
-    if step>= hdri.StepPerPath[path] { log.Fatal("step out of range (max ", hdri.StepPerPath[path], " steps)") }
+    pathi,_ := pathintermediate_from_bytes(hdri.path_bytes[path])
 
-    //pathi,_ := pathintermediate_from_bytes(hdri.path_bytes[path])
-    pathi,_ := cgf.PathIntermediateFromBytes(hdri.PathBytes[path])
-
-    knot := cgf.GetKnot(hdri.TileMap, pathi, step)
+    knot := get_knot(hdri.tilemap, pathi, step)
     if knot==nil {
       fmt.Printf("spanning tile?\n")
     } else {
@@ -384,7 +366,7 @@ func _main( c *cli.Context ) {
             knot[i][j].VarId,
             knot[i][j].Span)
 
-          seq := cgf.CGLFGetLibSeq(uint64(path),
+          seq := cglf_get_lib_seq(uint64(path),
                                   uint64(knot[i][j].Step),
                                   uint64(knot[i][j].VarId),
                                   uint64(knot[i][j].Span),
@@ -400,12 +382,11 @@ func _main( c *cli.Context ) {
             }
             fmt.Printf("}")
 
-            //noc_seq := fill_noc_seq(seq, knot[i][j].NocallStartLen)
-            noc_seq := cgf.FillNocSeq(seq, knot[i][j].NocallStartLen)
-            noc_m5str := cgf.Md5sum2str(md5.Sum([]byte(noc_seq)))
+            noc_seq := fill_noc_seq(seq, knot[i][j].NocallStartLen)
+            noc_m5str := md5sum2str(md5.Sum([]byte(noc_seq)))
             fmt.Printf(" %s\n%s\n", noc_m5str, noc_seq)
           } else {
-            m5str := cgf.Md5sum2str(md5.Sum([]byte(seq)))
+            m5str := md5sum2str(md5.Sum([]byte(seq)))
             fmt.Printf(" %s\n%s\n", m5str, seq)
           }
 
@@ -425,12 +406,11 @@ func _main( c *cli.Context ) {
     if len(tilepos_str)==0 { log.Fatal("missing tilepos") }
 
     if use_SGLF {
-      _sglf,e := cglf.LoadGenomeLibraryCSV(c.String("sglf"))
+      sglf,e := LoadGenomeLibraryCSV(c.String("sglf"))
       if e!=nil { log.Fatal(e) }
 
       for i:=0; i<len(inp_slice); i++ {
-        //e = print_tile_sglf(inp_slice[i], tilepos_str, sglf)
-        e = cgf.PrintTileSGLF(inp_slice[i], tilepos_str, _sglf)
+        e = print_tile_sglf(inp_slice[i], tilepos_str, sglf)
         if e!=nil { log.Fatal(e) }
       }
     } else {
@@ -439,8 +419,7 @@ func _main( c *cli.Context ) {
       }
 
       for i:=0; i<len(inp_slice); i++ {
-        //e := print_tile_cglf(inp_slice[i], tilepos_str, cglf_lib_location)
-        e := cgf.PrintTileCGLF(inp_slice[i], tilepos_str, cglf_lib_location)
+        e := print_tile_cglf(inp_slice[i], tilepos_str, cglf_lib_location)
         if e!=nil { log.Fatal(e) }
       }
 
@@ -480,7 +459,7 @@ func _main( c *cli.Context ) {
     if len(c.String("sglf"))>0 { use_SGLF = true }
 
     if use_SGLF {
-      _sglf,e := cglf.LoadGenomeLibraryCSV(c.String("sglf")) ; _ = _sglf
+      sglf,e := LoadGenomeLibraryCSV(c.String("sglf")) ; _ = sglf
       if e!=nil { log.Fatal(e) }
 
       if len(c.String("cgf"))!=0 {
@@ -493,37 +472,28 @@ func _main( c *cli.Context ) {
 
         path := path_range[0][0]
 
-        //hdri,_ := headerintermediate_from_bytes(cgf_bytes) ; _ = hdri
-        //pathi,_ := pathintermediate_from_bytes(hdri.PathBytes[path]) ; _ = pathi
+        hdri,_ := headerintermediate_from_bytes(cgf_bytes) ; _ = hdri
+        pathi,_ := pathintermediate_from_bytes(hdri.path_bytes[path]) ; _ = pathi
 
-        hdri,_ := cgf.HeaderIntermediateFromBytes(cgf_bytes) ; _ = hdri
-        pathi,_ := cgf.PathIntermediateFromBytes(hdri.PathBytes[path]) ; _ = pathi
-
-        //hdri,dn := headerintermediate_from_bytes(cgf_bytes)
-        hdri,dn := cgf.HeaderIntermediateFromBytes(cgf_bytes)
+        hdri,dn := headerintermediate_from_bytes(cgf_bytes)
         if dn<0 { log.Fatal("could not construct header from bytes") }
 
-        //patho,dn := pathintermediate_from_bytes(hdri.PathBytes[path])
-        patho,dn := cgf.PathIntermediateFromBytes(hdri.PathBytes[path])
+        patho,dn := pathintermediate_from_bytes(hdri.path_bytes[path])
         if dn<0 { log.Fatal("could not construct path") }
 
-        tilemap_bytes,_ := cgf.CGFTilemapBytes(cgf_bytes)
-        //tilemap := unpack_tilemap(tilemap_bytes)
-        tilemap := cgf.UnpackTileMap(tilemap_bytes)
+        tilemap_bytes,_ := CGFTilemapBytes(cgf_bytes)
+        tilemap := unpack_tilemap(tilemap_bytes)
 
         for step_idx:=0; step_idx<len(step_range); step_idx++ {
           if step_range[step_idx][1] == -1 {
-            //step_range[step_idx][1] = int64(hdri.step_per_path[path])
-            step_range[step_idx][1] = int64(hdri.StepPerPath[path])
+            step_range[step_idx][1] = int64(hdri.step_per_path[path])
           }
         }
 
         for stepr_idx:=0; stepr_idx<len(step_range); stepr_idx++ {
           for step:=step_range[stepr_idx][0]; step<step_range[stepr_idx][1]; step++ {
-            //knot := GetKnot(tilemap, patho, int(step))
-            //print_knot_fastj_sglf(knot, _sglf, uint64(path), 0, hdri)
-            knot := cgf.GetKnot(tilemap, patho, int(step))
-            cgf.PrintKnotFastjSGLF(knot, _sglf, uint64(path), 0, hdri)
+            knot := get_knot(tilemap, patho, int(step))
+            print_knot_fastj_sglf(knot, sglf, uint64(path), 0, hdri)
           }
         }
 
@@ -540,48 +510,42 @@ func _main( c *cli.Context ) {
 
         path := path_range[0][0]
 
-        _sglf := cglf.SGLF{}
+        sglf := SGLF{}
 
-        //populate_sglf_from_cglf(c.String("cglf"), &_sglf, uint64(path))
-        cgf.PopulateSGLFFromCGLF(c.String("cglf"), &_sglf, uint64(path))
+        populate_sglf_from_cglf(c.String("cglf"), &sglf, uint64(path))
 
         os.Exit(0)
 
-        //hdri,_ := headerintermediate_from_bytes(cgf_bytes) ; _ = hdri
-        //pathi,_ := pathintermediate_from_bytes(hdri.PathBytes[path]) ; _ = pathi
+        hdri,_ := headerintermediate_from_bytes(cgf_bytes) ; _ = hdri
+        pathi,_ := pathintermediate_from_bytes(hdri.path_bytes[path]) ; _ = pathi
 
-        hdri,_ := cgf.HeaderIntermediateFromBytes(cgf_bytes) ; _ = hdri
-        pathi,_ := cgf.PathIntermediateFromBytes(hdri.PathBytes[path]) ; _ = pathi
-
-        //hdri,dn := headerintermediate_from_bytes(cgf_bytes)
-        hdri,dn := cgf.HeaderIntermediateFromBytes(cgf_bytes)
+        hdri,dn := headerintermediate_from_bytes(cgf_bytes)
         if dn<0 { log.Fatal("could not construct header from bytes") }
 
-        //patho,dn := pathintermediate_from_bytes(hdri.PathBytes[path])
-        patho,dn := cgf.PathIntermediateFromBytes(hdri.PathBytes[path])
+        patho,dn := pathintermediate_from_bytes(hdri.path_bytes[path])
         if dn<0 { log.Fatal("could not construct path") }
 
-        tilemap_bytes,_ := cgf.CGFTilemapBytes(cgf_bytes)
-        //tilemap := unpack_tilemap(tilemap_bytes)
-        tilemap := cgf.UnpackTileMap(tilemap_bytes)
+        tilemap_bytes,_ := CGFTilemapBytes(cgf_bytes)
+        tilemap := unpack_tilemap(tilemap_bytes)
 
         for step_idx:=0; step_idx<len(step_range); step_idx++ {
           if step_range[step_idx][1] == -1 {
-            //step_range[step_idx][1] = int64(hdri.step_per_path[path])
-            step_range[step_idx][1] = int64(hdri.StepPerPath[path])
+            step_range[step_idx][1] = int64(hdri.step_per_path[path])
           }
         }
 
         for stepr_idx:=0; stepr_idx<len(step_range); stepr_idx++ {
           for step:=step_range[stepr_idx][0]; step<step_range[stepr_idx][1]; step++ {
-            //knot := GetKnot(tilemap, patho, int(step))
-            //print_knot_fastj_sglf(knot, _sglf, uint64(path), 0, hdri)
-            knot := cgf.GetKnot(tilemap, patho, int(step))
-            cgf.PrintKnotFastjSGLF(knot, _sglf, uint64(path), 0, hdri)
+            knot := get_knot(tilemap, patho, int(step))
+            print_knot_fastj_sglf(knot, sglf, uint64(path), 0, hdri)
           }
         }
 
       }
+
+
+
+
 
     }
 
@@ -591,33 +555,28 @@ func _main( c *cli.Context ) {
     cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))
     if e!=nil { log.Fatal(e) }
 
-    //hdri,dn := headerintermediate_from_bytes(cgf_bytes[:])
-    hdri,dn := cgf.HeaderIntermediateFromBytes(cgf_bytes[:])
+    hdri,dn := headerintermediate_from_bytes(cgf_bytes[:])
     _ = hdri
     _ = dn
 
-    //path,ver,step,e := parse_tilepos(c.String("tilepos"))
-    path,ver,step,e := cgf.ParseTilepos(c.String("tilepos"))
+    path,ver,step,e := parse_tilepos(c.String("tilepos"))
     if e!=nil { log.Fatal(e) }
 
     if path<0 { log.Fatal("path must be positive") }
     if step<0 { log.Fatal("step must be positive") }
-    //if path >= len(hdri.step_per_path) { log.Fatal("path out of range (max ", len(hdri.step_per_path), " paths)") }
-    //if step>= hdri.step_per_path[path] { log.Fatal("step out of range (max ", hdri.step_per_path[path], " steps)") }
+    if path >= len(hdri.step_per_path) { log.Fatal("path out of range (max ", len(hdri.step_per_path), " paths)") }
+    if step>= hdri.step_per_path[path] { log.Fatal("step out of range (max ", hdri.step_per_path[path], " steps)") }
 
-    if path >= len(hdri.StepPerPath) { log.Fatal("path out of range (max ", len(hdri.StepPerPath), " paths)") }
-    if step>= hdri.StepPerPath[path] { log.Fatal("step out of range (max ", hdri.StepPerPath[path], " steps)") }
+    pathi,_ := pathintermediate_from_bytes(hdri.path_bytes[path])
 
-    //pathi,_ := pathintermediate_from_bytes(hdri.PathBytes[path])
-    pathi,_ := cgf.PathIntermediateFromBytes(hdri.PathBytes[path])
-
-    //knot := GetKnot(hdri.tilemap, pathi, step)
-    knot := cgf.GetKnot(hdri.TileMap, pathi, step)
+    knot := get_knot(hdri.tilemap, pathi, step)
     if knot==nil {
       fmt.Printf("spanning tile?")
     } else {
 
       for i:=0; i<len(knot); i++ {
+
+        //fmt.Printf("[%d]", i)
         for j:=0; j<len(knot[i]); j++ {
           if j>0 { fmt.Printf(" ") }
           fmt.Printf("%04x.%02x.%04x.%03x+%x",
@@ -649,18 +608,17 @@ func _main( c *cli.Context ) {
 
   } else if action == "sglfbarf" {
 
-    //_sglf,e := LoadGenomeLibraryCSV(c.String("sglf"))
-    _sglf,e := cglf.LoadGenomeLibraryCSV(c.String("sglf"))
+    sglf,e := LoadGenomeLibraryCSV(c.String("sglf"))
     if e!=nil { log.Fatal(e) }
 
-    for path := range _sglf.LibInfo {
-      for step := range _sglf.LibInfo[path] {
-        for i:=0; i<len(_sglf.LibInfo[path][step]); i++ {
+    for path := range sglf.LibInfo {
+      for step := range sglf.LibInfo[path] {
+        for i:=0; i<len(sglf.LibInfo[path][step]); i++ {
           fmt.Printf("%x,%x,%x.%x.%x+%x\n", path, step,
-            _sglf.LibInfo[path][step][i].Path,
-            _sglf.LibInfo[path][step][i].Step,
-            _sglf.LibInfo[path][step][i].Variant,
-            _sglf.LibInfo[path][step][i].Span)
+            sglf.LibInfo[path][step][i].Path,
+            sglf.LibInfo[path][step][i].Step,
+            sglf.LibInfo[path][step][i].Variant,
+            sglf.LibInfo[path][step][i].Span)
         }
       }
     }
@@ -668,7 +626,7 @@ func _main( c *cli.Context ) {
     return
   } else if action == "append" {
 
-    _sglf,e := cglf.LoadGenomeLibraryCSV(c.String("sglf"))
+    sglf,e := LoadGenomeLibraryCSV(c.String("sglf"))
     if e!=nil { log.Fatal(e) }
 
     ain_slice := make([]autoio.AutoioHandle, 0, 8)
@@ -692,32 +650,25 @@ func _main( c *cli.Context ) {
     cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))
     if e!=nil { log.Fatal(e) }
 
-    //hdri,_ := headerintermediate_from_bytes(cgf_bytes[:])
-    hdri,_ := cgf.HeaderIntermediateFromBytes(cgf_bytes[:])
+    hdri,_ := headerintermediate_from_bytes(cgf_bytes[:])
 
-    ctx := cgf.CGFContext{}
-    _cgf := cgf.CGF{}
-    _cgf.PathBytes = make([][]byte, 0, 1024)
-    cgf.CGFFillHeader(&_cgf, cgf_bytes)
+    ctx := CGFContext{}
+    cgf := CGF{}
+    cgf.PathBytes = make([][]byte, 0, 1024)
+    CGFFillHeader(&cgf, cgf_bytes)
 
-    ctx.CGF = &_cgf
-    ctx.SGLF = &_sglf
-    //CGFContext_construct_tilemap_lookup(&ctx)
-    ctx.ConstructTileMapLookup()
+    ctx.CGF = &cgf
+    ctx.SGLF = &sglf
+    CGFContext_construct_tilemap_lookup(&ctx)
 
-    //allele_path,e := load_sample_fastj(&ain_slice[0])
-    allele_path,e := cgf.LoadSampleFastj(&ain_slice[0])
+    allele_path,e := load_sample_fastj(&ain_slice[0])
     if e!=nil { log.Fatal(e) }
 
-    //PathBytes,e := emit_path_bytes(&ctx, path, allele_path)
-    PathBytes,e := ctx.EmitPathBytes(path, allele_path)
+    path_bytes,e := emit_path_bytes(&ctx, path, allele_path)
     if e!=nil { log.Fatal(e) }
 
-    //headerintermediate_add_path(&hdri, path, PathBytes)
-    //write_cgf_from_intermediate(c.String("output"), &hdri)
-
-    cgf.HeaderIntermediateAddPath(&hdri, path, PathBytes)
-    cgf.WriteCGFFromIntermediate(c.String("output"), &hdri)
+    headerintermediate_add_path(&hdri, path, path_bytes)
+    write_cgf_from_intermediate(c.String("output"), &hdri)
 
     return
   }
@@ -770,49 +721,45 @@ func _main( c *cli.Context ) {
   }
 
 
-  _sglf,e := cglf.LoadGenomeLibraryCSV(c.String("sglf"))
+  sglf,e := LoadGenomeLibraryCSV(c.String("sglf"))
   if e!=nil { log.Fatal(e) }
 
-  ctx := cgf.CGFContext{}
-  _cgf := cgf.CGF{}
+  // Assumes a single path
+  //
+  ctx := CGFContext{}
+  cgf := CGF{}
 
-  //header_bytes := cgf_default_header_bytes()
-  header_bytes := cgf.CGFDefaultHeaderBytes()
-  cgf.CGFFillHeader(&_cgf, header_bytes)
+  header_bytes := cgf_default_header_bytes()
+  CGFFillHeader(&cgf, header_bytes)
 
-  ctx.CGF = &_cgf
-  ctx.SGLF = &_sglf
-  //CGFContext_construct_tilemap_lookup(&ctx)
-  ctx.ConstructTileMapLookup()
+  ctx.CGF = &cgf
+  ctx.SGLF = &sglf
+  CGFContext_construct_tilemap_lookup(&ctx)
 
 
   for i:=0; i<len(ain_slice); i++ {
     ain := ain_slice[i]
 
-    //allele_path,e := load_sample_fastj(&ain)
-    allele_path,e := cgf.LoadSampleFastj(&ain)
+    allele_path,e := load_sample_fastj(&ain)
     if e!=nil { log.Fatal(e) }
 
     p := 0x2c5
     if i>0 { p = 0x247 }
 
-    //e = update_vector_path_simple(&ctx, p, allele_path)
-    e = ctx.UpdateVectorPathSimple(p, allele_path)
+    e = update_vector_path_simple(&ctx, p, allele_path)
     if len(ctx.CGF.StepPerPath) < len(ain_slice) {
-      ctx.CGF.StepPerPath = append(ctx.CGF.StepPerPath, uint64(len(_sglf.Lib[p])))
+      ctx.CGF.StepPerPath = append(ctx.CGF.StepPerPath, uint64(len(sglf.Lib[p])))
     }
 
   }
 
-  ctx.CGF.PathCount = uint64(len(_cgf.Path))
+  ctx.CGF.PathCount = uint64(len(cgf.Path))
   ctx.CGF.StepPerPath = make([]uint64, ctx.CGF.PathCount)
   for i:=uint64(0); i<ctx.CGF.PathCount; i++ {
-    ctx.CGF.StepPerPath[i] = uint64(len(_sglf.Lib[int(i)]))
+    ctx.CGF.StepPerPath[i] = uint64(len(sglf.Lib[int(i)]))
   }
 
-  //write_cgf(&ctx, "out.cgf")
-  ctx.WriteCGF("out.cgf")
-
+  write_cgf(&ctx, "out.cgf")
 }
 
 func main() {
@@ -925,3 +872,4 @@ func main() {
   }
 
 }
+*/

@@ -1,40 +1,52 @@
-package main
+//package main
+package cgf
 
 import "fmt"
-import "./dlug"
+//import "./dlug"
+import "github.com/abeconnelly/dlug"
+
+import "github.com/abeconnelly/cglf"
 
 import _ "os"
 
 //import "crypto/md5"
 
-type headerintermediate struct {
+//type headerintermediate struct {
+type HeaderIntermediate struct {
   magic [8]byte
   ver string
   libver string
   pathcount int
 
-  tilemap []TileMapEntry
-  tilemap_bytes []byte
+  TileMap []TileMapEntry
+  TileMapBytes []byte
 
-  step_per_path []int
+  StepPerPath []int
   path_offset []int
 
-  path_bytes [][]byte
-  pathis []pathintermediate
+  PathBytes [][]byte
+  //pathis []pathintermediate
+  pathis []PathIntermediate
 
 }
 
-type pathintermediate struct {
+//type pathintermediate struct {
+type PathIntermediate struct {
   name string
   ntile int
   veci []uint64
-  cgfi cgfintermediate
-  ofsi overflowintermediate
-  fofsi finaloverflowintermediate
-  loqi loqintermediate
+  //cgfi cgfintermediate
+  //ofsi overflowintermediate
+  //fofsi finaloverflowintermediate
+  //loqi loqintermediate
+  cgfi CGFIntermediate
+  ofsi OverflowIntermediate
+  fofsi FinalOverflowIntermediate
+  loqi LoqIntermediate
 }
 
-type cgfintermediate struct {
+//type cgfintermediate struct {
+type CGFIntermediate struct {
   step  [][]int
   seq   [][]string
   varid [][]int
@@ -42,17 +54,18 @@ type cgfintermediate struct {
   loq   [][]bool
   nocall_start_len [][][]int
 
-  tilemap_key string
-  tilemap_pos int
+  TileMapKey string
+  TileMapPos int
   loq_flag bool
   tot_span int
 }
 
-type overflowintermediate struct {
+//type overflowintermediate struct {
+type OverflowIntermediate struct {
   recno int
   stride int
   tilepos []int
-  tilemap []int
+  TileMap []int
 
   offset_idx []int
   tilepos_idx []int
@@ -61,14 +74,16 @@ type overflowintermediate struct {
   span_flag []bool
 }
 
-type finaloverflowintermediate struct {
+//type finaloverflowintermediate struct {
+type FinalOverflowIntermediate struct {
   recno int
   tilepos []int
   variant_ints []int  // format is { step { nallele { l0 { var + span , ... } } { l1 { var + span ... } } } }
                       // NOTE: l0 and l1 are number of record.  i.e. l0 will be 1 if there is only one var+span combo
 }
 
-type vectorelement struct {
+//type vectorelement struct {
+type VectorElement struct {
   canon_flag bool
   cache_flag bool
   ovf_cache_flag bool
@@ -78,12 +93,14 @@ type vectorelement struct {
 
   loq_flag bool
 
-  knot cgfintermediate
+  //knot cgfintermediate
+  knot CGFIntermediate
   hexit_pos int
   vec_pos int
 }
 
-type loqintermediate struct {
+//type loqintermediate struct {
+type LoqIntermediate struct {
   loqinfo_bytecount int
   count         int
   code          int
@@ -96,7 +113,8 @@ type loqintermediate struct {
   loq_flag      []bool
 
   // key is step
-  loqi_info     map[int]cgfintermediate
+  //loqi_info     map[int]cgfintermediate
+  loqi_info     map[int]CGFIntermediate
 }
 
 
@@ -119,7 +137,8 @@ type loqintermediate struct {
 //========================================================================
 //========================================================================
 
-func vectorelement_ovf_count(prep_vector []vectorelement, st, n int) int {
+//func vectorelement_ovf_count(prep_vector []vectorelement, st, n int) int {
+func VectorElementOverflowCount(prep_vector []VectorElement, st, n int) int {
   ovf_count := 0
   for i:=st; i<(st+n); i++ {
     if prep_vector[i].ovf_flag || prep_vector[i].ovf_cache_flag {
@@ -130,7 +149,8 @@ func vectorelement_ovf_count(prep_vector []vectorelement, st, n int) int {
 }
 
 
-func _knot_tot_span(knot *cgfintermediate) int {
+//func _knot_tot_span(knot *cgfintermediate) int {
+func _knot_tot_span(knot *CGFIntermediate) int {
   sp := [2]int{}
   for allele:=0; allele<2; allele++ {
     for i:=0; i<len(knot.span[allele]); i++ {
@@ -147,7 +167,8 @@ func _knot_tot_span(knot *cgfintermediate) int {
 
 // return span
 //
-func _add_knot(knot *cgfintermediate, allele, step_idx int, ti TileInfo, sglf *SGLF) (int,error) {
+//func _add_knot(knot *cgfintermediate, allele, step_idx int, ti TileInfo, sglf *SGLF) (int,error) {
+func _add_knot(knot *CGFIntermediate, allele, step_idx int, ti TileInfo, sglf *cglf.SGLF) (int,error) {
   if len(ti.NocallStartLen)>0 {
     knot.loq[allele] = append(knot.loq[allele], true)
     knot.loq_flag = true
@@ -155,7 +176,8 @@ func _add_knot(knot *cgfintermediate, allele, step_idx int, ti TileInfo, sglf *S
     knot.loq[allele] = append(knot.loq[allele], false)
   }
 
-  sglf_info := SGLFInfo{}
+  //sglf_info := SGLFInfo{}
+  sglf_info := cglf.SGLFInfo{}
   var ok bool
 
   // sglf_info only holds a valid path and step
@@ -169,7 +191,6 @@ func _add_knot(knot *cgfintermediate, allele, step_idx int, ti TileInfo, sglf *S
   if !ok {
     return -1,fmt.Errorf("could not find prefix (%s) in sglf (allele_idx %d, step_idx %d (%x))\n",
       ti.PfxTag, 0, step_idx, step_idx)
-
   }
 
   path := sglf_info.Path
@@ -203,7 +224,8 @@ func _add_knot(knot *cgfintermediate, allele, step_idx int, ti TileInfo, sglf *S
   return sglf_info.Span,nil
 }
 
-func _init_knot(knot *cgfintermediate) {
+//func _init_knot(knot *cgfintermediate) {
+func _init_knot(knot *CGFIntermediate) {
   knot.seq = make([][]string, 2)
   knot.varid = make([][]int, 2)
   knot.span = make([][]int, 2)
@@ -220,7 +242,8 @@ func _init_knot(knot *cgfintermediate) {
 //====  |_| |_|\___|\__,_|\__,_|\___|_|  |_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
 
 
-func headerintermediate_cmp(hdri0, hdri1 headerintermediate) error {
+//func headerintermediate_cmp(hdri0, hdri1 headerintermediate) error {
+func HeaderIntermediateCmp(hdri0, hdri1 HeaderIntermediate) error {
 
   for i:=0; i<8; i++ {
     if hdri0.magic[i] != hdri1.magic[i] {
@@ -240,81 +263,81 @@ func headerintermediate_cmp(hdri0, hdri1 headerintermediate) error {
     return fmt.Errorf("pathcount mismatch (%v != %v)", hdri0.pathcount, hdri1.pathcount)
   }
 
-  if len(hdri0.tilemap)!= len(hdri1.tilemap) {
-    return fmt.Errorf("tilemap length mismatch (%v != %v)", len(hdri0.tilemap), len(hdri1.tilemap))
+  if len(hdri0.TileMap)!= len(hdri1.TileMap) {
+    return fmt.Errorf("TileMap length mismatch (%v != %v)", len(hdri0.TileMap), len(hdri1.TileMap))
   }
 
-  for i:=0; i<len(hdri0.tilemap); i++ {
-    if hdri0.tilemap[i].TileMap != hdri1.tilemap[i].TileMap {
-      return fmt.Errorf("tilemap entry %d TileMap mismatch (%v != %v)", i, hdri0.tilemap[i].TileMap, hdri1.tilemap[i].TileMap)
+  for i:=0; i<len(hdri0.TileMap); i++ {
+    if hdri0.TileMap[i].TileMap != hdri1.TileMap[i].TileMap {
+      return fmt.Errorf("TileMap entry %d TileMap mismatch (%v != %v)", i, hdri0.TileMap[i].TileMap, hdri1.TileMap[i].TileMap)
     }
 
-    if len(hdri0.tilemap[i].Variant) != len(hdri1.tilemap[i].Variant) {
-      return fmt.Errorf("tilemap Variant length mismatch at %d (%v != %v)", i, len(hdri0.tilemap[i].Variant), len(hdri1.tilemap[i].Variant))
+    if len(hdri0.TileMap[i].Variant) != len(hdri1.TileMap[i].Variant) {
+      return fmt.Errorf("TileMap Variant length mismatch at %d (%v != %v)", i, len(hdri0.TileMap[i].Variant), len(hdri1.TileMap[i].Variant))
     }
 
-    if len(hdri0.tilemap[i].Span) != len(hdri1.tilemap[i].Span) {
-      return fmt.Errorf("tilemap Span length mismatch at %d (%v != %v)", i, len(hdri0.tilemap[i].Span), len(hdri1.tilemap[i].Span))
+    if len(hdri0.TileMap[i].Span) != len(hdri1.TileMap[i].Span) {
+      return fmt.Errorf("TileMap Span length mismatch at %d (%v != %v)", i, len(hdri0.TileMap[i].Span), len(hdri1.TileMap[i].Span))
     }
 
-    for j:=0; j<len(hdri0.tilemap[i].Variant); j++ {
-      if len(hdri0.tilemap[i].Variant[j]) != len(hdri1.tilemap[i].Variant[j]) {
-        return fmt.Errorf("tilemap Variant length mismatch at %d, %d (%v != %v)", i, j, len(hdri0.tilemap[i].Variant[j]), len(hdri1.tilemap[i].Variant[j]))
+    for j:=0; j<len(hdri0.TileMap[i].Variant); j++ {
+      if len(hdri0.TileMap[i].Variant[j]) != len(hdri1.TileMap[i].Variant[j]) {
+        return fmt.Errorf("TileMap Variant length mismatch at %d, %d (%v != %v)", i, j, len(hdri0.TileMap[i].Variant[j]), len(hdri1.TileMap[i].Variant[j]))
       }
 
-      for k:=0; k<len(hdri0.tilemap[i].Variant[j]); k++ {
-        if hdri0.tilemap[i].Variant[j][k] != hdri1.tilemap[i].Variant[j][k] {
-          return fmt.Errorf("tilemap Variant element mismatch at %d, %d, %d (%v != %v)", i, j, k, (hdri0.tilemap[i].Variant[j][k]), (hdri1.tilemap[i].Variant[j][k]))
+      for k:=0; k<len(hdri0.TileMap[i].Variant[j]); k++ {
+        if hdri0.TileMap[i].Variant[j][k] != hdri1.TileMap[i].Variant[j][k] {
+          return fmt.Errorf("TileMap Variant element mismatch at %d, %d, %d (%v != %v)", i, j, k, (hdri0.TileMap[i].Variant[j][k]), (hdri1.TileMap[i].Variant[j][k]))
         }
       }
     }
 
-    for j:=0; j<len(hdri0.tilemap[i].Span); j++ {
-      if len(hdri0.tilemap[i].Span[j]) != len(hdri1.tilemap[i].Span[j]) {
-        return fmt.Errorf("tilemap Span length mismatch at %d, %d (%v != %v)", i, j, len(hdri0.tilemap[i].Span[j]), len(hdri1.tilemap[i].Span[j]))
+    for j:=0; j<len(hdri0.TileMap[i].Span); j++ {
+      if len(hdri0.TileMap[i].Span[j]) != len(hdri1.TileMap[i].Span[j]) {
+        return fmt.Errorf("TileMap Span length mismatch at %d, %d (%v != %v)", i, j, len(hdri0.TileMap[i].Span[j]), len(hdri1.TileMap[i].Span[j]))
       }
 
-      for k:=0; k<len(hdri0.tilemap[i].Span[j]); k++ {
-        if hdri0.tilemap[i].Span[j][k] != hdri1.tilemap[i].Span[j][k] {
-          return fmt.Errorf("tilemap Span element mismatch at %d, %d, %d (%v != %v)", i, j, k, (hdri0.tilemap[i].Span[j][k]), (hdri1.tilemap[i].Span[j][k]))
+      for k:=0; k<len(hdri0.TileMap[i].Span[j]); k++ {
+        if hdri0.TileMap[i].Span[j][k] != hdri1.TileMap[i].Span[j][k] {
+          return fmt.Errorf("TileMap Span element mismatch at %d, %d, %d (%v != %v)", i, j, k, (hdri0.TileMap[i].Span[j][k]), (hdri1.TileMap[i].Span[j][k]))
         }
       }
     }
 
   }
 
-  if len(hdri0.tilemap_bytes) != len(hdri1.tilemap_bytes) {
-    return fmt.Errorf("tilemap bytes lenght mismatch (%v != %v)", len(hdri0.tilemap_bytes), len(hdri1.tilemap_bytes))
+  if len(hdri0.TileMapBytes) != len(hdri1.TileMapBytes) {
+    return fmt.Errorf("TileMap bytes lenght mismatch (%v != %v)", len(hdri0.TileMapBytes), len(hdri1.TileMapBytes))
   }
 
-  for i:=0; i<len(hdri0.tilemap_bytes); i++ {
-    if hdri0.tilemap_bytes[i] != hdri1.tilemap_bytes[i] {
-      return fmt.Errorf("tilemap byte mismatch at %d (%v != %v)", i, (hdri0.tilemap_bytes[i]), (hdri1.tilemap_bytes[i]))
+  for i:=0; i<len(hdri0.TileMapBytes); i++ {
+    if hdri0.TileMapBytes[i] != hdri1.TileMapBytes[i] {
+      return fmt.Errorf("TileMap byte mismatch at %d (%v != %v)", i, (hdri0.TileMapBytes[i]), (hdri1.TileMapBytes[i]))
     }
   }
 
-  if len(hdri0.step_per_path) != len(hdri1.step_per_path) {
-    return fmt.Errorf("tilemap step_per_byte length mismatch (%v != %v)", len(hdri0.step_per_path), len(hdri1.step_per_path))
+  if len(hdri0.StepPerPath) != len(hdri1.StepPerPath) {
+    return fmt.Errorf("TileMap step_per_byte length mismatch (%v != %v)", len(hdri0.StepPerPath), len(hdri1.StepPerPath))
   }
 
-  for i:=0; i<len(hdri0.step_per_path); i++ {
-    if (hdri0.step_per_path[i]) != (hdri1.step_per_path[i]) {
-      return fmt.Errorf("tilemap step_per_byte mismatch at %d (%v != %v)", i, (hdri0.step_per_path[i]), (hdri1.step_per_path[i]))
+  for i:=0; i<len(hdri0.StepPerPath); i++ {
+    if (hdri0.StepPerPath[i]) != (hdri1.StepPerPath[i]) {
+      return fmt.Errorf("TileMap step_per_byte mismatch at %d (%v != %v)", i, (hdri0.StepPerPath[i]), (hdri1.StepPerPath[i]))
     }
   }
 
   if len(hdri0.path_offset) != len(hdri1.path_offset) {
-    return fmt.Errorf("tilemap step_per_byte length mismatch (%v != %v)", len(hdri0.path_offset), len(hdri1.path_offset))
+    return fmt.Errorf("TileMap step_per_byte length mismatch (%v != %v)", len(hdri0.path_offset), len(hdri1.path_offset))
   }
 
   for i:=0; i<len(hdri0.path_offset); i++ {
     if (hdri0.path_offset[i]) != (hdri1.path_offset[i]) {
-      return fmt.Errorf("tilemap step_per_byte mismatch at %d (%v != %v)", i, (hdri0.path_offset[i]), (hdri1.path_offset[i]))
+      return fmt.Errorf("TileMap step_per_byte mismatch at %d (%v != %v)", i, (hdri0.path_offset[i]), (hdri1.path_offset[i]))
     }
   }
 
-  if hdri0.pathcount != len(hdri0.step_per_path) {
-    return fmt.Errorf("sanity: pathcount %d does not match step_per_path %d", hdri0.pathcount, len(hdri0.step_per_path))
+  if hdri0.pathcount != len(hdri0.StepPerPath) {
+    return fmt.Errorf("sanity: pathcount %d does not match StepPerPath %d", hdri0.pathcount, len(hdri0.StepPerPath))
   }
 
   if (hdri0.pathcount+1) != len(hdri0.path_offset) {
@@ -324,8 +347,9 @@ func headerintermediate_cmp(hdri0, hdri1 headerintermediate) error {
   return nil
 }
 
-func headerintermediate_from_bytes(b []byte) (headerintermediate,int) {
-  hdri := headerintermediate{}
+//func headerintermediate_from_bytes(b []byte) (headerintermediate,int) {
+func HeaderIntermediateFromBytes(b []byte) (HeaderIntermediate,int) {
+  hdri := HeaderIntermediate{}
   var dummy uint64
   var dn int
 
@@ -361,14 +385,15 @@ func headerintermediate_from_bytes(b []byte) (headerintermediate,int) {
 
   tilemaplen := int(dummy)
 
-  hdri.tilemap_bytes = b[n:n+tilemaplen]
-  hdri.tilemap = unpack_tilemap(b[n:n+tilemaplen])
+  hdri.TileMapBytes = b[n:n+tilemaplen]
+  //hdri.tilemap = unpack_tilemap(b[n:n+tilemaplen])
+  hdri.TileMap = UnpackTileMap(b[n:n+tilemaplen])
   n += tilemaplen
 
   for i:=0; i<hdri.pathcount; i++ {
     dummy = byte2uint64(b[n:n+8])
     n+=8
-    hdri.step_per_path = append(hdri.step_per_path, int(dummy))
+    hdri.StepPerPath = append(hdri.StepPerPath, int(dummy))
   }
 
   for i:=0; i<=hdri.pathcount; i++ {
@@ -377,21 +402,22 @@ func headerintermediate_from_bytes(b []byte) (headerintermediate,int) {
     hdri.path_offset = append(hdri.path_offset, int(dummy))
   }
 
-  hdri.path_bytes = make([][]byte, hdri.pathcount)
+  hdri.PathBytes = make([][]byte, hdri.pathcount)
 
-  path_bytes := b[n:]
+  PathBytes := b[n:]
   for i:=1; i<=hdri.pathcount; i++  {
     dn := int(hdri.path_offset[i] - hdri.path_offset[i-1])
     if dn==0 { continue }
 
     z:=hdri.path_offset[i-1] ; _ = z
-    hdri.path_bytes[i-1] = path_bytes[hdri.path_offset[i-1]:hdri.path_offset[i-1]+dn]
+    hdri.PathBytes[i-1] = PathBytes[hdri.path_offset[i-1]:hdri.path_offset[i-1]+dn]
   }
 
   return hdri,n
 }
 
-func bytes_from_headerintermediate(hdri headerintermediate) []byte {
+//func bytes_from_headerintermediate(hdri headerintermediate) []byte {
+func BytesFromHeaderIntermediate(hdri HeaderIntermediate) []byte {
   buf := make([]byte, 64)
   b := make([]byte, 0, 1024)
 
@@ -412,13 +438,13 @@ func bytes_from_headerintermediate(hdri headerintermediate) []byte {
   tobyte64(buf, uint64(hdri.pathcount))
   b = append(b, buf[0:8]...)
 
-  tobyte64(buf, uint64(len(hdri.tilemap_bytes)))
+  tobyte64(buf, uint64(len(hdri.TileMapBytes)))
   b = append(b, buf[0:8]...)
 
-  b = append(b, hdri.tilemap_bytes...)
+  b = append(b, hdri.TileMapBytes...)
 
-  for i:=0; i<len(hdri.step_per_path); i++ {
-    tobyte64(buf, uint64(hdri.step_per_path[i]))
+  for i:=0; i<len(hdri.StepPerPath); i++ {
+    tobyte64(buf, uint64(hdri.StepPerPath[i]))
     b = append(b, buf[0:8]...)
   }
 
@@ -442,18 +468,19 @@ func bytes_from_headerintermediate(hdri headerintermediate) []byte {
 //====   \___/ \_/ \___|_|  |_| |_|\___/ \_/\_/ |_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
 //====
 
-func overflowintermediate_cmp(ofsi0, ofsi1 overflowintermediate) error {
+//func overflowintermediate_cmp(ofsi0, ofsi1 overflowintermediate) error {
+func OverflowIntermediateCmp(ofsi0, ofsi1 OverflowIntermediate) error {
   if ofsi0.stride != ofsi1.stride { return fmt.Errorf("stride mismatch") }
   if len(ofsi0.tilepos) != len(ofsi1.tilepos) { return fmt.Errorf("tilepos length mismatch") }
-  if len(ofsi0.tilemap) != len(ofsi1.tilemap) { return fmt.Errorf("tilemap length mismatch") }
+  if len(ofsi0.TileMap) != len(ofsi1.TileMap) { return fmt.Errorf("TileMap length mismatch") }
   if len(ofsi0.final_overflow_flag) != len(ofsi1.final_overflow_flag) { return fmt.Errorf("final_overflow_flag mismatch") }
   if len(ofsi0.span_flag) != len(ofsi1.span_flag) {
     return fmt.Errorf("span_flag mismatch (%v != %v)", len(ofsi0.span_flag), len(ofsi1.span_flag))
   }
 
-  for i:=0; i<len(ofsi0.tilemap); i++ {
-    if ofsi0.tilemap[i] != ofsi1.tilemap[i] {
-      return fmt.Errorf( fmt.Sprintf("tilemap mismatch at %d, %d != %d", i, ofsi0.tilemap[i], ofsi1.tilemap[i]) )
+  for i:=0; i<len(ofsi0.TileMap); i++ {
+    if ofsi0.TileMap[i] != ofsi1.TileMap[i] {
+      return fmt.Errorf( fmt.Sprintf("TileMap mismatch at %d, %d != %d", i, ofsi0.TileMap[i], ofsi1.TileMap[i]) )
     }
   }
 
@@ -472,8 +499,10 @@ func overflowintermediate_cmp(ofsi0, ofsi1 overflowintermediate) error {
   return nil
 }
 
-func overflowintermediate_from_bytes(b []byte) (overflowintermediate,int) {
-  ofsi := overflowintermediate{}
+//func overflowintermediate_from_bytes(b []byte) (overflowintermediate,int) {
+func OverflowIntermediateFromBytes(b []byte) (OverflowIntermediate,int) {
+  //ofsi := overflowintermediate{}
+  ofsi := OverflowIntermediate{}
 
   var dummy uint64
   var dn int
@@ -546,7 +575,7 @@ func overflowintermediate_from_bytes(b []byte) (overflowintermediate,int) {
       is_fin_ovf = true
     }
 
-    ofsi.tilemap = append(ofsi.tilemap, int(dummy))
+    ofsi.TileMap = append(ofsi.TileMap, int(dummy))
 
     ofsi.final_overflow_flag = append(ofsi.final_overflow_flag, is_fin_ovf)
     ofsi.span_flag = append(ofsi.span_flag, is_span)
@@ -558,7 +587,8 @@ func overflowintermediate_from_bytes(b []byte) (overflowintermediate,int) {
   return ofsi,n
 }
 
-func bytes_from_overflowintermediate(ofsi overflowintermediate) []byte {
+//func bytes_from_overflowintermediate(ofsi overflowintermediate) []byte {
+func BytesFromOverflowIntermediate(ofsi OverflowIntermediate) []byte {
   buf := make([]byte, 64)
   offset_bytes := make([]byte, 0, 1024)
 
@@ -583,7 +613,7 @@ func bytes_from_overflowintermediate(ofsi overflowintermediate) []byte {
       tilepos_idx = append(tilepos_idx, uint64(ofsi.tilepos[i]))
     }
 
-    val := ofsi.tilemap[i]
+    val := ofsi.TileMap[i]
     if ofsi.span_flag[i] { val = 1024 }
     if ofsi.final_overflow_flag[i] { val = 1025 }
 
@@ -614,11 +644,13 @@ func bytes_from_overflowintermediate(ofsi overflowintermediate) []byte {
 
 }
 
-func construct_offset_intermediate(ctx *CGFContext, prep_vector []vectorelement) overflowintermediate {
-  ofsi := overflowintermediate{}
+//func construct_offset_intermediate(ctx *CGFContext, prep_vector []vectorelement) overflowintermediate {
+func (ctx *CGFContext) ConstructOffsetIntermediate(prep_vector []VectorElement) OverflowIntermediate {
+  //ofsi := overflowintermediate{}
+  ofsi := OverflowIntermediate{}
 
   ofsi.tilepos = make([]int, 0, 1024)
-  ofsi.tilemap = make([]int, 0, 1024)
+  ofsi.TileMap = make([]int, 0, 1024)
 
   ofsi.offset_idx = make([]int, 0, 1024)
   ofsi.tilepos_idx = make([]int, 0, 1024)
@@ -630,7 +662,7 @@ func construct_offset_intermediate(ctx *CGFContext, prep_vector []vectorelement)
     if prep_vector[i].canon_flag { continue }
     if prep_vector[i].ovf_flag {
       ofsi.tilepos = append(ofsi.tilepos, i)
-      ofsi.tilemap = append(ofsi.tilemap, prep_vector[i].knot.tilemap_pos)
+      ofsi.TileMap = append(ofsi.TileMap, prep_vector[i].knot.TileMapPos)
 
       tf := prep_vector[i].fin_ovf_flag
       //tf := false
@@ -663,7 +695,8 @@ func construct_offset_intermediate(ctx *CGFContext, prep_vector []vectorelement)
 //====  |_| |_|_| |_|\__,_|_|\___/ \_/ \___|_|  |_| |_|\___/ \_/\_/ |_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
 //====
 
-func finaloverflowintermediate_cmp(fofsi0, fofsi1 finaloverflowintermediate) error {
+//func finaloverflowintermediate_cmp(fofsi0, fofsi1 finaloverflowintermediate) error {
+func FinalOverflowIntermediateCmp(fofsi0, fofsi1 FinalOverflowIntermediate) error {
   if len(fofsi0.tilepos)!=len(fofsi1.tilepos) {
     return fmt.Errorf( fmt.Sprintf("tilepos length mismatch: %d != %d", len(fofsi0.tilepos), len(fofsi1.tilepos)) )
   }
@@ -681,8 +714,10 @@ func finaloverflowintermediate_cmp(fofsi0, fofsi1 finaloverflowintermediate) err
   return nil
 }
 
-func finaloverflowintermediate_from_bytes(b []byte) (finaloverflowintermediate,int) {
-  fofsi := finaloverflowintermediate{}
+//func finaloverflowintermediate_from_bytes(b []byte) (finaloverflowintermediate,int) {
+func FinalOverflowIntermediateFromBytes(b []byte) (FinalOverflowIntermediate,int) {
+  //fofsi := finaloverflowintermediate{}
+  fofsi := FinalOverflowIntermediate{}
 
   fofsi.tilepos = make([]int, 0, 1024)
 
@@ -762,7 +797,8 @@ func finaloverflowintermediate_from_bytes(b []byte) (finaloverflowintermediate,i
 
 }
 
-func bytes_from_finaloverflowintermediate(fofsi finaloverflowintermediate) []byte {
+//func bytes_from_finaloverflowintermediate(fofsi finaloverflowintermediate) []byte {
+func BytesFromFinalOverflowIntermediate(fofsi FinalOverflowIntermediate) []byte {
   buf := make([]byte, 64)
   fof_bytes := make([]byte, 0, 1024)
 
@@ -797,8 +833,10 @@ func bytes_from_finaloverflowintermediate(fofsi finaloverflowintermediate) []byt
   return fof_bytes
 }
 
-func construct_final_offset_intermediate(ctx *CGFContext, prep_vector []vectorelement) finaloverflowintermediate {
-  fofsi := finaloverflowintermediate{}
+//func construct_final_offset_intermediate(ctx *CGFContext, prep_vector []vectorelement) finaloverflowintermediate {
+func (ctx *CGFContext) ConstructFinalOffsetIntermediate(prep_vector []VectorElement) FinalOverflowIntermediate {
+  //fofsi := finaloverflowintermediate{}
+  fofsi := FinalOverflowIntermediate{}
 
   fofsi.tilepos = make([]int, 0, 1024)
   fofsi.variant_ints = make([]int, 0, 1024)
@@ -824,7 +862,8 @@ func construct_final_offset_intermediate(ctx *CGFContext, prep_vector []vectorel
   return fofsi
 }
 
-func construct_uint64_vector(ctx *CGFContext, prep_vector []vectorelement) []uint64 {
+//func construct_uint64_vector(ctx *CGFContext, prep_vector []vectorelement) []uint64 {
+func (ctx *CGFContext) ConstructUint64Vector(prep_vector []VectorElement) []uint64 {
 
   ret_vec := make([]uint64, 0, 1024)
 
@@ -864,7 +903,7 @@ func construct_uint64_vector(ctx *CGFContext, prep_vector []vectorelement) []uin
         }
 
         //cur_v |= uint64( (uint(prep_vector[i+j].knot.tilemap_pos) & 0xf) << (4*uint(prep_vector[i+j].hexit_pos)) )
-        cur_v |= uint64( (uint(prep_vector[i+j].knot.tilemap_pos) & uint(hexit)) << (4*uint(prep_vector[i+j].hexit_pos)) )
+        cur_v |= uint64( (uint(prep_vector[i+j].knot.TileMapPos) & uint(hexit)) << (4*uint(prep_vector[i+j].hexit_pos)) )
 
       }
 
@@ -885,7 +924,8 @@ func construct_uint64_vector(ctx *CGFContext, prep_vector []vectorelement) []uin
 //====  |_|\___/ \__, |_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
 //====              |_|
 
-func loqintermediate_cmp(loqi0, loqi1 loqintermediate) error {
+//func loqintermediate_cmp(loqi0, loqi1 loqintermediate) error {
+func LoqIntermediateCmp(loqi0, loqi1 LoqIntermediate) error {
   if loqi0.count != loqi1.count {
     return fmt.Errorf( fmt.Sprintf("count mismatch: %d != %d", loqi0.count, loqi1.count) )
   }
@@ -940,8 +980,10 @@ func loqintermediate_cmp(loqi0, loqi1 loqintermediate) error {
 
 }
 
-func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
-  loqi := loqintermediate{}
+//func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
+func LoqIntermediateFromBytes(b []byte) (LoqIntermediate,int) {
+  //loqi := loqintermediate{}
+  loqi := LoqIntermediate{}
 
   var dummy uint64
   var dn int ; _ = dn
@@ -1042,8 +1084,8 @@ func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
 
   // main loq array
   //
-
-  loqi.loqi_info = make(map[int]cgfintermediate)
+  //loqi.loqi_info = make(map[int]cgfintermediate)
+  loqi.loqi_info = make(map[int]CGFIntermediate)
 
 
   //DEBUG
@@ -1066,8 +1108,8 @@ func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
 
     //fmt.Printf("  bo: %d (/%d), rec_pos: %d, cur_step %d (0x%x)\n", byte_offset, loq_info_byte_count, rec_pos, cur_step, cur_step)
 
-
-    cgfi := cgfintermediate{}
+    //cgfi := cgfintermediate{}
+    cgfi := CGFIntermediate{}
     cgfi.loq_flag = true
     cgfi.step = make([][]int, 2)
     cgfi.seq= make([][]string, 2)
@@ -1183,7 +1225,8 @@ func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
   return loqi,n
 }
 
-func bytes_from_loqintermediate(loqi loqintermediate) []byte {
+//func bytes_from_loqintermediate(loqi loqintermediate) []byte {
+func BytesFromLoqIntermediate(loqi LoqIntermediate) []byte {
   buf := make([]byte, 64)
   loq_bytes := make([]byte, 0, 1024)
 
@@ -1320,8 +1363,9 @@ func _loq_hom(nocall_start_len [][][]int) bool {
   return true
 }
 
-func construct_loq_intermediate(ctx *CGFContext, prep_vector []vectorelement) loqintermediate {
-  loqi := loqintermediate{}
+//func construct_loq_intermediate(ctx *CGFContext, prep_vector []vectorelement) loqintermediate {
+func (ctx *CGFContext) ConstructLoqIntermediate(prep_vector []VectorElement) LoqIntermediate {
+  loqi := LoqIntermediate{}
 
   loqi.code = 0
   loqi.stride = 256
@@ -1440,39 +1484,46 @@ func construct_loq_intermediate(ctx *CGFContext, prep_vector []vectorelement) lo
 //====  | .__/ \__,_|\__|_| |_|_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
 //====  |_|
 
-func bytes_from_pathintermediate(pathi pathintermediate) []byte {
+//func bytes_from_pathintermediate(pathi pathintermediate) []byte {
+func BytesFromPathIntermediate(pathi PathIntermediate) []byte {
 
-  path_bytes := make([]byte, 0, 1024)
+  PathBytes := make([]byte, 0, 1024)
 
   buf := make([]byte, 64)
 
   ns := len(pathi.name)
   ns_bytes := dlug.MarshalUint64(uint64(ns))
-  path_bytes = append(path_bytes, ns_bytes...)
-  path_bytes = append(path_bytes, []byte(pathi.name)...)
+  PathBytes = append(PathBytes, ns_bytes...)
+  PathBytes = append(PathBytes, []byte(pathi.name)...)
 
   //tobyte64(buf, uint64(len(pathi.veci)))
   tobyte64(buf, uint64(pathi.ntile))
-  path_bytes = append(path_bytes, buf[0:8]...)
+  PathBytes = append(PathBytes, buf[0:8]...)
   for i:=0; i<len(pathi.veci); i++ {
     tobyte64(buf, uint64(pathi.veci[i]))
-    path_bytes = append(path_bytes, buf[0:8]...)
+    PathBytes = append(PathBytes, buf[0:8]...)
   }
 
-  ovf_bytes := bytes_from_overflowintermediate(pathi.ofsi)
-  fovf_bytes := bytes_from_finaloverflowintermediate(pathi.fofsi)
-  loq_bytes := bytes_from_loqintermediate(pathi.loqi)
+  //ovf_bytes := bytes_from_overflowintermediate(pathi.ofsi)
+  //fovf_bytes := bytes_from_finaloverflowintermediate(pathi.fofsi)
+  //loq_bytes := bytes_from_loqintermediate(pathi.loqi)
 
-  path_bytes = append(path_bytes, ovf_bytes...)
-  path_bytes = append(path_bytes, fovf_bytes...)
-  path_bytes = append(path_bytes, loq_bytes...)
+  ovf_bytes := BytesFromOverflowIntermediate(pathi.ofsi)
+  fovf_bytes := BytesFromFinalOverflowIntermediate(pathi.fofsi)
+  loq_bytes := BytesFromLoqIntermediate(pathi.loqi)
+
+  PathBytes = append(PathBytes, ovf_bytes...)
+  PathBytes = append(PathBytes, fovf_bytes...)
+  PathBytes = append(PathBytes, loq_bytes...)
 
 
-  return path_bytes
+  return PathBytes
 }
 
-func pathintermediate_from_bytes(b []byte) (pathintermediate,int) {
-  pathi := pathintermediate{}
+//func pathintermediate_from_bytes(b []byte) (pathintermediate,int) {
+func PathIntermediateFromBytes(b []byte) (PathIntermediate,int) {
+  //pathi := pathintermediate{}
+  pathi := PathIntermediate{}
   n:=0
 
   dummy,dn := dlug.ConvertUint64(b[n:])
@@ -1498,13 +1549,16 @@ func pathintermediate_from_bytes(b []byte) (pathintermediate,int) {
     pathi.veci = append(pathi.veci, dummy)
   }
 
-  pathi.ofsi,dn = overflowintermediate_from_bytes(b[n:])
+  //pathi.ofsi,dn = overflowintermediate_from_bytes(b[n:])
+  pathi.ofsi,dn = OverflowIntermediateFromBytes(b[n:])
   n+=dn
 
-  pathi.fofsi,dn = finaloverflowintermediate_from_bytes(b[n:])
+  //pathi.fofsi,dn = finaloverflowintermediate_from_bytes(b[n:])
+  pathi.fofsi,dn = FinalOverflowIntermediateFromBytes(b[n:])
   n+=dn
 
-  pathi.loqi,dn = loqintermediate_from_bytes(b[n:])
+  //pathi.loqi,dn = loqintermediate_from_bytes(b[n:])
+  pathi.loqi,dn = LoqIntermediateFromBytes(b[n:])
   n+=dn
 
   //DEBUG
@@ -1535,7 +1589,8 @@ func pathintermediate_from_bytes(b []byte) (pathintermediate,int) {
   return pathi,n
 }
 
-func _loq_skip(loqi loqintermediate, step int) int {
+//func _loq_skip(loqi loqintermediate, step int) int {
+func _loq_skip(loqi LoqIntermediate, step int) int {
   pos:=0
   for i:=0; i<len(loqi.tilepos); i++ {
     anchor_step := loqi.tilepos[i]
@@ -1586,7 +1641,8 @@ func _loq_skip(loqi loqintermediate, step int) int {
 }
 
 
-func construct_loq_map(loqi loqintermediate) map[int]map[int][]int {
+//func construct_loq_map(loqi loqintermediate) map[int]map[int][]int {
+func construct_loq_map(loqi LoqIntermediate) map[int]map[int][]int {
   loq_map := make(map[int]map[int][]int)
 
   pos := 0
@@ -1650,7 +1706,8 @@ func construct_loq_map(loqi loqintermediate) map[int]map[int][]int {
 
 
 //func emit_intermediate(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) error {
-func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([]byte, error) {
+//func emit_PathBytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([]byte, error) {
+func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]byte, error) {
   debug_output:=false
 
   max_tile := 0
@@ -1661,10 +1718,12 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
   span_sum := 0
   step_idx0,step_idx1 := 0,0
 
-  knot := cgfintermediate{}
+  //knot := cgfintermediate{}
+  knot := CGFIntermediate{}
   _init_knot(&knot)
 
-  tileKnot := make([]cgfintermediate, 0, 1024)
+  //tileKnot := make([]cgfintermediate, 0, 1024)
+  tileKnot := make([]CGFIntermediate, 0, 1024)
 
   // Construct the intermediate string of knots
   //
@@ -1687,14 +1746,15 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
     if span_sum==0 {
 
       _knot_tot_span(&knot)
-      knot.tilemap_key = create_tilemap_string_lookup2(knot.varid[0], knot.span[0], knot.varid[1], knot.span[1])
+      knot.TileMapKey = create_tilemap_string_lookup2(knot.varid[0], knot.span[0], knot.varid[1], knot.span[1])
       tileKnot = append(tileKnot, knot)
 
       if max_tile < (knot.step[0][0] + knot.tot_span) {
         max_tile = knot.step[0][0] + knot.tot_span
       }
 
-      knot = cgfintermediate{}
+      //knot = cgfintermediate{}
+      knot = CGFIntermediate{}
       _init_knot(&knot)
     }
 
@@ -1702,7 +1762,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
 
   // Prep for binary representation
   //
-  prep_vector := make([]vectorelement, 0, 1024)
+  prep_vector := make([]VectorElement, 0, 1024)
   cache_counter := 0
 
   for ind:=0; ind<len(tileKnot); ind++ {
@@ -1715,7 +1775,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
       cache_counter = 0
     }
 
-    vec_ele := vectorelement{}
+    vec_ele := VectorElement{}
 
     // We have a canonical tile.  Add it and move on
     //
@@ -1733,7 +1793,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
 
     if knot.loq_flag { vec_ele.loq_flag = true }
 
-    if _,ok := ctx.TileMapLookup[knot.tilemap_key] ; ok {
+    if _,ok := ctx.TileMapLookup[knot.TileMapKey] ; ok {
       // We've found it in the TileMap.  We can either
       // put it into the vector cache or we can put it into
       // the overflow table.  If it's either low quality
@@ -1742,9 +1802,9 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
       //
 
       //knot.tilemap_pos = tilemap_pos.TileMap
-      knot.tilemap_pos = ctx.TileMapPosition[knot.tilemap_key]
+      knot.TileMapPos = ctx.TileMapPosition[knot.TileMapKey]
 
-      if knot.tilemap_pos >= 0xd { vec_ele.ovf_flag = true }
+      if knot.TileMapPos >= 0xd { vec_ele.ovf_flag = true }
       if vec_ele.loq_flag { vec_ele.ovf_flag = true }
 
       if cache_counter > (32/4) {
@@ -1798,7 +1858,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
       }
       cache_counter++
 
-      span_vec_ele := vectorelement{}
+      span_vec_ele := VectorElement{}
       span_vec_ele.canon_flag = false
       span_vec_ele.span_flag = true
 
@@ -1847,7 +1907,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
           _tf_(prep_vector[i].loq_flag, "*"),
           prep_vector[i].hexit_pos,
           prep_vector[i].vec_pos,
-          prep_vector[i].knot.tilemap_pos)
+          prep_vector[i].knot.TileMapPos)
 
         fmt.Printf("\n")
 
@@ -1866,7 +1926,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
             _tf_(prep_vector[i].loq_flag, "*"),
             "$",
             prep_vector[i].vec_pos,
-            prep_vector[i].knot.tilemap_pos)
+            prep_vector[i].knot.TileMapPos)
 
         } else {
           fmt.Printf(" %v %v %v %v %v %v %v %v %v tmap(%d) ",
@@ -1879,7 +1939,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
             _tf_(prep_vector[i].loq_flag, "*"),
             prep_vector[i].hexit_pos,
             prep_vector[i].vec_pos,
-            prep_vector[i].knot.tilemap_pos)
+            prep_vector[i].knot.TileMapPos)
         }
 
         for allele:=0; allele<2; allele++ {
@@ -1915,7 +1975,8 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
   //=====================================================
   //=====================================================
 
-  vec64 := construct_uint64_vector(ctx, prep_vector)
+  //vec64 := construct_uint64_vector(ctx, prep_vector)
+  vec64 := ctx.ConstructUint64Vector(prep_vector)
 
   //=====================================================
   //=====================================================
@@ -2018,7 +2079,8 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
   //=====================================================
 
 
-  ofsi := construct_offset_intermediate(ctx, prep_vector)
+  //ofsi := construct_offset_intermediate(ctx, prep_vector)
+  ofsi := ctx.ConstructOffsetIntermediate(prep_vector)
 
 
   //=====================================================
@@ -2034,26 +2096,31 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
     fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n")
 
     fmt.Printf("BYTES FROM ofsi to byte_ofsi_test0\n")
-    byte_ofsi_test0 := bytes_from_overflowintermediate(ofsi) ; _ = byte_ofsi_test0
+    //byte_ofsi_test0 := bytes_from_overflowintermediate(ofsi) ; _ = byte_ofsi_test0
+    byte_ofsi_test0 := BytesFromOverflowIntermediate(ofsi) ; _ = byte_ofsi_test0
 
 
     fmt.Printf("BYTES TO byte_ofsi_test0 to ofsi_throwaway\n")
-    ofsi_throwaway,dn0 := overflowintermediate_from_bytes(byte_ofsi_test0) ; _ = ofsi_throwaway
+    //ofsi_throwaway,dn0 := overflowintermediate_from_bytes(byte_ofsi_test0) ; _ = ofsi_throwaway
+    ofsi_throwaway,dn0 := OverflowIntermediateFromBytes(byte_ofsi_test0) ; _ = ofsi_throwaway
 
     for i:=0; i<len(ofsi_throwaway.tilepos_idx); i++ {
       fmt.Printf("  hrm: ofsi_throwaway.tilepos_idx[%d] %d\n", i, ofsi_throwaway.tilepos_idx[i])
     }
 
-    err := overflowintermediate_cmp(ofsi_throwaway, ofsi)
+    //err := overflowintermediate_cmp(ofsi_throwaway, ofsi)
+    err := OverflowIntermediateCmp(ofsi_throwaway, ofsi)
     fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %v\n", err)
 
     fmt.Printf("BYTES FROM ofsi_throwaway to byte_ofsi_test1\n")
-    byte_ofsi_test1 := bytes_from_overflowintermediate(ofsi_throwaway)
+    //byte_ofsi_test1 := bytes_from_overflowintermediate(ofsi_throwaway)
+    byte_ofsi_test1 := BytesFromOverflowIntermediate(ofsi_throwaway)
     _ = byte_ofsi_test1
 
 
     fmt.Printf("BYTES TO byte_ofsi_test1 to ofsi_throwaway1\n")
-    ofsi_throwaway1,dn1 := overflowintermediate_from_bytes(byte_ofsi_test0) ; _ = ofsi_throwaway1
+    //ofsi_throwaway1,dn1 := overflowintermediate_from_bytes(byte_ofsi_test0) ; _ = ofsi_throwaway1
+    ofsi_throwaway1,dn1 := OverflowIntermediateFromBytes(byte_ofsi_test0) ; _ = ofsi_throwaway1
 
     fmt.Printf(" dn0 %d, dn1 %d\n", dn0, dn1)
 
@@ -2075,15 +2142,15 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
       }
     }
 
-    fmt.Printf("OFSI (%d (%x))\n", len(ofsi.tilemap), len(ofsi.tilemap))
-    for i:=0; i<len(ofsi.tilemap); i++ {
-      fmt.Printf("[%d] {%x} %d (%x) fovf?%v span?%v\n", i, ofsi.tilepos[i], ofsi.tilemap[i], ofsi.tilemap[i], ofsi.final_overflow_flag[i], ofsi.span_flag[i])
+    fmt.Printf("OFSI (%d (%x))\n", len(ofsi.TileMap), len(ofsi.TileMap))
+    for i:=0; i<len(ofsi.TileMap); i++ {
+      fmt.Printf("[%d] {%x} %d (%x) fovf?%v span?%v\n", i, ofsi.tilepos[i], ofsi.TileMap[i], ofsi.TileMap[i], ofsi.final_overflow_flag[i], ofsi.span_flag[i])
     }
 
     fmt.Printf("OFSI CHECK\n")
     stride_tile_pos := 0
     stride_ofs := 0
-    for i:=0; i<len(ofsi.tilemap); i++ {
+    for i:=0; i<len(ofsi.TileMap); i++ {
 
       if i%256 == 0 {
         stride_tile_pos = ofsi.tilepos[i]
@@ -2093,9 +2160,10 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
       check_ovf_count := CountOverflowVectorUint64(vec64, stride_tile_pos, ofsi.tilepos[i])
       check_ovf_count += stride_ofs
 
-      fmt.Printf("[%d] {%x} %d (%x) ==> ovf_count: %d (%x)\n", i, ofsi.tilepos[i], ofsi.tilemap[i], ofsi.tilemap[i], check_ovf_count, check_ovf_count)
+      fmt.Printf("[%d] {%x} %d (%x) ==> ovf_count: %d (%x)\n", i, ofsi.tilepos[i], ofsi.TileMap[i], ofsi.TileMap[i], check_ovf_count, check_ovf_count)
       if check_ovf_count != i {
-        real_ovf_count := vectorelement_ovf_count(prep_vector, stride_tile_pos, ofsi.tilepos[i] - stride_tile_pos) 
+        //real_ovf_count := vectorelement_ovf_count(prep_vector, stride_tile_pos, ofsi.tilepos[i] - stride_tile_pos)
+        real_ovf_count := VectorElementOverflowCount(prep_vector, stride_tile_pos, ofsi.tilepos[i] - stride_tile_pos)
         fmt.Printf("ERROR!!!! check_ovf_count %d != i %d (real %d)\n", check_ovf_count, i, real_ovf_count)
 
 
@@ -2114,7 +2182,8 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
   //=====================================================
   //=====================================================
 
-  fofsi := construct_final_offset_intermediate(ctx, prep_vector)
+  //fofsi := construct_final_offset_intermediate(ctx, prep_vector)
+  fofsi := ctx.ConstructFinalOffsetIntermediate(prep_vector)
 
   //=====================================================
   //=====================================================
@@ -2160,11 +2229,16 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
     }
 
 
-    fofsi_bytes0 := bytes_from_finaloverflowintermediate(fofsi) ; _ = fofsi_bytes0
-    fofsi_temp1,dn0 := finaloverflowintermediate_from_bytes(fofsi_bytes0) ; _ = fofsi_temp1
-    fofsi_bytes1 := bytes_from_finaloverflowintermediate(fofsi_temp1)
+    //fofsi_bytes0 := bytes_from_finaloverflowintermediate(fofsi) ; _ = fofsi_bytes0
+    //fofsi_temp1,dn0 := finaloverflowintermediate_from_bytes(fofsi_bytes0) ; _ = fofsi_temp1
+    //fofsi_bytes1 := bytes_from_finaloverflowintermediate(fofsi_temp1)
 
-    fofsi_cnv,dn1 := finaloverflowintermediate_from_bytes(fofsi_bytes1)
+    fofsi_bytes0 := BytesFromFinalOverflowIntermediate(fofsi) ; _ = fofsi_bytes0
+    fofsi_temp1,dn0 := FinalOverflowIntermediateFromBytes(fofsi_bytes0) ; _ = fofsi_temp1
+    fofsi_bytes1 := BytesFromFinalOverflowIntermediate(fofsi_temp1)
+
+    //fofsi_cnv,dn1 := finaloverflowintermediate_from_bytes(fofsi_bytes1)
+    fofsi_cnv,dn1 := FinalOverflowIntermediateFromBytes(fofsi_bytes1)
     fmt.Printf("FOFSI BYTES %d %d (dn %d %d)\n", len(fofsi_bytes0), len(fofsi_bytes1), dn0, dn1)
 
     if len(fofsi_bytes0) != len(fofsi_bytes1) {
@@ -2177,7 +2251,8 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
       }
     }
 
-    err := finaloverflowintermediate_cmp(fofsi, fofsi_cnv)
+    //err := finaloverflowintermediate_cmp(fofsi, fofsi_cnv)
+    err := FinalOverflowIntermediateCmp(fofsi, fofsi_cnv)
     if err!=nil { fmt.Printf("ERROR: %v\n", err) }
 
   }
@@ -2189,7 +2264,8 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
   //=====================================================
   //=====================================================
 
-  loqi := construct_loq_intermediate(ctx, prep_vector)
+  //loqi := construct_loq_intermediate(ctx, prep_vector)
+  loqi := ctx.ConstructLoqIntermediate(prep_vector)
   _ = loqi
 
   //=====================================================
@@ -2278,11 +2354,16 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
     }
 
 
-    loq_bytes0 := bytes_from_loqintermediate(loqi) ; _ = loq_bytes0
-    loqi_test0,dn := loqintermediate_from_bytes(loq_bytes0)
-    loq_bytes1 := bytes_from_loqintermediate(loqi_test0)
+    //loq_bytes0 := bytes_from_loqintermediate(loqi) ; _ = loq_bytes0
+    //loqi_test0,dn := loqintermediate_from_bytes(loq_bytes0)
+    //loq_bytes1 := bytes_from_loqintermediate(loqi_test0)
 
-    fmt.Printf(">>> lOQ CMP: %v\n", loqintermediate_cmp(loqi, loqi_test0))
+    loq_bytes0 := BytesFromLoqIntermediate(loqi) ; _ = loq_bytes0
+    loqi_test0,dn := LoqIntermediateFromBytes(loq_bytes0)
+    loq_bytes1 := BytesFromLoqIntermediate(loqi_test0)
+
+    //fmt.Printf(">>> lOQ CMP: %v\n", loqintermediate_cmp(loqi, loqi_test0))
+    fmt.Printf(">>> lOQ CMP: %v\n", LoqIntermediateCmp(loqi, loqi_test0))
     fmt.Printf(">>>>>>>>>>>>>> LOQ FROM/TO BYTES %d %d (dn %d)\n", len(loq_bytes0), len(loq_bytes1), dn)
 
     if len(loq_bytes0) != len(loq_bytes1) {
@@ -2306,7 +2387,8 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
   //=====================================================
 
 
-  pathi := pathintermediate{}
+  //pathi := pathintermediate{}
+  pathi := PathIntermediate{}
   pathi.name = fmt.Sprintf("%04x", path_idx)
   //pathi.ntile = max_tile+1
   pathi.ntile = max_tile
@@ -2315,7 +2397,8 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
   pathi.fofsi = fofsi
   pathi.loqi = loqi
 
-  path_bytes := bytes_from_pathintermediate(pathi)
+  //PathBytes := bytes_from_pathintermediate(pathi)
+  PathBytes := BytesFromPathIntermediate(pathi)
 
   //=====================================================
   //=====================================================
@@ -2326,18 +2409,21 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
 
   if debug_output {
 
-    pathi_test0,dn := pathintermediate_from_bytes(path_bytes)
-    path_bytes1 := bytes_from_pathintermediate(pathi_test0)
+    //pathi_test0,dn := pathintermediate_from_bytes(PathBytes)
+    //PathBytes1 := bytes_from_pathintermediate(pathi_test0)
+
+    pathi_test0,dn := PathIntermediateFromBytes(PathBytes)
+    PathBytes1 := BytesFromPathIntermediate(pathi_test0)
 
     fmt.Printf("pathi::: (ntile %d, %d)\n", pathi.ntile, pathi_test0.ntile)
-    fmt.Printf(">>>> len(path_bytes) %d, len(path_bytes1) %d (dn %d)\n", len(path_bytes), len(path_bytes1), dn)
+    fmt.Printf(">>>> len(PathBytes) %d, len(PathBytes1) %d (dn %d)\n", len(PathBytes), len(PathBytes1), dn)
 
-    if len(path_bytes) != len(path_bytes1) {
-      fmt.Printf("path byte length mismatch: %d != %d\n", len(path_bytes), len(path_bytes1))
+    if len(PathBytes) != len(PathBytes1) {
+      fmt.Printf("path byte length mismatch: %d != %d\n", len(PathBytes), len(PathBytes1))
     } else {
-      for i:=0; i<len(path_bytes); i++ {
-        if path_bytes[i] != path_bytes1[i] {
-          fmt.Printf("path byte mismatch at %d: %d != %d\n", i, path_bytes[i], path_bytes1[i])
+      for i:=0; i<len(PathBytes); i++ {
+        if PathBytes[i] != PathBytes1[i] {
+          fmt.Printf("path byte mismatch at %d: %d != %d\n", i, PathBytes[i], PathBytes1[i])
         }
       }
     }
@@ -2352,7 +2438,8 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
   //=====================================================
   //=====================================================
 
-  patho,_ := pathintermediate_from_bytes(path_bytes)
+  //patho,_ := pathintermediate_from_bytes(PathBytes)
+  patho,_ := PathIntermediateFromBytes(PathBytes)
 
   //=====================================================
   //=====================================================
@@ -2362,11 +2449,12 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
   //=====================================================
 
   // FILL IN LOQINTERMEDIATE
-  tilemap := unpack_tilemap(ctx.CGF.TileMap)
+  //tilemap := unpack_tilemap(ctx.CGF.TileMap)
+  tilemap := UnpackTileMap(ctx.CGF.TileMap)
   for anchor_step := range patho.loqi.loqi_info {
     cgfi := patho.loqi.loqi_info[anchor_step]
-    //knot := get_knot(ctx, tilemap, patho, anchor_step)
-    knot := get_knot(tilemap, patho, anchor_step)
+    //knot := GetKnot(ctx, tilemap, patho, anchor_step)
+    knot := GetKnot(tilemap, patho, anchor_step)
 
     if knot == nil {
       panic( fmt.Sprintf("anchor_step %d has no knot", anchor_step) )
@@ -2404,7 +2492,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
     tilemap := unpack_tilemap(ctx.CGF.TileMap)
     for anchor_step := range patho.loqi.loqi_info {
       cgfi := patho.loqi.loqi_info[anchor_step]
-      knot := get_knot(ctx, tilemap, patho, anchor_step)
+      knot := GetKnot(ctx, tilemap, patho, anchor_step)
 
       if knot == nil {
         panic( fmt.Sprintf("anchor_step %d has no knot", anchor_step) )
@@ -2473,7 +2561,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
   for i:=0; i<len(tilemap); i++ {
     fmt.Printf("%d %v %v\n", tilemap[i].TileMap, tilemap[i].Variant, tilemap[i].Span)
   }
-  return path_bytes, nil
+  return PathBytes, nil
   */
 
   //sglf = ctx.SGLF
@@ -2483,7 +2571,7 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
 
   for step:=0; step<0x991; step++ {
 
-    ti := get_knot(ctx, tilemap, patho, step)
+    ti := GetKnot(ctx, tilemap, patho, step)
     fmt.Printf("0x9 %v\n", ti)
 
     if ti!=nil {
@@ -2508,52 +2596,52 @@ func emit_path_bytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([
 
 
   /*
-  ti := get_knot(ctx, tilemap, patho, 0x2f)
+  ti := GetKnot(ctx, tilemap, patho, 0x2f)
   fmt.Printf("0x2f %v\n", ti)
 
-  ti = get_knot(ctx, tilemap, patho, 0x41)
+  ti = GetKnot(ctx, tilemap, patho, 0x41)
   fmt.Printf("0x41 %v\n", ti)
 
-  ti = get_knot(ctx, tilemap, patho, 0x42)
+  ti = GetKnot(ctx, tilemap, patho, 0x42)
   fmt.Printf("0x42 %v\n", ti)
 
-  ti = get_knot(ctx, tilemap, patho, 0x6f)
+  ti = GetKnot(ctx, tilemap, patho, 0x6f)
   fmt.Printf("0x6f %v\n", ti)
 
-  ti = get_knot(ctx, tilemap, patho, 0x2a2)
+  ti = GetKnot(ctx, tilemap, patho, 0x2a2)
   fmt.Printf("0x2a2 %v\n", ti)
 
-  ti = get_knot(ctx, tilemap, patho, 0x2b4)
+  ti = GetKnot(ctx, tilemap, patho, 0x2b4)
   fmt.Printf("0x2b4 %v\n", ti)
 
-  ti = get_knot(ctx, tilemap, patho, 0x2b6)
+  ti = GetKnot(ctx, tilemap, patho, 0x2b6)
   fmt.Printf("0x2b6 %v\n", ti)
 
-  ti = get_knot(ctx, tilemap, patho, 0x798)
+  ti = GetKnot(ctx, tilemap, patho, 0x798)
   fmt.Printf("0x798 %v\n", ti)
 
-  ti = get_knot(ctx, tilemap, patho, 0x991)
+  ti = GetKnot(ctx, tilemap, patho, 0x991)
   fmt.Printf("0x991 %v\n", ti)
   */
 
   /*
-  get_knot(pathi, 0x9)
-  get_knot(pathi, 0x2f)
-  get_knot(pathi, 0x41)
-  get_knot(pathi, 0x42)
-  get_knot(pathi, 0x6f)
-  get_knot(pathi, 0x2a2)
-  get_knot(pathi, 0x2b4)
-  get_knot(pathi, 0x2b6)
-  get_knot(pathi, 0x798)
-  get_knot(pathi, 0x991)
+  GetKnot(pathi, 0x9)
+  GetKnot(pathi, 0x2f)
+  GetKnot(pathi, 0x41)
+  GetKnot(pathi, 0x42)
+  GetKnot(pathi, 0x6f)
+  GetKnot(pathi, 0x2a2)
+  GetKnot(pathi, 0x2b4)
+  GetKnot(pathi, 0x2b6)
+  GetKnot(pathi, 0x798)
+  GetKnot(pathi, 0x991)
   */
 
   //TESTING
 
 
 
-  return path_bytes, nil
+  return PathBytes, nil
 
 }
 

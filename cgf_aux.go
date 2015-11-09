@@ -1,13 +1,16 @@
-package main
+//package main
+package cgf
 
 import "fmt"
 import "strings"
 import "strconv"
-import "./dlug"
+//import "./dlug"
+import "github.com/abeconnelly/dlug"
 
 
 
-func fill_noc_seq(seq string, delpos_len []int) string {
+//func fill_noc_seq(seq string, delpos_len []int) string {
+func FillNocSeq(seq string, delpos_len []int) string {
   s := []byte(seq)
 
   cur_pos:=0
@@ -32,7 +35,8 @@ func fill_noc_seq(seq string, delpos_len []int) string {
 
 }
 
-func parse_tilepos(s string) (path, ver, step int, err error) {
+//func parse_tilepos(s string) (path, ver, step int, err error) {
+func ParseTilepos(s string) (path, ver, step int, err error) {
   parts := strings.Split(s, ".")
   if len(parts)<2 || len(parts)>3 {
     err = fmt.Errorf("invalid string (must be 2 or 3 fields '.' separated)")
@@ -207,7 +211,7 @@ func simple_int_field(line, field string) (int, int) {
 
 }
 
-func md5sum2str(md5sum [16]byte) string {
+func Md5sum2str(md5sum [16]byte) string {
   var str_md5sum [32]byte
   for i:=0; i<16; i++ {
     x := fmt.Sprintf("%02x", md5sum[i])

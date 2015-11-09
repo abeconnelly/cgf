@@ -1,4 +1,5 @@
-package main
+//package main
+package cgf
 
 import _ "fmt"
 
@@ -33,13 +34,15 @@ func _skip_fofsi(vi []int) int {
   return pos
 }
 
-func _fofsi_knot(vid []int) (cgfintermediate,int) {
+//func _fofsi_knot(vid []int) (cgfintermediate,int) {
+func _fofsi_knot(vid []int) (CGFIntermediate,int) {
   pos := 0
 
   step := vid[pos] ; pos++ ; _ = step
   n := vid[pos] ; pos++
 
-  knot := cgfintermediate{}
+  //knot := cgfintermediate{}
+  knot := CGFIntermediate{}
   _init_knot(&knot)
 
   for i:=0; i<n; i++ {
@@ -60,7 +63,8 @@ func _fofsi_knot(vid []int) (cgfintermediate,int) {
   return knot,pos
 }
 
-func _fill_knot_loq(tia [][]TileInfo, pathi pathintermediate, anchor_step int) {
+//func _fill_knot_loq(tia [][]TileInfo, pathi pathintermediate, anchor_step int) {
+func _fill_knot_loq(tia [][]TileInfo, pathi PathIntermediate, anchor_step int) {
   if cgfi,ok := pathi.loqi.loqi_info[anchor_step] ; ok {
     for allele:=0; allele<len(cgfi.nocall_start_len); allele++ {
       for idx:=0; idx<len(cgfi.nocall_start_len[allele]); idx++ {
@@ -70,7 +74,8 @@ func _fill_knot_loq(tia [][]TileInfo, pathi pathintermediate, anchor_step int) {
   }
 }
 
-func get_knot(tilemap []TileMapEntry, pathi pathintermediate, anchor_step int) [][]TileInfo {
+//func get_knot(tilemap []TileMapEntry, pathi pathintermediate, anchor_step int) [][]TileInfo {
+func GetKnot(tilemap []TileMapEntry, pathi PathIntermediate, anchor_step int) [][]TileInfo {
   tia := make([][]TileInfo, 2)
   tia[0] = make([]TileInfo, 0, 1)
   tia[1] = make([]TileInfo, 0, 1)
@@ -136,7 +141,7 @@ func get_knot(tilemap []TileMapEntry, pathi pathintermediate, anchor_step int) [
       if pathi.loqi.loq_flag[anchor_step] { loq_flag = true }
     }
 
-    tm := pathi.ofsi.tilemap[ovf_pos]
+    tm := pathi.ofsi.TileMap[ovf_pos]
     for allele:=0; allele<2; allele++ {
       run_span:=0
       for i:=0; i<len(tilemap[tm].Variant[allele]); i++ {

@@ -1,9 +1,13 @@
-package main
+//package main
+package cgf
 
 import "fmt"
-import "./dlug"
+//import "./dlug"
+import "github.com/abeconnelly/dlug"
 
 import "io/ioutil"
+
+import "github.com/abeconnelly/cglf"
 
 //import "crypto/md5"
 
@@ -13,9 +17,12 @@ import "io/ioutil"
   format).
 */
 
-func write_cgf(ctx *CGFContext, ofn string) error {
-  b := create_cgf_bytes(ctx)
-  return write_cgf_bytes(b, ofn)
+//func write_cgf(ctx *CGFContext, ofn string) error {
+func (ctx *CGFContext) WriteCGF(ofn string) error {
+  //b := create_cgf_bytes(ctx)
+  //return write_cgf_bytes(b, ofn)
+  b := CreateCGFBytes(ctx)
+  return WriteCGFBytes(b, ofn)
 }
 
 /*
@@ -43,7 +50,8 @@ func fill_slice_string(buf []byte, s string) ([]byte, int) {
 // This returns the raw bytes as they're to be stored
 // on disk (or in memory presumably).
 //
-func create_cgf_bytes(ctx *CGFContext) []byte {
+//func create_cgf_bytes(ctx *CGFContext) []byte {
+func CreateCGFBytes(ctx *CGFContext) []byte {
   var dn int
 
   fin_bytes := make([]byte, 0, 1024*1024)
@@ -175,7 +183,8 @@ func create_cgf_bytes(ctx *CGFContext) []byte {
   return fin_bytes
 }
 
-func write_cgf_bytes(cgf_bytes []byte, ofn string) error {
+//func write_cgf_bytes(cgf_bytes []byte, ofn string) error {
+func WriteCGFBytes(cgf_bytes []byte, ofn string) error {
   err := ioutil.WriteFile(ofn, cgf_bytes, 0644)
   if err!=nil { return err }
   return nil
@@ -196,14 +205,16 @@ func PathOverflowAdd(overflow *OverflowStruct, overflow_count, anchor_step, tile
 // Will overwrite cgf path structure if it exists, create a new path if it doesn't.
 // It will create a new PathStruct if one doesn't already exist.
 //
-func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) error {
+//func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) error {
+func (ctx *CGFContext) UpdateVectorPathSimple(path_idx int, allele_path [][]TileInfo) error {
   cgf := ctx.CGF
   sglf := ctx.SGLF
 
   //DEBUG
   //fmt.Printf("INTERMEDIATE\n")
   //emit_intermediate(ctx, path_idx, allele_path)
-  path_bytes,err := emit_path_bytes(ctx, path_idx, allele_path)
+  //path_bytes,err := emit_path_bytes(ctx, path_idx, allele_path)
+  path_bytes,err := ctx.EmitPathBytes(path_idx, allele_path)
   _ = path_bytes
   _ = err
 
@@ -259,10 +270,14 @@ func update_vector_path_simple(ctx *CGFContext, path_idx int, allele_path [][]Ti
 
   buf := make([]byte, 1024)
 
-  sglf_info0 := SGLFInfo{}
-  sglf_info1 := SGLFInfo{}
+  //sglf_info0 := SGLFInfo{}
+  //sglf_info1 := SGLFInfo{}
 
-  tile_zipper := make([][]SGLFInfo, 2)
+  sglf_info0 := cglf.SGLFInfo{}
+  sglf_info1 := cglf.SGLFInfo{}
+
+  //tile_zipper := make([][]SGLFInfo, 2)
+  tile_zipper := make([][]cglf.SGLFInfo, 2)
   tile_zipper_seq := make([][]string, 2)
 
   span_sum := 0

@@ -1,4 +1,5 @@
-package main
+//package main
+package cgf
 
 import "fmt"
 import "strings"
@@ -72,7 +73,8 @@ func emit_fastj_tile(path,step,span int, pretag string, seq []byte, suftag  stri
 }
 
 
-func load_sample_fastj(scan *autoio.AutoioHandle) ([][]TileInfo, error) {
+//func load_sample_fastj(scan *autoio.AutoioHandle) ([][]TileInfo, error) {
+func LoadSampleFastj(scan *autoio.AutoioHandle) ([][]TileInfo, error) {
   line_no:=0
 
   cur_seq := make([]byte, 0, 1024)
@@ -109,7 +111,7 @@ func load_sample_fastj(scan *autoio.AutoioHandle) ([][]TileInfo, error) {
       // store tile sequence
       //
       if !first_tile {
-        m5 := md5sum2str( md5.Sum(cur_seq) )
+        m5 := Md5sum2str( md5.Sum(cur_seq) )
         if m5!=md5sum_str { return nil,fmt.Errorf("md5sums do not match %s != %s (line %d)", m5, md5sum_str, line_no) }
         ti := emit_fastj_tile(tilepath, tilestep, span_len, s_tag, cur_seq, e_tag)
 
@@ -190,7 +192,7 @@ func load_sample_fastj(scan *autoio.AutoioHandle) ([][]TileInfo, error) {
   // store tile sequence
   //
   if !first_tile {
-    m5 := md5sum2str( md5.Sum(cur_seq) )
+    m5 := Md5sum2str( md5.Sum(cur_seq) )
     if m5!=md5sum_str { return nil,fmt.Errorf("md5sums do not match %s != %s (line %d)", m5, md5sum_str, line_no) }
     ti := emit_fastj_tile(tilepath, tilestep, span_len, s_tag, cur_seq, e_tag)
 

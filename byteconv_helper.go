@@ -1,6 +1,8 @@
-package main
+//package main
+package cgf
 
-import "./dlug"
+//import "./dlug"
+import "github.com/abeconnelly/dlug"
 
 func byte_low( b byte ) byte {
   if b >= 'A' && b <= 'Z' { return b+32 }

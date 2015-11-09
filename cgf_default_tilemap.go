@@ -1,5 +1,5 @@
-
-package main
+//package main
+package cgf
 
 // v0.1.0
 

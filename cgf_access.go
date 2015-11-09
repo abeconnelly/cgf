@@ -1,7 +1,9 @@
-package main
+//package main
+package cgf
 
 import "fmt"
-import "./dlug"
+//import "./dlug"
+import "github.com/abeconnelly/dlug"
 
 func CGFMagic(cgf_bytes []byte) uint64 {
   magic := byte2uint64(cgf_bytes[0:8])
@@ -509,7 +511,8 @@ func LookupTileMapEntry(cgf_bytes []byte, path, ver, step int) (TileMapEntry, er
   if tm>=0 {
     tilemap_bytes,e := CGFTilemapBytes(cgf_bytes)
     if e!=nil { return tme, e }
-    tile_map := unpack_tilemap(tilemap_bytes)
+    //tile_map := unpack_tilemap(tilemap_bytes)
+    tile_map := UnpackTileMap(tilemap_bytes)
     tme := tile_map[tm]
     tme.Variant = tme.Variant
     tme.Span = tme.Span

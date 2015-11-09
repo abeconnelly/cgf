@@ -1,11 +1,13 @@
-package main
+//package main
+package cgf
 
 import "os"
 import "fmt"
 import "log"
 import "strings"
 import "strconv"
-import "../src/dlug"
+//import "../src/dlug"
+import "github.com/abeconnelly/dlug"
 
 
 
@@ -20,8 +22,10 @@ type TileMapEntry struct {
   Span [][]int
 }
 
-func write_cgf_from_intermediate(ofn string, hdri *headerintermediate) {
-  hdr_bytes := bytes_from_headerintermediate(*hdri)
+//func write_cgf_from_intermediate(ofn string, hdri *HeaderIntermediate) {
+func WriteCGFFromIntermediate(ofn string, hdri *HeaderIntermediate) {
+  //hdr_bytes := bytes_from_headerintermediate(*hdri)
+  hdr_bytes := BytesFromHeaderIntermediate(*hdri)
 
 
   //f,err := os.Create("./okok.cgf")
@@ -29,12 +33,12 @@ func write_cgf_from_intermediate(ofn string, hdri *headerintermediate) {
   if err!=nil { log.Fatal(err) }
   f.Write(hdr_bytes)
 
-  for i:=0; i<len(hdri.path_bytes); i++ {
-    if len(hdri.path_bytes[i])>0 {
+  for i:=0; i<len(hdri.PathBytes); i++ {
+    if len(hdri.PathBytes[i])>0 {
 
-      fmt.Printf("writing %d bytes (path %x)\n", len(hdri.path_bytes[i]), i)
+      fmt.Printf("writing %d bytes (path %x)\n", len(hdri.PathBytes[i]), i)
 
-      f.Write(hdri.path_bytes[i])
+      f.Write(hdri.PathBytes[i])
     }
   }
 
@@ -44,44 +48,46 @@ func write_cgf_from_intermediate(ofn string, hdri *headerintermediate) {
 
 }
 
-func headerintermediate_add_path(hdri *headerintermediate, path int, path_bytes []byte) {
+//func headerintermediate_add_path(hdri *headerintermediate, path int, PathBytes []byte) {
+func HeaderIntermediateAddPath(hdri *HeaderIntermediate, path int, PathBytes []byte) {
 
-  if len(hdri.step_per_path)<path {
+  if len(hdri.StepPerPath)<path {
 
     prev_off :=0
-    if len(hdri.step_per_path)>0 {
-      //prev_off = hdri.step_per_path[len(hdri.path_offset)-1]
+    if len(hdri.StepPerPath)>0 {
+      //prev_off = hdri.StepPerPath[len(hdri.path_offset)-1]
       prev_off = hdri.path_offset[len(hdri.path_offset)-1]
     }
 
-    for i:=len(hdri.step_per_path); i<=path; i++ {
+    for i:=len(hdri.StepPerPath); i<=path; i++ {
       bb := []byte{}
-      hdri.step_per_path = append(hdri.step_per_path, 0)
+      hdri.StepPerPath = append(hdri.StepPerPath, 0)
       hdri.path_offset = append(hdri.path_offset, prev_off)
-      hdri.path_bytes = append(hdri.path_bytes, bb)
+      hdri.PathBytes = append(hdri.PathBytes, bb)
     }
   }
 
-  hdri.pathcount = len(hdri.step_per_path)
+  hdri.pathcount = len(hdri.StepPerPath)
 
-  pathi,dn := pathintermediate_from_bytes(path_bytes)
+  //pathi,dn := pathintermediate_from_bytes(PathBytes)
+  pathi,dn := PathIntermediateFromBytes(PathBytes)
   _ = dn
 
-  hdri.step_per_path[path] = pathi.ntile
-  hdri.path_bytes[path] = path_bytes
+  hdri.StepPerPath[path] = pathi.ntile
+  hdri.PathBytes[path] = PathBytes
 
   prev_len := hdri.path_offset[path+1] - hdri.path_offset[path]
 
   for idx:=path; idx<hdri.pathcount; idx++ {
-    hdri.path_offset[idx+1] += len(path_bytes) - prev_len
+    hdri.path_offset[idx+1] += len(PathBytes) - prev_len
   }
 
 
   /*
   fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n")
-  fmt.Printf("step_per_path[%d]: %v\n", len(hdri.step_per_path), hdri.step_per_path)
-  //for i:=0; i<len(hdri.step_per_path); i++ {
-  //  fmt.Printf("step_per_path[%d]: %d\n", i, hdri.step_per_path[i])
+  fmt.Printf("StepPerPath[%d]: %v\n", len(hdri.StepPerPath), hdri.StepPerPath)
+  //for i:=0; i<len(hdri.StepPerPath); i++ {
+  //  fmt.Printf("StepPerPath[%d]: %d\n", i, hdri.StepPerPath[i])
   //}
 
   fmt.Printf("path_offset[%d]: %v\n", len(hdri.path_offset), hdri.path_offset)
@@ -91,7 +97,8 @@ func headerintermediate_add_path(hdri *headerintermediate, path int, path_bytes 
   */
 }
 
-func unpack_tilemap(tilemap_bytes []byte) []TileMapEntry {
+//func unpack_tilemap(tilemap_bytes []byte) []TileMapEntry {
+func UnpackTileMap(tilemap_bytes []byte) []TileMapEntry {
   m := make([]TileMapEntry, 0, 1024)
 
   var n0,n1,vid,span uint64
@@ -143,7 +150,8 @@ func unpack_tilemap(tilemap_bytes []byte) []TileMapEntry {
 
 // No path structures, so some arrays are of 0 length
 //
-func cgf_default_tile_map() []byte {
+//func cgf_default_tile_map() []byte {
+func CGFDefaultTileMap() []byte {
   var n int
   tilemap_bytes := make([]byte, 0, 1024*40)
   buf := make([]byte, 16)
@@ -211,12 +219,13 @@ func cgf_default_tile_map() []byte {
 }
 
 /*
-func update_hader_from_path_bytes(CGFContext ctx) error {
+func update_hader_from_PathBytes(CGFContext ctx) error {
   return nil
 }
 */
 
-func cgf_default_header_bytes() []byte {
+//func cgf_default_header_bytes() []byte {
+func CGFDefaultHeaderBytes() []byte {
   tbuf := make([]byte, 1024)
   buf := make([]byte, 0, 8192)
   n := 0
@@ -269,7 +278,8 @@ func cgf_default_header_bytes() []byte {
   //
   // TileMap
   //
-  tilemap := cgf_default_tile_map()
+  //tilemap := cgf_default_tile_map()
+  tilemap := CGFDefaultTileMap()
 
   tobyte64(tbuf[0:8], uint64(len(tilemap)))
   buf = append(buf, tbuf[0:8]...)
@@ -280,10 +290,10 @@ func cgf_default_header_bytes() []byte {
 
   // StepPerPath
   //
-  step_per_path := make([]uint64, 0, 1024)
-  if len(step_per_path)>0 {
-    for i:=0; i<len(step_per_path); i++ {
-      tobyte64(tbuf[0:8], step_per_path[i])
+  StepPerPath := make([]uint64, 0, 1024)
+  if len(StepPerPath)>0 {
+    for i:=0; i<len(StepPerPath); i++ {
+      tobyte64(tbuf[0:8], StepPerPath[i])
       buf = append(buf, tbuf[0:8]...)
       n+=8
     }
@@ -293,7 +303,7 @@ func cgf_default_header_bytes() []byte {
   //
   tile_vector_offset := make([]uint64, 0, 1024)
   if len(tile_vector_offset)>0 {
-    for i:=0; i<len(step_per_path); i++ {
+    for i:=0; i<len(StepPerPath); i++ {
       tobyte64(tbuf[0:8], tile_vector_offset[i])
       buf = append(buf, tbuf[0:8]...)
       n+=8
@@ -357,8 +367,10 @@ func CGFFillHeader(cgf *CGF, b []byte) int {
   return n
 }
 
-func print_tilemap_info(cgf *CGF) {
-  tm := unpack_tilemap(cgf.TileMap)
+//func print_tilemap_info(cgf *CGF) {
+func PrintTileMapInfo(cgf *CGF) {
+  //tm := unpack_tilemap(cgf.TileMap)
+  tm := UnpackTileMap(cgf.TileMap)
 
   for k:=0; k<len(tm); k++ {
     for i:=0; i<len(tm[k].Variant[0]); i++ {
@@ -385,7 +397,8 @@ func print_tilemap_info(cgf *CGF) {
 
 }
 
-func print_header_info(cgf *CGF) {
+//func print_header_info(cgf *CGF) {
+func PrintHeaderInfo(cgf *CGF) {
 
   var magic_buf = make([]byte, 8)
 
@@ -401,7 +414,8 @@ func print_header_info(cgf *CGF) {
   fmt.Printf("TileMapLen %d\n", cgf.TileMapLen)
   fmt.Printf("TileMap(%d):\n", len(cgf.TileMap))
 
-  tm := unpack_tilemap(cgf.TileMap)
+  //tm := unpack_tilemap(cgf.TileMap)
+  tm := UnpackTileMap(cgf.TileMap)
 
   for k:=0; k<len(tm); k++ {
     fmt.Printf("  [%d]", k)
