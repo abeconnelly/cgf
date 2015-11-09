@@ -527,28 +527,8 @@ func _main( c *cli.Context ) {
 
         for stepr_idx:=0; stepr_idx<len(step_range); stepr_idx++ {
           for step:=step_range[stepr_idx][0]; step<step_range[stepr_idx][1]; step++ {
-            //fmt.Printf("%04x.%04x\n", path, step)
             knot := get_knot(tilemap, patho, int(step))
-
-
             print_knot_fastj_sglf(knot, sglf, uint64(path), 0, hdri)
-
-            /*
-            for ii:=0; ii<len(knot); ii++ {
-              cur_step := step
-              for jj:=0; jj<len(knot[ii]); jj++ {
-
-                fmt.Printf("> %04x.00.%04x.%03x+%x\n",
-                  path, cur_step,
-                  knot[ii][jj].VarId,
-                  knot[ii][jj].Span)
-
-                fmt.Printf("%s\n", sglf.Lib[int(path)][int(cur_step)][knot[ii][jj].VarId])
-
-              }
-            }
-            */
-
           }
         }
 
@@ -560,9 +540,50 @@ func _main( c *cli.Context ) {
       }
 
       for i:=0; i<len(inp_slice); i++ {
-        e := print_tile_cglf(inp_slice[i], tilepos_str, cglf_lib_location)
+        //e := print_tile_cglf(inp_slice[i], tilepos_str, cglf_lib_location)
+        //if e!=nil { log.Fatal(e) }
+
+        cgf_bytes,e := ioutil.ReadFile(inp_slice[i])
         if e!=nil { log.Fatal(e) }
+
+        path := path_range[0][0]
+
+        sglf := SGLF{}
+
+        populate_sglf_from_cglf(c.String("cglf"), &sglf, uint64(path))
+
+        os.Exit(0)
+
+        hdri,_ := headerintermediate_from_bytes(cgf_bytes) ; _ = hdri
+        pathi,_ := pathintermediate_from_bytes(hdri.path_bytes[path]) ; _ = pathi
+
+        hdri,dn := headerintermediate_from_bytes(cgf_bytes)
+        if dn<0 { log.Fatal("could not construct header from bytes") }
+
+        patho,dn := pathintermediate_from_bytes(hdri.path_bytes[path])
+        if dn<0 { log.Fatal("could not construct path") }
+
+        tilemap_bytes,_ := CGFTilemapBytes(cgf_bytes)
+        tilemap := unpack_tilemap(tilemap_bytes)
+
+        for step_idx:=0; step_idx<len(step_range); step_idx++ {
+          if step_range[step_idx][1] == -1 {
+            step_range[step_idx][1] = int64(hdri.step_per_path[path])
+          }
+        }
+
+        for stepr_idx:=0; stepr_idx<len(step_range); stepr_idx++ {
+          for step:=step_range[stepr_idx][0]; step<step_range[stepr_idx][1]; step++ {
+            knot := get_knot(tilemap, patho, int(step))
+            print_knot_fastj_sglf(knot, sglf, uint64(path), 0, hdri)
+          }
+        }
+
       }
+
+
+
+
 
     }
 

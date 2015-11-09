@@ -23,6 +23,64 @@ func print_fold_seq(s string, w int) {
   }
 }
 
+func populate_sglf_from_cglf(cglf_path string, sglf *SGLF, path uint64) error {
+  var e error
+
+  cglf_lib_fn := fmt.Sprintf("%s/%04x.tar.gz", cglf_path, path) ; _ = cglf_lib_fn
+  cglf_tai_fn := fmt.Sprintf("%s/%04x.tar.tai", cglf_path, path)
+
+  tai,err := ioutil.ReadFile(cglf_tai_fn)
+  if err!=nil { return err }
+
+  tai_lines := strings.Split(string(tai), "\n")
+
+  for i:=0; i<len(tai_lines); i++ {
+    tai_line_parts := strings.Split(tai_lines[i], " ")
+
+    tar_fn := tai_line_parts[0]
+    tar_fn_b := tai_line_parts[1]
+    tar_fn_s := tai_line_parts[2]
+
+    if len(tar_fn) <= 2 { continue; }
+
+    BGZIP := "/home/abram/bin/bgzip"
+
+    /*
+    fmt.Printf("%s -c -b %s -s %s %s %s\n", BGZIP, tar_fn_b, tar_fn_s, cglf_lib_fn, tar_fn)
+    fmt.Printf("gunzip -c -\n")
+    fmt.Printf("twoBitGulp -terse -w 0")
+    */
+
+    cmd0 := exec.Command(BGZIP, "-c", "-b", tar_fn_b, "-s", tar_fn_s, cglf_lib_fn, tar_fn)
+    cmd1 := exec.Command("gunzip", "-c", "-")
+    cmd2 := exec.Command("twoBitGulp", "-terse", "-w", "0")
+
+    cmd1.Stdin,_ = cmd0.StdoutPipe()
+    cmd2.Stdin,_ = cmd1.StdoutPipe()
+
+    var b bytes.Buffer
+    cmd2.Stdout = &b
+
+    e = cmd0.Start()
+    if e!=nil { panic(e); log.Fatal(e) }
+
+    e = cmd1.Start()
+    if e!=nil { panic(e) ;log.Fatal(e) }
+
+    e = cmd2.Start()
+    if e!=nil { panic(e) ;log.Fatal(e) }
+
+
+    e = cmd2.Wait()
+    if e!=nil { panic(e) ; log.Fatal(e) }
+
+    fmt.Printf(">>>>>>>>>>>>>>>>>>\n%s\n", b.Bytes())
+
+  }
+
+  return nil
+}
+
 
 func cglf_helper(fn, name string) []byte {
   cmd0 := exec.Command("gunzip", "-c", fn)
