@@ -83,7 +83,7 @@ func GetKnot(tilemap []TileMapEntry, pathi PathIntermediate, anchor_step int) []
   vec_slice := anchor_step/32
   m := anchor_step%32
 
-  if (pathi.veci[vec_slice] & (1<<uint(32+m))) == 0 {
+  if (pathi.VecUint64[vec_slice] & (1<<uint(32+m))) == 0 {
     ti:=TileInfo{}
     ti.Step = anchor_step
     ti.Span = tilemap[0].Span[0][0]
@@ -98,14 +98,14 @@ func GetKnot(tilemap []TileMapEntry, pathi PathIntermediate, anchor_step int) []
 
   cache_counter := 0
   for i:=0; i<m; i++ {
-    if (pathi.veci[vec_slice] & (1<<uint(32+i))) != 0 {
+    if (pathi.VecUint64[vec_slice] & (1<<uint(32+i))) != 0 {
       cache_counter++
     }
   }
 
   hexit:=0
   if (cache_counter < 8) {
-    hexit = int((pathi.veci[vec_slice] & (0xf<<uint(4*cache_counter))) >> uint(4*cache_counter))
+    hexit = int((pathi.VecUint64[vec_slice] & (0xf<<uint(4*cache_counter))) >> uint(4*cache_counter))
 
     if hexit == 0 { return nil }
 
@@ -131,7 +131,7 @@ func GetKnot(tilemap []TileMapEntry, pathi PathIntermediate, anchor_step int) []
   loq_flag := false ; _ = loq_flag
   if hexit == 0xe { loq_flag = true }
 
-  ovf_pos := CountOverflowVectorUint64(pathi.veci, 0, anchor_step)
+  ovf_pos := CountOverflowVectorUint64(pathi.VecUint64, 0, anchor_step)
 
   if pathi.ofsi.span_flag[ovf_pos] { return nil }
 

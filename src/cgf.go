@@ -586,6 +586,20 @@ func _main( c *cli.Context ) {
     }
 
     return
+  } else if action == "knot-z" {
+
+    cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))
+    if e!=nil { log.Fatal(e) }
+
+    path,ver,step,e := cgf.ParseTilepos(c.String("tilepos"))
+    if e!=nil { log.Fatal(e) }
+
+    if path<0 { log.Fatal("path must be positive") }
+    if step<0 { log.Fatal("step must be positive") }
+
+    fmt.Printf("not implemented\n")
+
+    return
   } else if action == "knot-2" {
 
     cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))

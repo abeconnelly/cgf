@@ -2,16 +2,10 @@
 package cgf
 
 import "fmt"
-//import "./dlug"
 import "github.com/abeconnelly/dlug"
 
 import "github.com/abeconnelly/cglf"
 
-import _ "os"
-
-//import "crypto/md5"
-
-//type headerintermediate struct {
 type HeaderIntermediate struct {
   magic [8]byte
   ver string
@@ -30,22 +24,16 @@ type HeaderIntermediate struct {
 
 }
 
-//type pathintermediate struct {
 type PathIntermediate struct {
   name string
   ntile int
-  veci []uint64
-  //cgfi cgfintermediate
-  //ofsi overflowintermediate
-  //fofsi finaloverflowintermediate
-  //loqi loqintermediate
+  VecUint64 []uint64
   cgfi CGFIntermediate
   ofsi OverflowIntermediate
   fofsi FinalOverflowIntermediate
   loqi LoqIntermediate
 }
 
-//type cgfintermediate struct {
 type CGFIntermediate struct {
   step  [][]int
   seq   [][]string
@@ -60,7 +48,6 @@ type CGFIntermediate struct {
   tot_span int
 }
 
-//type overflowintermediate struct {
 type OverflowIntermediate struct {
   recno int
   stride int
@@ -74,7 +61,6 @@ type OverflowIntermediate struct {
   span_flag []bool
 }
 
-//type finaloverflowintermediate struct {
 type FinalOverflowIntermediate struct {
   recno int
   tilepos []int
@@ -82,7 +68,6 @@ type FinalOverflowIntermediate struct {
                       // NOTE: l0 and l1 are number of record.  i.e. l0 will be 1 if there is only one var+span combo
 }
 
-//type vectorelement struct {
 type VectorElement struct {
   canon_flag bool
   cache_flag bool
@@ -93,13 +78,11 @@ type VectorElement struct {
 
   loq_flag bool
 
-  //knot cgfintermediate
   knot CGFIntermediate
   hexit_pos int
   vec_pos int
 }
 
-//type loqintermediate struct {
 type LoqIntermediate struct {
   loqinfo_bytecount int
   count         int
@@ -113,31 +96,16 @@ type LoqIntermediate struct {
   loq_flag      []bool
 
   // key is step
-  //loqi_info     map[int]cgfintermediate
   loqi_info     map[int]CGFIntermediate
 }
 
 
-/*
-type loqintermediate struct {
-  loq_bv []byte
-  length int
-  count int
-  code int
-  stride int
-  offset_idx []int
-  tilepos_idx []int
-  loq_hom_flag []byte
-}
-*/
-
 //========================================================================
 //========================================================================
 //========================================================================
 //========================================================================
 //========================================================================
 
-//func vectorelement_ovf_count(prep_vector []vectorelement, st, n int) int {
 func VectorElementOverflowCount(prep_vector []VectorElement, st, n int) int {
   ovf_count := 0
   for i:=st; i<(st+n); i++ {
@@ -149,7 +117,6 @@ func VectorElementOverflowCount(prep_vector []VectorElement, st, n int) int {
 }
 
 
-//func _knot_tot_span(knot *cgfintermediate) int {
 func _knot_tot_span(knot *CGFIntermediate) int {
   sp := [2]int{}
   for allele:=0; allele<2; allele++ {
@@ -167,7 +134,6 @@ func _knot_tot_span(knot *CGFIntermediate) int {
 
 // return span
 //
-//func _add_knot(knot *cgfintermediate, allele, step_idx int, ti TileInfo, sglf *SGLF) (int,error) {
 func _add_knot(knot *CGFIntermediate, allele, step_idx int, ti TileInfo, sglf *cglf.SGLF) (int,error) {
   if len(ti.NocallStartLen)>0 {
     knot.loq[allele] = append(knot.loq[allele], true)
@@ -176,7 +142,6 @@ func _add_knot(knot *CGFIntermediate, allele, step_idx int, ti TileInfo, sglf *c
     knot.loq[allele] = append(knot.loq[allele], false)
   }
 
-  //sglf_info := SGLFInfo{}
   sglf_info := cglf.SGLFInfo{}
   var ok bool
 
@@ -224,7 +189,6 @@ func _add_knot(knot *CGFIntermediate, allele, step_idx int, ti TileInfo, sglf *c
   return sglf_info.Span,nil
 }
 
-//func _init_knot(knot *cgfintermediate) {
 func _init_knot(knot *CGFIntermediate) {
   knot.seq = make([][]string, 2)
   knot.varid = make([][]int, 2)
@@ -242,7 +206,6 @@ func _init_knot(knot *CGFIntermediate) {
 //====  |_| |_|\___|\__,_|\__,_|\___|_|  |_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
 
 
-//func headerintermediate_cmp(hdri0, hdri1 headerintermediate) error {
 func HeaderIntermediateCmp(hdri0, hdri1 HeaderIntermediate) error {
 
   for i:=0; i<8; i++ {
@@ -347,7 +310,6 @@ func HeaderIntermediateCmp(hdri0, hdri1 HeaderIntermediate) error {
   return nil
 }
 
-//func headerintermediate_from_bytes(b []byte) (headerintermediate,int) {
 func HeaderIntermediateFromBytes(b []byte) (HeaderIntermediate,int) {
   hdri := HeaderIntermediate{}
   var dummy uint64
@@ -386,7 +348,6 @@ func HeaderIntermediateFromBytes(b []byte) (HeaderIntermediate,int) {
   tilemaplen := int(dummy)
 
   hdri.TileMapBytes = b[n:n+tilemaplen]
-  //hdri.tilemap = unpack_tilemap(b[n:n+tilemaplen])
   hdri.TileMap = UnpackTileMap(b[n:n+tilemaplen])
   n += tilemaplen
 
@@ -416,7 +377,6 @@ func HeaderIntermediateFromBytes(b []byte) (HeaderIntermediate,int) {
   return hdri,n
 }
 
-//func bytes_from_headerintermediate(hdri headerintermediate) []byte {
 func BytesFromHeaderIntermediate(hdri HeaderIntermediate) []byte {
   buf := make([]byte, 64)
   b := make([]byte, 0, 1024)
@@ -468,7 +428,6 @@ func BytesFromHeaderIntermediate(hdri HeaderIntermediate) []byte {
 //====   \___/ \_/ \___|_|  |_| |_|\___/ \_/\_/ |_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
 //====
 
-//func overflowintermediate_cmp(ofsi0, ofsi1 overflowintermediate) error {
 func OverflowIntermediateCmp(ofsi0, ofsi1 OverflowIntermediate) error {
   if ofsi0.stride != ofsi1.stride { return fmt.Errorf("stride mismatch") }
   if len(ofsi0.tilepos) != len(ofsi1.tilepos) { return fmt.Errorf("tilepos length mismatch") }
@@ -499,9 +458,7 @@ func OverflowIntermediateCmp(ofsi0, ofsi1 OverflowIntermediate) error {
   return nil
 }
 
-//func overflowintermediate_from_bytes(b []byte) (overflowintermediate,int) {
 func OverflowIntermediateFromBytes(b []byte) (OverflowIntermediate,int) {
-  //ofsi := overflowintermediate{}
   ofsi := OverflowIntermediate{}
 
   var dummy uint64
@@ -510,6 +467,7 @@ func OverflowIntermediateFromBytes(b []byte) (OverflowIntermediate,int) {
   n:=0
 
   // Length
+  //
   dummy = byte2uint64(b[n:n+8])
   n+=8
 
@@ -517,6 +475,7 @@ func OverflowIntermediateFromBytes(b []byte) (OverflowIntermediate,int) {
   ofsi.recno = int(NRec)
 
   // Stride
+  //
   dummy = byte2uint64(b[n:n+8])
   n+=8
 
@@ -524,6 +483,7 @@ func OverflowIntermediateFromBytes(b []byte) (OverflowIntermediate,int) {
   ofsi.stride = int(stride)
 
   // MapByteCount
+  //
   dummy = byte2uint64(b[n:n+8])
   n+=8
 
@@ -587,16 +547,17 @@ func OverflowIntermediateFromBytes(b []byte) (OverflowIntermediate,int) {
   return ofsi,n
 }
 
-//func bytes_from_overflowintermediate(ofsi overflowintermediate) []byte {
 func BytesFromOverflowIntermediate(ofsi OverflowIntermediate) []byte {
   buf := make([]byte, 64)
   offset_bytes := make([]byte, 0, 1024)
 
   // number of records
+  //
   tobyte64(buf, uint64(len(ofsi.tilepos)))
   offset_bytes = append(offset_bytes, buf[0:8]...)
 
   // stride
+  //
   tobyte64(buf, uint64(ofsi.stride))
   offset_bytes = append(offset_bytes, buf[0:8]...)
 
@@ -622,31 +583,33 @@ func BytesFromOverflowIntermediate(ofsi OverflowIntermediate) []byte {
   }
 
   // MapByteCount
+  //
   tobyte64(buf, uint64(len(map_bytes)))
   offset_bytes = append(offset_bytes, buf[0:8]...)
 
   // offset
+  //
   for i:=0; i<len(offset_idx); i++ {
     tobyte64(buf, offset_idx[i])
     offset_bytes = append(offset_bytes, buf[0:8]...)
   }
 
   // tilepos
+  //
   for i:=0; i<len(tilepos_idx); i++ {
     tobyte64(buf, tilepos_idx[i])
     offset_bytes = append(offset_bytes, buf[0:8]...)
   }
 
   // map
+  //
   offset_bytes = append(offset_bytes, map_bytes...)
 
   return offset_bytes
 
 }
 
-//func construct_offset_intermediate(ctx *CGFContext, prep_vector []vectorelement) overflowintermediate {
 func (ctx *CGFContext) ConstructOffsetIntermediate(prep_vector []VectorElement) OverflowIntermediate {
-  //ofsi := overflowintermediate{}
   ofsi := OverflowIntermediate{}
 
   ofsi.tilepos = make([]int, 0, 1024)
@@ -714,9 +677,7 @@ func FinalOverflowIntermediateCmp(fofsi0, fofsi1 FinalOverflowIntermediate) erro
   return nil
 }
 
-//func finaloverflowintermediate_from_bytes(b []byte) (finaloverflowintermediate,int) {
 func FinalOverflowIntermediateFromBytes(b []byte) (FinalOverflowIntermediate,int) {
-  //fofsi := finaloverflowintermediate{}
   fofsi := FinalOverflowIntermediate{}
 
   fofsi.tilepos = make([]int, 0, 1024)
@@ -727,12 +688,14 @@ func FinalOverflowIntermediateFromBytes(b []byte) (FinalOverflowIntermediate,int
   n:=0
 
   // nrecord
+  //
   dummy = byte2uint64(b[n:n+8])
   n += 8
 
   nrec := int(dummy)
 
   // data record byte length
+  //
   dummy = byte2uint64(b[n:n+8])
   n += 8
 
@@ -797,16 +760,17 @@ func FinalOverflowIntermediateFromBytes(b []byte) (FinalOverflowIntermediate,int
 
 }
 
-//func bytes_from_finaloverflowintermediate(fofsi finaloverflowintermediate) []byte {
 func BytesFromFinalOverflowIntermediate(fofsi FinalOverflowIntermediate) []byte {
   buf := make([]byte, 64)
   fof_bytes := make([]byte, 0, 1024)
 
   // Number of records
+  //
   tobyte64(buf, uint64(len(fofsi.tilepos)))
   fof_bytes = append(fof_bytes, buf[0:8]...)
 
   // redundant...
+  //
   code := make([]byte, len(fofsi.tilepos))
   for i:=0; i<len(code); i++ { code[i] = 0 }
 
@@ -833,9 +797,7 @@ func BytesFromFinalOverflowIntermediate(fofsi FinalOverflowIntermediate) []byte 
   return fof_bytes
 }
 
-//func construct_final_offset_intermediate(ctx *CGFContext, prep_vector []vectorelement) finaloverflowintermediate {
 func (ctx *CGFContext) ConstructFinalOffsetIntermediate(prep_vector []VectorElement) FinalOverflowIntermediate {
-  //fofsi := finaloverflowintermediate{}
   fofsi := FinalOverflowIntermediate{}
 
   fofsi.tilepos = make([]int, 0, 1024)
@@ -862,7 +824,6 @@ func (ctx *CGFContext) ConstructFinalOffsetIntermediate(prep_vector []VectorElem
   return fofsi
 }
 
-//func construct_uint64_vector(ctx *CGFContext, prep_vector []vectorelement) []uint64 {
 func (ctx *CGFContext) ConstructUint64Vector(prep_vector []VectorElement) []uint64 {
 
   ret_vec := make([]uint64, 0, 1024)
@@ -902,7 +863,6 @@ func (ctx *CGFContext) ConstructUint64Vector(prep_vector []VectorElement) []uint
           continue
         }
 
-        //cur_v |= uint64( (uint(prep_vector[i+j].knot.tilemap_pos) & 0xf) << (4*uint(prep_vector[i+j].hexit_pos)) )
         cur_v |= uint64( (uint(prep_vector[i+j].knot.TileMapPos) & uint(hexit)) << (4*uint(prep_vector[i+j].hexit_pos)) )
 
       }
@@ -924,7 +884,6 @@ func (ctx *CGFContext) ConstructUint64Vector(prep_vector []VectorElement) []uint
 //====  |_|\___/ \__, |_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
 //====              |_|
 
-//func loqintermediate_cmp(loqi0, loqi1 loqintermediate) error {
 func LoqIntermediateCmp(loqi0, loqi1 LoqIntermediate) error {
   if loqi0.count != loqi1.count {
     return fmt.Errorf( fmt.Sprintf("count mismatch: %d != %d", loqi0.count, loqi1.count) )
@@ -980,9 +939,7 @@ func LoqIntermediateCmp(loqi0, loqi1 LoqIntermediate) error {
 
 }
 
-//func loqintermediate_from_bytes(b []byte) (loqintermediate,int) {
 func LoqIntermediateFromBytes(b []byte) (LoqIntermediate,int) {
-  //loqi := loqintermediate{}
   loqi := LoqIntermediate{}
 
   var dummy uint64
@@ -1058,15 +1015,6 @@ func LoqIntermediateFromBytes(b []byte) (LoqIntermediate,int) {
   loq_flag_vec := b[n:n+loqflag_bytecount]
   n+=loqflag_bytecount
 
-  /*
-  fmt.Printf("loqflag(%d):", loqflag_bytecount)
-  for i:=0; i<loqflag_bytecount; i++ {
-    if (i%40)==0 { fmt.Printf("\n") }
-    fmt.Printf(" %2x", loq_flag_vec[i])
-  }
-  fmt.Printf("\n")
-  */
-
   for i:=0; i<8*loqflag_bytecount; i++ {
     tf := false
     if (loq_flag_vec[i/8] & (1<<uint(i%8))) != 0 { tf = true }
@@ -1084,13 +1032,7 @@ func LoqIntermediateFromBytes(b []byte) (LoqIntermediate,int) {
 
   // main loq array
   //
-  //loqi.loqi_info = make(map[int]cgfintermediate)
   loqi.loqi_info = make(map[int]CGFIntermediate)
-
-
-  //DEBUG
-  //fmt.Printf("LOQ PEEL\n")
-  //DEBUG
 
   cur_step:=0
   max_step := loq_info_byte_count*8
@@ -1106,9 +1048,6 @@ func LoqIntermediateFromBytes(b []byte) (LoqIntermediate,int) {
       panic( fmt.Sprintf("ERROR: cur_step (%d) == max_step (%d)\n", cur_step, max_step) )
     }
 
-    //fmt.Printf("  bo: %d (/%d), rec_pos: %d, cur_step %d (0x%x)\n", byte_offset, loq_info_byte_count, rec_pos, cur_step, cur_step)
-
-    //cgfi := cgfintermediate{}
     cgfi := CGFIntermediate{}
     cgfi.loq_flag = true
     cgfi.step = make([][]int, 2)
@@ -1129,9 +1068,6 @@ func LoqIntermediateFromBytes(b []byte) (LoqIntermediate,int) {
 
     cgfi.nocall_start_len[0] = make([][]int, ntile[0])
 
-    //DEBUG
-    //fmt.Printf("  ntile0:%d\n", ntile[0])
-
     if !loqi.homflag[rec_pos] {
 
       dummy,dn := dlug.ConvertUint64(b[n:])
@@ -1143,18 +1079,9 @@ func LoqIntermediateFromBytes(b []byte) (LoqIntermediate,int) {
       loqi.loqinfo_ints = append(loqi.loqinfo_ints, int(ntile[1]))
       cgfi.nocall_start_len[1] = make([][]int, ntile[1])
 
-      //DEBUG
-      //fmt.Printf("  ntile1:%d\n", ntile[1])
-
     } else {
-
-      //DEBUG
-      //fmt.Printf(" +ntile1:%d\n", ntile[0])
-
       cgfi.nocall_start_len[1] = make([][]int, ntile[0])
     }
-
-    //fmt.Printf(" %v\n", ntile)
 
     for allele:=0; allele<len(ntile); allele++ {
 
@@ -1176,16 +1103,8 @@ func LoqIntermediateFromBytes(b []byte) (LoqIntermediate,int) {
           delpos:=int(dummy)
           cgfi.nocall_start_len[allele][i] = append(cgfi.nocall_start_len[allele][i], delpos)
 
-          //DEBUG
-          //fmt.Printf("    [%d]delpos:%d\n", allele, delpos)
-          //DEBUG
-
           if len(ntile)==1 {
             cgfi.nocall_start_len[1][i] = append(cgfi.nocall_start_len[1][i], delpos)
-
-            //DEBUG
-            //fmt.Printf("   +[%d]delpos:%d\n", 1, delpos)
-            //DEBUG
           }
 
           dummy,dn = dlug.ConvertUint64(b[n:])
@@ -1195,19 +1114,8 @@ func LoqIntermediateFromBytes(b []byte) (LoqIntermediate,int) {
           l:=int(dummy)
           cgfi.nocall_start_len[allele][i] = append(cgfi.nocall_start_len[allele][i], l)
 
-          //DEBUG
-          //fmt.Printf("    [%d]len:%d\n", allele, l)
-          //DEBUG
-
-
           if len(ntile)==1 {
             cgfi.nocall_start_len[1][i] = append(cgfi.nocall_start_len[1][i], l)
-
-            //DEBUG
-            //fmt.Printf("   +[%d]len:%d\n", 1, l)
-            //DEBUG
-
-
           }
 
           loqi.loqinfo_ints = append(loqi.loqinfo_ints, delpos)
@@ -1225,7 +1133,6 @@ func LoqIntermediateFromBytes(b []byte) (LoqIntermediate,int) {
   return loqi,n
 }
 
-//func bytes_from_loqintermediate(loqi loqintermediate) []byte {
 func BytesFromLoqIntermediate(loqi LoqIntermediate) []byte {
   buf := make([]byte, 64)
   loq_bytes := make([]byte, 0, 1024)
@@ -1337,11 +1244,6 @@ func BytesFromLoqIntermediate(loqi LoqIntermediate) []byte {
   loq_bytes = append(loq_bytes, buf[0:8]...)
   loq_bytes = append(loq_bytes, loqinfo_bytes...)
 
-
-  //DEBUG
-  fmt.Printf("LOQ UNPEEL ## ## ##\n")
-  debug_print_loq_bytes(loq_bytes)
-
   return loq_bytes
 }
 
@@ -1363,7 +1265,6 @@ func _loq_hom(nocall_start_len [][][]int) bool {
   return true
 }
 
-//func construct_loq_intermediate(ctx *CGFContext, prep_vector []vectorelement) loqintermediate {
 func (ctx *CGFContext) ConstructLoqIntermediate(prep_vector []VectorElement) LoqIntermediate {
   loqi := LoqIntermediate{}
 
@@ -1406,29 +1307,14 @@ func (ctx *CGFContext) ConstructLoqIntermediate(prep_vector []VectorElement) Loq
         loqi.homflag = append(loqi.homflag, true)
         loqi.loqinfo_ints = append(loqi.loqinfo_ints, len(nocall_start_len[0]))
 
-
-        //DEBUG
-        //fmt.Printf("%x - ** N %d\n", i, len(nocall_start_len[0]))
-
-
-
         for ii:=0; ii<len(nocall_start_len[0]); ii++ {
           loqi.loqinfo_ints = append(loqi.loqinfo_ints, len(nocall_start_len[0][ii]))
-
-          //DEBUG
-          //fmt.Printf("%x -  ** m(%d) %d\n", i, ii, len(nocall_start_len[0][ii]))
-
 
           start := 0
           for jj:=0; jj<len(nocall_start_len[0][ii]); jj+=2 {
             loqi.loqinfo_ints = append(loqi.loqinfo_ints, nocall_start_len[0][ii][jj]-start)
             loqi.loqinfo_ints = append(loqi.loqinfo_ints, nocall_start_len[0][ii][jj+1])
             start = nocall_start_len[0][ii][jj]
-
-            //DEBUG
-            //fmt.Printf("%x -  ** %d+%d\n", i, nocall_start_len[0][ii][jj], nocall_start_len[0][ii][jj+1])
-
-
           }
 
         }
@@ -1442,27 +1328,15 @@ func (ctx *CGFContext) ConstructLoqIntermediate(prep_vector []VectorElement) Loq
         loqi.loqinfo_ints = append(loqi.loqinfo_ints, len(nocall_start_len[0]))
         loqi.loqinfo_ints = append(loqi.loqinfo_ints, len(nocall_start_len[1]))
 
-        //DEBUG
-        //fmt.Printf("%x - ** N %d (bonk)\n", i, len(nocall_start_len[0]))
-        //fmt.Printf("%x - ** N %d (bonk)\n", i, len(nocall_start_len[1]))
-
         for allele:=0; allele<2; allele++ {
           for ii:=0; ii<len(nocall_start_len[allele]); ii++ {
             loqi.loqinfo_ints = append(loqi.loqinfo_ints, len(nocall_start_len[allele][ii]))
-
-            //DEBUG
-            //fmt.Printf("%x -  ** m(%d) %d\n", i, ii, len(nocall_start_len[allele][ii]))
-
 
             start := 0
             for jj:=0; jj<len(nocall_start_len[allele][ii]); jj+=2 {
               loqi.loqinfo_ints = append(loqi.loqinfo_ints, nocall_start_len[allele][ii][jj]-start)
               loqi.loqinfo_ints = append(loqi.loqinfo_ints, nocall_start_len[allele][ii][jj+1])
               start = nocall_start_len[allele][ii][jj]
-
-              //DEBUG
-              //fmt.Printf("%x -  ** %d+%d\n", i, nocall_start_len[allele][ii][jj], nocall_start_len[allele][ii][jj+1])
-
             }
 
           }
@@ -1484,7 +1358,6 @@ func (ctx *CGFContext) ConstructLoqIntermediate(prep_vector []VectorElement) Loq
 //====  | .__/ \__,_|\__|_| |_|_|_| |_|\__\___|_|  |_| |_| |_|\___|\__,_|_|\__,_|\__\___|
 //====  |_|
 
-//func bytes_from_pathintermediate(pathi pathintermediate) []byte {
 func BytesFromPathIntermediate(pathi PathIntermediate) []byte {
 
   PathBytes := make([]byte, 0, 1024)
@@ -1496,17 +1369,12 @@ func BytesFromPathIntermediate(pathi PathIntermediate) []byte {
   PathBytes = append(PathBytes, ns_bytes...)
   PathBytes = append(PathBytes, []byte(pathi.name)...)
 
-  //tobyte64(buf, uint64(len(pathi.veci)))
   tobyte64(buf, uint64(pathi.ntile))
   PathBytes = append(PathBytes, buf[0:8]...)
-  for i:=0; i<len(pathi.veci); i++ {
-    tobyte64(buf, uint64(pathi.veci[i]))
+  for i:=0; i<len(pathi.VecUint64); i++ {
+    tobyte64(buf, uint64(pathi.VecUint64[i]))
     PathBytes = append(PathBytes, buf[0:8]...)
   }
-
-  //ovf_bytes := bytes_from_overflowintermediate(pathi.ofsi)
-  //fovf_bytes := bytes_from_finaloverflowintermediate(pathi.fofsi)
-  //loq_bytes := bytes_from_loqintermediate(pathi.loqi)
 
   ovf_bytes := BytesFromOverflowIntermediate(pathi.ofsi)
   fovf_bytes := BytesFromFinalOverflowIntermediate(pathi.fofsi)
@@ -1520,9 +1388,7 @@ func BytesFromPathIntermediate(pathi PathIntermediate) []byte {
   return PathBytes
 }
 
-//func pathintermediate_from_bytes(b []byte) (pathintermediate,int) {
 func PathIntermediateFromBytes(b []byte) (PathIntermediate,int) {
-  //pathi := pathintermediate{}
   pathi := PathIntermediate{}
   n:=0
 
@@ -1537,7 +1403,6 @@ func PathIntermediateFromBytes(b []byte) (PathIntermediate,int) {
   dummy = byte2uint64(b[n:n+8])
   n+=8
 
-  //veclen := int(dummy)
   ntile := int(dummy)
   veclen := (ntile+31)/32
 
@@ -1546,55 +1411,67 @@ func PathIntermediateFromBytes(b []byte) (PathIntermediate,int) {
   for i:=0; i<veclen; i++ {
     dummy = byte2uint64(b[n:n+8])
     n+=8
-    pathi.veci = append(pathi.veci, dummy)
+    pathi.VecUint64 = append(pathi.VecUint64, dummy)
   }
 
-  //pathi.ofsi,dn = overflowintermediate_from_bytes(b[n:])
   pathi.ofsi,dn = OverflowIntermediateFromBytes(b[n:])
   n+=dn
 
-  //pathi.fofsi,dn = finaloverflowintermediate_from_bytes(b[n:])
   pathi.fofsi,dn = FinalOverflowIntermediateFromBytes(b[n:])
   n+=dn
 
-  //pathi.loqi,dn = loqintermediate_from_bytes(b[n:])
   pathi.loqi,dn = LoqIntermediateFromBytes(b[n:])
   n+=dn
-
-  //DEBUG
-  /*
-  fmt.Printf("LOQI INFO DUMP")
-  for step := range pathi.loqi.loqi_info {
-    fmt.Printf("step %d:", step)
-
-    loqi_info := pathi.loqi.loqi_info[step]
-    for i:=0; i<len(loqi_info.nocall_start_len); i++ {
-      fmt.Printf(" <%d>", i)
-      for j:=0; j<len(loqi_info.nocall_start_len[i]); j++ {
-        fmt.Printf(" {%d} %d(", i, j)
-        for k:=0; k<len(loqi_info.nocall_start_len[i][j]); k+=2 {
-          fmt.Printf(" %d+%d",
-            loqi_info.nocall_start_len[i][j][k],
-            loqi_info.nocall_start_len[i][j][k+1])
-        }
-        fmt.Printf(")")
-      }
-    }
-    fmt.Printf("\n")
-
-  }
-  */
-  //DEBUG
 
   return pathi,n
 }
 
-//func _loq_skip(loqi loqintermediate, step int) int {
 func _loq_skip(loqi LoqIntermediate, step int) int {
   pos:=0
   for i:=0; i<len(loqi.tilepos); i++ {
     anchor_step := loqi.tilepos[i]
     if anchor_step == step { return pos }
+
+    ntile := make([]int, 1)
+    ntile[0] = loqi.loqinfo_ints[pos]
+    pos++
+
+    if loqi.homflag[anchor_step] {
+      ntile = append(ntile, loqi.loqinfo_ints[pos])
+      pos++
+    }
+
+    for allele:=0; allele<len(ntile); allele++ {
+      for ii:=0; ii<ntile[allele]; ii++ {
+        l := loqi.loqinfo_ints[pos]
+        pos++
+
+        for jj:=0; jj<l; jj+=2 {
+          delpos := loqi.loqinfo_ints[pos] ; _ = delpos
+          pos++
+
+          loqlen := loqi.loqinfo_ints[pos] ; _ = loqlen
+          pos++
+        }
+      }
+    }
+
+  }
+
+  return pos
+}
+
+
+func construct_loq_map(loqi LoqIntermediate) map[int]map[int][]int {
+  loq_map := make(map[int]map[int][]int)
+
+  pos := 0
+  for i:=0; i<len(loqi.tilepos); i++ {
+    anchor_step := loqi.tilepos[i]
+
+    //fmt.Printf("construct_loq_map anchor_step %d\n", anchor_step)
+
+    loq_map[anchor_step] = make(map[int][]int)
 
     ntile := make([]int, 1)
     ntile[0] = loqi.loqinfo_ints[pos]
@@ -1634,63 +1511,6 @@ func _loq_skip(loqi LoqIntermediate, step int) int {
       }
     }
 
-
-  }
-
-  return pos
-}
-
-
-//func construct_loq_map(loqi loqintermediate) map[int]map[int][]int {
-func construct_loq_map(loqi LoqIntermediate) map[int]map[int][]int {
-  loq_map := make(map[int]map[int][]int)
-
-  pos := 0
-  for i:=0; i<len(loqi.tilepos); i++ {
-    anchor_step := loqi.tilepos[i]
-
-    fmt.Printf("construct_loq_map anchor_step %d\n", anchor_step)
-
-    loq_map[anchor_step] = make(map[int][]int)
-
-    ntile := make([]int, 1)
-    ntile[0] = loqi.loqinfo_ints[pos]
-    pos++
-
-    fmt.Printf("  %v\n", ntile)
-
-    if loqi.homflag[anchor_step] {
-      ntile = append(ntile, loqi.loqinfo_ints[pos])
-      pos++
-
-      fmt.Printf(" +%v\n", ntile)
-
-    }
-
-    for allele:=0; allele<len(ntile); allele++ {
-      for ii:=0; ii<ntile[allele]; ii++ {
-        l := loqi.loqinfo_ints[pos]
-        pos++
-
-        fmt.Printf("   [%d][%d] m %d\n", allele, ii, l)
-
-
-        for jj:=0; jj<l; jj+=2 {
-          delpos := loqi.loqinfo_ints[pos] ; _ = delpos
-          pos++
-
-          fmt.Printf("      [%d][%d] delpos %d\n", allele, ii, delpos)
-
-          loqlen := loqi.loqinfo_ints[pos] ; _ = loqlen
-          pos++
-
-          fmt.Printf("      [%d][%d] loqlen %d\n", allele, ii, loqlen)
-
-
-        }
-      }
-    }
-
   }
 
   return loq_map
@@ -1718,11 +1538,9 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
   span_sum := 0
   step_idx0,step_idx1 := 0,0
 
-  //knot := cgfintermediate{}
   knot := CGFIntermediate{}
   _init_knot(&knot)
 
-  //tileKnot := make([]cgfintermediate, 0, 1024)
   tileKnot := make([]CGFIntermediate, 0, 1024)
 
   // Construct the intermediate string of knots
@@ -1753,7 +1571,6 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
         max_tile = knot.step[0][0] + knot.tot_span
       }
 
-      //knot = cgfintermediate{}
       knot = CGFIntermediate{}
       _init_knot(&knot)
     }
@@ -1975,7 +1792,6 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
   //=====================================================
   //=====================================================
 
-  //vec64 := construct_uint64_vector(ctx, prep_vector)
   vec64 := ctx.ConstructUint64Vector(prep_vector)
 
   //=====================================================
@@ -2078,10 +1894,7 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
   //=====================================================
   //=====================================================
 
-
-  //ofsi := construct_offset_intermediate(ctx, prep_vector)
   ofsi := ctx.ConstructOffsetIntermediate(prep_vector)
-
 
   //=====================================================
   //=====================================================
@@ -2096,44 +1909,28 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
     fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n")
 
     fmt.Printf("BYTES FROM ofsi to byte_ofsi_test0\n")
-    //byte_ofsi_test0 := bytes_from_overflowintermediate(ofsi) ; _ = byte_ofsi_test0
     byte_ofsi_test0 := BytesFromOverflowIntermediate(ofsi) ; _ = byte_ofsi_test0
 
 
     fmt.Printf("BYTES TO byte_ofsi_test0 to ofsi_throwaway\n")
-    //ofsi_throwaway,dn0 := overflowintermediate_from_bytes(byte_ofsi_test0) ; _ = ofsi_throwaway
     ofsi_throwaway,dn0 := OverflowIntermediateFromBytes(byte_ofsi_test0) ; _ = ofsi_throwaway
 
     for i:=0; i<len(ofsi_throwaway.tilepos_idx); i++ {
       fmt.Printf("  hrm: ofsi_throwaway.tilepos_idx[%d] %d\n", i, ofsi_throwaway.tilepos_idx[i])
     }
 
-    //err := overflowintermediate_cmp(ofsi_throwaway, ofsi)
     err := OverflowIntermediateCmp(ofsi_throwaway, ofsi)
     fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %v\n", err)
 
     fmt.Printf("BYTES FROM ofsi_throwaway to byte_ofsi_test1\n")
-    //byte_ofsi_test1 := bytes_from_overflowintermediate(ofsi_throwaway)
     byte_ofsi_test1 := BytesFromOverflowIntermediate(ofsi_throwaway)
     _ = byte_ofsi_test1
 
 
     fmt.Printf("BYTES TO byte_ofsi_test1 to ofsi_throwaway1\n")
-    //ofsi_throwaway1,dn1 := overflowintermediate_from_bytes(byte_ofsi_test0) ; _ = ofsi_throwaway1
     ofsi_throwaway1,dn1 := OverflowIntermediateFromBytes(byte_ofsi_test0) ; _ = ofsi_throwaway1
 
     fmt.Printf(" dn0 %d, dn1 %d\n", dn0, dn1)
-
-    /*
-    for i:=0; i<len(ofsi_throwaway.offset_idx); i++ {
-      fmt.Printf("  offset_idx[%d] %d %d\n", i, ofsi_throwaway.offset_idx[i], ofsi_throwaway1.offset_idx[i])
-    }
-
-    for i:=0; i<len(ofsi_throwaway.offset_idx); i++ {
-      fmt.Printf("  tilepos_idx[%d] %d %d\n", i, ofsi_throwaway.tilepos_idx[i], ofsi_throwaway1.tilepos_idx[i])
-    }
-    */
-
 
     fmt.Printf("!!! %d %d\n", len(byte_ofsi_test0), len(byte_ofsi_test1))
     for i:=0; i<len(byte_ofsi_test0); i++ {
@@ -2162,7 +1959,6 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
 
       fmt.Printf("[%d] {%x} %d (%x) ==> ovf_count: %d (%x)\n", i, ofsi.tilepos[i], ofsi.TileMap[i], ofsi.TileMap[i], check_ovf_count, check_ovf_count)
       if check_ovf_count != i {
-        //real_ovf_count := vectorelement_ovf_count(prep_vector, stride_tile_pos, ofsi.tilepos[i] - stride_tile_pos)
         real_ovf_count := VectorElementOverflowCount(prep_vector, stride_tile_pos, ofsi.tilepos[i] - stride_tile_pos)
         fmt.Printf("ERROR!!!! check_ovf_count %d != i %d (real %d)\n", check_ovf_count, i, real_ovf_count)
 
@@ -2182,7 +1978,6 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
   //=====================================================
   //=====================================================
 
-  //fofsi := construct_final_offset_intermediate(ctx, prep_vector)
   fofsi := ctx.ConstructFinalOffsetIntermediate(prep_vector)
 
   //=====================================================
@@ -2228,16 +2023,10 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
 
     }
 
-
-    //fofsi_bytes0 := bytes_from_finaloverflowintermediate(fofsi) ; _ = fofsi_bytes0
-    //fofsi_temp1,dn0 := finaloverflowintermediate_from_bytes(fofsi_bytes0) ; _ = fofsi_temp1
-    //fofsi_bytes1 := bytes_from_finaloverflowintermediate(fofsi_temp1)
-
     fofsi_bytes0 := BytesFromFinalOverflowIntermediate(fofsi) ; _ = fofsi_bytes0
     fofsi_temp1,dn0 := FinalOverflowIntermediateFromBytes(fofsi_bytes0) ; _ = fofsi_temp1
     fofsi_bytes1 := BytesFromFinalOverflowIntermediate(fofsi_temp1)
 
-    //fofsi_cnv,dn1 := finaloverflowintermediate_from_bytes(fofsi_bytes1)
     fofsi_cnv,dn1 := FinalOverflowIntermediateFromBytes(fofsi_bytes1)
     fmt.Printf("FOFSI BYTES %d %d (dn %d %d)\n", len(fofsi_bytes0), len(fofsi_bytes1), dn0, dn1)
 
@@ -2251,7 +2040,6 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
       }
     }
 
-    //err := finaloverflowintermediate_cmp(fofsi, fofsi_cnv)
     err := FinalOverflowIntermediateCmp(fofsi, fofsi_cnv)
     if err!=nil { fmt.Printf("ERROR: %v\n", err) }
 
@@ -2264,7 +2052,6 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
   //=====================================================
   //=====================================================
 
-  //loqi := construct_loq_intermediate(ctx, prep_vector)
   loqi := ctx.ConstructLoqIntermediate(prep_vector)
   _ = loqi
 
@@ -2276,7 +2063,6 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
   //=====================================================
 
   if debug_output {
-  //if true {
 
     fmt.Printf("LOQ DEBUG\n")
     fmt.Printf("loqi count %d\n", loqi.count)
@@ -2353,16 +2139,10 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
 
     }
 
-
-    //loq_bytes0 := bytes_from_loqintermediate(loqi) ; _ = loq_bytes0
-    //loqi_test0,dn := loqintermediate_from_bytes(loq_bytes0)
-    //loq_bytes1 := bytes_from_loqintermediate(loqi_test0)
-
     loq_bytes0 := BytesFromLoqIntermediate(loqi) ; _ = loq_bytes0
     loqi_test0,dn := LoqIntermediateFromBytes(loq_bytes0)
     loq_bytes1 := BytesFromLoqIntermediate(loqi_test0)
 
-    //fmt.Printf(">>> lOQ CMP: %v\n", loqintermediate_cmp(loqi, loqi_test0))
     fmt.Printf(">>> lOQ CMP: %v\n", LoqIntermediateCmp(loqi, loqi_test0))
     fmt.Printf(">>>>>>>>>>>>>> LOQ FROM/TO BYTES %d %d (dn %d)\n", len(loq_bytes0), len(loq_bytes1), dn)
 
@@ -2386,18 +2166,14 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
   //=====================================================
   //=====================================================
 
-
-  //pathi := pathintermediate{}
   pathi := PathIntermediate{}
   pathi.name = fmt.Sprintf("%04x", path_idx)
-  //pathi.ntile = max_tile+1
   pathi.ntile = max_tile
-  pathi.veci = vec64
+  pathi.VecUint64 = vec64
   pathi.ofsi = ofsi
   pathi.fofsi = fofsi
   pathi.loqi = loqi
 
-  //PathBytes := bytes_from_pathintermediate(pathi)
   PathBytes := BytesFromPathIntermediate(pathi)
 
   //=====================================================
@@ -2408,9 +2184,6 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
   //=====================================================
 
   if debug_output {
-
-    //pathi_test0,dn := pathintermediate_from_bytes(PathBytes)
-    //PathBytes1 := bytes_from_pathintermediate(pathi_test0)
 
     pathi_test0,dn := PathIntermediateFromBytes(PathBytes)
     PathBytes1 := BytesFromPathIntermediate(pathi_test0)
@@ -2438,7 +2211,6 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
   //=====================================================
   //=====================================================
 
-  //patho,_ := pathintermediate_from_bytes(PathBytes)
   patho,_ := PathIntermediateFromBytes(PathBytes)
 
   //=====================================================
@@ -2449,11 +2221,9 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
   //=====================================================
 
   // FILL IN LOQINTERMEDIATE
-  //tilemap := unpack_tilemap(ctx.CGF.TileMap)
   tilemap := UnpackTileMap(ctx.CGF.TileMap)
   for anchor_step := range patho.loqi.loqi_info {
     cgfi := patho.loqi.loqi_info[anchor_step]
-    //knot := GetKnot(ctx, tilemap, patho, anchor_step)
     knot := GetKnot(tilemap, patho, anchor_step)
 
     if knot == nil {
@@ -2551,95 +2321,6 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
     }
 
   }
-
-  //TESTING
-
-  //tilemap := unpack_tilemap(ctx.CGF.TileMap)
-
-  /*
-  fmt.Printf("TILEMAP (%d)\n", len(tilemap))
-  for i:=0; i<len(tilemap); i++ {
-    fmt.Printf("%d %v %v\n", tilemap[i].TileMap, tilemap[i].Variant, tilemap[i].Span)
-  }
-  return PathBytes, nil
-  */
-
-  //sglf = ctx.SGLF
-
-  /*
-  fmt.Printf("knots\n")
-
-  for step:=0; step<0x991; step++ {
-
-    ti := GetKnot(ctx, tilemap, patho, step)
-    fmt.Printf("0x9 %v\n", ti)
-
-    if ti!=nil {
-
-      for allele:=0; allele<len(ti); allele++ {
-        cur_step := step
-        for i:=0; i<len(ti[allele]); i++ {
-          seq := sglf.Lib[path_idx][cur_step][ti[allele][i].VarId]
-          fmt.Printf("\n\n")
-          fmt.Printf("> { \"%x.%x.%x.%x+%x\" }\n",
-            path_idx, 0, cur_step, ti[allele][i].VarId, ti[allele][i].Span)
-          print_fold_seq(seq, 50)
-
-          cur_step += ti[allele][i].Span
-          //fmt.Printf("%s\n", seq)
-        }
-      }
-    }
-
-  }
-  */
-
-
-  /*
-  ti := GetKnot(ctx, tilemap, patho, 0x2f)
-  fmt.Printf("0x2f %v\n", ti)
-
-  ti = GetKnot(ctx, tilemap, patho, 0x41)
-  fmt.Printf("0x41 %v\n", ti)
-
-  ti = GetKnot(ctx, tilemap, patho, 0x42)
-  fmt.Printf("0x42 %v\n", ti)
-
-  ti = GetKnot(ctx, tilemap, patho, 0x6f)
-  fmt.Printf("0x6f %v\n", ti)
-
-  ti = GetKnot(ctx, tilemap, patho, 0x2a2)
-  fmt.Printf("0x2a2 %v\n", ti)
-
-  ti = GetKnot(ctx, tilemap, patho, 0x2b4)
-  fmt.Printf("0x2b4 %v\n", ti)
-
-  ti = GetKnot(ctx, tilemap, patho, 0x2b6)
-  fmt.Printf("0x2b6 %v\n", ti)
-
-  ti = GetKnot(ctx, tilemap, patho, 0x798)
-  fmt.Printf("0x798 %v\n", ti)
-
-  ti = GetKnot(ctx, tilemap, patho, 0x991)
-  fmt.Printf("0x991 %v\n", ti)
-  */
-
-  /*
-  GetKnot(pathi, 0x9)
-  GetKnot(pathi, 0x2f)
-  GetKnot(pathi, 0x41)
-  GetKnot(pathi, 0x42)
-  GetKnot(pathi, 0x6f)
-  GetKnot(pathi, 0x2a2)
-  GetKnot(pathi, 0x2b4)
-  GetKnot(pathi, 0x2b6)
-  GetKnot(pathi, 0x798)
-  GetKnot(pathi, 0x991)
-  */
-
-  //TESTING
-
-
 
   return PathBytes, nil
 

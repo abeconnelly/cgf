@@ -512,7 +512,7 @@ func PrintTileSGLF(cgf_fn string, tilepos string, sglf cglf.SGLF) error {
   //tilemap := unpack_tilemap(tilemap_bytes)
   tilemap := UnpackTileMap(tilemap_bytes)
 
-  return print_tile_sglf_i(tilemap, patho.veci, path,ver,step, sglf)
+  return print_tile_sglf_i(tilemap, patho.VecUint64, path,ver,step, sglf)
 
   //return print_tile_sglf_i(cgf_bytes, path,ver,step, sglf)
 
