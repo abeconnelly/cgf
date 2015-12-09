@@ -74,6 +74,52 @@ func _fill_knot_loq(tia [][]TileInfo, pathi PathIntermediate, anchor_step int) {
   }
 }
 
+//func GetKnot(tilemap []TileMapEntry, pathi PathIntermediate, anchor_step int) (tilemap int, is_span bool, is_loq bool, is_complex bool) {
+func GetSimpleTileMapEntry(tilemap []TileMapEntry, pathi PathIntermediate, anchor_step int) (int, bool, bool, bool) {
+  vec_slice := anchor_step/32
+  m := anchor_step%32
+
+  if (pathi.VecUint64[vec_slice] & (1<<uint(32+m))) == 0 {
+    return 0, false, false, false
+  }
+
+  cache_counter := 0
+  for i:=0; i<m; i++ {
+    if (pathi.VecUint64[vec_slice] & (1<<uint(32+i))) != 0 {
+      cache_counter++
+    }
+  }
+
+  hexit:=0
+  if (cache_counter < 8) {
+    hexit = int((pathi.VecUint64[vec_slice] & (0xf<<uint(4*cache_counter))) >> uint(4*cache_counter))
+    if hexit == 0 { return -1, true, false, false }
+    if hexit < 0xd { return hexit, false, false, false }
+  }
+
+  loq_flag := false ; _ = loq_flag
+  if hexit == 0xe { loq_flag = true }
+
+  ovf_pos := CountOverflowVectorUint64(pathi.VecUint64, 0, anchor_step)
+
+  if pathi.ofsi.span_flag[ovf_pos] {
+    return -1, true, false, false
+  }
+
+  if !pathi.ofsi.final_overflow_flag[ovf_pos] {
+    if cache_counter < 8 {
+    } else {
+      if pathi.loqi.loq_flag[anchor_step] { loq_flag = true }
+    }
+
+    tm := pathi.ofsi.TileMap[ovf_pos]
+    return tm, false, loq_flag, false
+  }
+
+  if pathi.loqi.loq_flag[anchor_step] { loq_flag = true }
+  return -1, loq_flag, false, false
+}
+
 //func get_knot(tilemap []TileMapEntry, pathi pathintermediate, anchor_step int) [][]TileInfo {
 func GetKnot(tilemap []TileMapEntry, pathi PathIntermediate, anchor_step int) [][]TileInfo {
   tia := make([][]TileInfo, 2)

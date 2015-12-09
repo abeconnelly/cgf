@@ -109,6 +109,159 @@ func Ovf_b(path_bytes []byte, step_idx int) []byte {
 
 }
 
+func PathFinalOverflowKnotFromBytes(rec_n uint64, fin_ovf_bytes []byte, step uint64) (knot_zipper [][]int) {
+  knot_zipper = make([][]int, 2)
+
+  code_bytes := fin_ovf_bytes[0:rec_n]
+  data_bytes := fin_ovf_bytes[rec_n:]
+  dat_n:=0
+
+  for i:=uint64(0); i<rec_n; i++ {
+
+    if code_bytes[i] != 0 { continue }
+
+    ele_anchor_step,dn := dlug.ConvertUint64(data_bytes[dat_n:])
+    dat_n += dn
+
+    if ele_anchor_step > step { return nil }
+
+    ele_nallele,dn := dlug.ConvertUint64(data_bytes[dat_n:])
+    dat_n += dn
+
+    for a:=uint64(0); a<ele_nallele; a++ {
+      ele_knot_allele_len,dn := dlug.ConvertUint64(data_bytes[dat_n:])
+      dat_n += dn
+
+      for knot_allele:=uint64(0); knot_allele<ele_knot_allele_len; knot_allele++ {
+        ele_var_id,dn := dlug.ConvertUint64(data_bytes[dat_n:])
+        dat_n+=dn
+
+        ele_span,dn := dlug.ConvertUint64(data_bytes[dat_n:])
+        dat_n+=dn
+
+        if ele_anchor_step == step {
+          knot_zipper[a] = append(knot_zipper[a], int(ele_var_id))
+          knot_zipper[a] = append(knot_zipper[a], int(ele_span))
+        }
+
+      }
+    }
+
+    if ele_anchor_step == step { break }
+
+  }
+
+  return
+}
+
+func PathFinalOverflowFastJFromBytes(fin_ovf_bytes []byte, step int) (string) {
+  return ""
+}
+
+func PathFinalOverflowPeel(fin_ovf_bytes []byte) (fin_ovf_rec_n uint64, fin_ovf_rec_byte_len uint64, fin_ovf_rec_bytes []byte, dn uint64) {
+  dn = 0
+
+  fin_ovf_rec_n = byte2uint64(fin_ovf_bytes[dn:dn+8])
+  dn+=8
+
+  fin_ovf_rec_byte_len = byte2uint64(fin_ovf_bytes[dn:dn+8])
+  dn+=8
+
+  fin_ovf_rec_bytes = fin_ovf_bytes[dn:dn+fin_ovf_rec_byte_len]
+  dn += fin_ovf_rec_byte_len
+
+  return
+}
+
+func PathLowQualityPeel(loq_info_bytes []byte) (loq_count uint64,
+  loq_code uint64, loq_stride uint64,
+  loq_offset_bytes []byte, loq_step_pos_bytes []byte, loq_hom_flag_bytes []byte,
+  loq_aux_flag_byte_count uint64, loq_aux_flag_bytes []byte,
+  loq_info_byte_count uint64, loq_bytes []byte, dn uint64) {
+
+  dn=0
+
+  offs := make([]uint64, 0, 32)
+  spos := make([]uint64, 0, 32)
+
+  loq_count = byte2uint64(loq_info_bytes[dn:])
+  dn+=8
+
+  //DEBUG
+  fmt.Printf("loq_count %d\n", loq_count)
+
+  loq_code = byte2uint64(loq_info_bytes[dn:])
+  dn+=8
+
+  //DEBUG
+  fmt.Printf("loq_code %d\n", loq_code)
+
+  loq_stride = byte2uint64(loq_info_bytes[dn:])
+  dn+=8
+
+  //DEBUG
+  fmt.Printf("loq_stride %d\n", loq_stride)
+
+  z := (loq_count + loq_stride - 1) / loq_stride
+
+  //DEBUG
+  fmt.Printf(">>>> z %d\n", z)
+  fmt.Printf("len %d, ... %d\n", len(loq_info_bytes[dn:]), 8*z)
+
+  loq_offset_bytes = loq_info_bytes[dn:dn+8*z]
+  dn+=8*z
+
+  //DEBUG
+  //
+  for i:=uint64(0); i<8*z; i+=8 {
+    t := byte2uint64(loq_offset_bytes[i:])
+    offs = append(offs, t)
+  }
+  //fmt.Printf("loq_offset_bytes: %v\n", loq_offset_bytes)
+  fmt.Printf("loq_offset: %v\n", offs)
+  //
+  //DEBUG
+
+
+  loq_step_pos_bytes = loq_info_bytes[dn:dn+8*z]
+  dn+=8*z
+
+  //DEBUG
+  //
+  for i:=uint64(0); i<8*z; i+=8 {
+    t := byte2uint64(loq_step_pos_bytes[i:])
+    spos = append(spos, t)
+  }
+  //fmt.Printf("loq_step_pos_bytes: %v\n", loq_step_pos_bytes)
+  fmt.Printf("loq_step_pos: %v\n", spos)
+  //
+  //DEBUG
+
+  zz := (loq_count+7)/8
+  loq_hom_flag_bytes = loq_info_bytes[dn:dn+zz]
+  dn+=zz
+
+  loq_aux_flag_byte_count = byte2uint64(loq_info_bytes[dn:])
+  dn+=8
+
+  //DEBUG
+  fmt.Printf("loq_hom_flag_byte_count %d\n", loq_aux_flag_byte_count)
+
+  loq_aux_flag_bytes = loq_info_bytes[dn:dn+loq_aux_flag_byte_count]
+  dn+=loq_aux_flag_byte_count
+
+  loq_info_byte_count = byte2uint64(loq_info_bytes[dn:])
+  dn+=8
+
+  //DEBUG
+  fmt.Printf("loq_info_byte_count %d\n", loq_info_byte_count)
+
+  loq_bytes = loq_info_bytes[dn:]
+
+  return
+}
+
+
 func PathOverflowPeel(ovf_bytes []byte) (ovf_len uint64, ovf_stride uint64, ovf_mbc uint64, ovf_off_b []byte, ovf_pos_b []byte, ovf_map_b[]byte , ovf_dn uint64) {
   ovf_dn = 0
 
@@ -134,6 +287,163 @@ func PathOverflowPeel(ovf_bytes []byte) (ovf_len uint64, ovf_stride uint64, ovf_
 
   return
 }
+
+func PathLowQualityKnotZipper(loq_info_bytes []byte, anchor_step uint64) [][][]int {
+  loq_knot := make([][][]int, 2)
+
+  loq_rec_count, loq_code, loq_stride, loq_offset_bytes, loq_step_pos_bytes, loq_hom_flag_bytes,
+    loq_aux_flag_count, loq_aux_flag_bytes, loq_info_byte_count, loq_bytes,dn :=
+    PathLowQualityPeel(loq_info_bytes)
+
+  _ = loq_rec_count
+  _ = loq_code
+  _ = loq_stride
+  _ = loq_offset_bytes
+  _ = loq_step_pos_bytes
+  _ = loq_hom_flag_bytes
+  _ = loq_aux_flag_count
+  _ = loq_aux_flag_bytes
+  _ = loq_info_byte_count
+  _ = loq_bytes
+  _ = dn
+
+  //fmt.Printf(">>> loq_rec_count %d\n", loq_rec_count)
+
+  _bpos := _bsrch8(loq_step_pos_bytes, anchor_step)
+  base_step := byte2uint64(loq_step_pos_bytes[_bpos:_bpos+8]) ; _ = base_step
+  byte_offset := byte2uint64(loq_offset_bytes[_bpos:_bpos+8]) ; _ = byte_offset
+
+  _pos := _bpos/8
+
+  loq_count := uint64(0)
+  /*
+  for s:=base_step ; s<anchor_step; s++ {
+    if loq_aux_flag_bytes[s/8] & (1<<uint(s%8)) > 0 { loq_count++ }
+  }
+  */
+  for s:=base_step ; s<anchor_step; s++ {
+    if loq_aux_flag_bytes[s/8] & (1<<uint(s%8)) > 0 { loq_count++ }
+  }
+
+  /*
+  fmt.Printf(">>> _bpos %d (%d), base_step %d, byte_offset %d, loq_count %d\n",
+    _bpos, _bpos/8, base_step, byte_offset, loq_count)
+  fmt.Printf(">>> loq_base_pos %d\n", loq_stride*_bpos)
+  */
+
+  loq_base_pos := loq_stride * _pos
+  for i:=uint64(0); i<=loq_count; i++ {
+    loq_pos := loq_base_pos + i
+    hom_flag := false
+
+    if loq_hom_flag_bytes[loq_pos/8] & (1<<uint(loq_pos%8)) > 0 { hom_flag = true }
+
+    //DEBUG
+    //fmt.Printf(">>>> loq_pos %d [%d,%d] hom %v\n", loq_pos, loq_pos/8, loq_pos%8, hom_flag)
+
+
+    if hom_flag {
+
+      ntile,dn := dlug.ConvertUint64(loq_bytes[byte_offset:])
+      byte_offset+=uint64(dn)
+
+      if i==loq_count {
+        loq_knot[0] = make([][]int, ntile)
+        loq_knot[1] = make([][]int, ntile)
+      }
+
+      //DEBUG
+      //fmt.Printf(" ntile %d\n", ntile)
+
+      for tile_idx:=uint64(0); tile_idx<ntile; tile_idx++ {
+        ent_len,dn := dlug.ConvertUint64(loq_bytes[byte_offset:])
+        byte_offset+=uint64(dn)
+
+
+        //DEBUG
+        //fmt.Printf("  t%d[%d]", tile_idx, ent_len)
+
+        for ent_idx:=uint64(0); ent_idx<ent_len; ent_idx+=2 {
+          delpos,dn := dlug.ConvertUint64(loq_bytes[byte_offset:]) ; _ = delpos
+          byte_offset+=uint64(dn)
+
+          loqlen,dn := dlug.ConvertUint64(loq_bytes[byte_offset:]) ; _ = loqlen
+          byte_offset+=uint64(dn)
+
+          //DEBUG
+          //fmt.Printf(" {%d+%d}", delpos, loqlen)
+
+          if i==loq_count {
+            loq_knot[0][tile_idx] = append(loq_knot[0][tile_idx], int(delpos))
+            loq_knot[0][tile_idx] = append(loq_knot[0][tile_idx], int(loqlen))
+
+            loq_knot[1][tile_idx] = append(loq_knot[1][tile_idx], int(delpos))
+            loq_knot[1][tile_idx] = append(loq_knot[1][tile_idx], int(loqlen))
+          }
+
+        }
+
+        //DEBUG
+        //fmt.Printf("\n")
+
+      }
+
+    } else {  // het
+      var dn int
+      ntile := [2]uint64{0,0}
+
+      ntile[0],dn = dlug.ConvertUint64(loq_bytes[byte_offset:])
+      byte_offset+=uint64(dn)
+
+      ntile[1],dn = dlug.ConvertUint64(loq_bytes[byte_offset:])
+      byte_offset+=uint64(dn)
+
+      //DEBUG
+      //fmt.Printf(" ntile [%d,%d]\n", ntile[0], ntile[1])
+
+      if i==loq_count {
+        loq_knot[0] = make([][]int, ntile[0])
+        loq_knot[1] = make([][]int, ntile[1])
+      }
+
+      for zz:=0; zz<2; zz++ {
+        for tile_idx:=uint64(0); tile_idx<ntile[zz]; tile_idx++ {
+          ent_len,dn := dlug.ConvertUint64(loq_bytes[byte_offset:])
+          byte_offset+=uint64(dn)
+
+          //DEBUG
+          //fmt.Printf(" t(%d)%d[%d]", zz, tile_idx, ent_len)
+
+          for ent_idx:=uint64(0); ent_idx<ent_len; ent_idx+=2 {
+            delpos,dn := dlug.ConvertUint64(loq_bytes[byte_offset:]) ; _ = delpos
+            byte_offset+=uint64(dn)
+
+            loqlen,dn := dlug.ConvertUint64(loq_bytes[byte_offset:]) ; _ = loqlen
+            byte_offset+=uint64(dn)
+
+            //DEBUG
+            //fmt.Printf(" {%d+%d}", delpos, loqlen)
+
+            if i==loq_count {
+              loq_knot[zz][tile_idx] = append(loq_knot[zz][tile_idx], int(delpos))
+              loq_knot[zz][tile_idx] = append(loq_knot[zz][tile_idx], int(loqlen))
+            }
+
+          }
+
+          //DEBUG
+          //fmt.Printf("\n")
+
+        }
+      }
+
+    }
+  }
+
+  return loq_knot
+
+}
+
 
 func Peel(cgf_bytes []byte, path, step int) {
   b8 := make([]byte, 8)
@@ -241,17 +551,40 @@ func Peel(cgf_bytes []byte, path, step int) {
 
   if cache_map_val == 0xd { return }
 
-  //DEBUG
-  if cache_map_val==-1 { fmt.Printf("cache overflow (%d)\n", cache_map_val) }
-
-  loq_flag := false
-
   //==============
   // OVERFLOW INFO
   //
   ovf_len, ovf_stride, ovf_mbc, ovf_off_b, ovf_pos_b, ovf_map_b, ovf_dn :=
     PathOverflowPeel(ovf_bytes)
   n += ovf_dn
+
+  fin_ovf_bytes := path_bytes[n:]
+
+  fin_ovf_rec_n, fin_ovf_byte_len, fin_ovf_record_bytes,dn :=
+    PathFinalOverflowPeel(fin_ovf_bytes)
+  n+=dn
+
+  loq_info_bytes := path_bytes[n:]
+  loq_count, loq_code, loq_stride, loq_offset_bytes, loq_step_pos_bytes, loq_hom_flag_bytes,
+    loq_aux_flag_count, loq_aux_flag_bytes, loq_info_byte_count, loq_bytes,dn :=
+    PathLowQualityPeel(loq_info_bytes)
+
+  _ = loq_bytes
+
+  fmt.Printf("loq(count %d, code %d, stride %d, aux_flag_bc %d, byte_count %d)\n",
+    loq_count, loq_code, loq_stride, loq_aux_flag_count, loq_info_byte_count)
+  fmt.Printf("loq_offs: %v\n", loq_offset_bytes)
+  fmt.Printf("loq_step: %v\n", loq_step_pos_bytes)
+  fmt.Printf("loq_homf: %v\n", loq_hom_flag_bytes)
+  fmt.Printf("loq_auxf: %v\n", loq_aux_flag_bytes)
+
+
+
+  //DEBUG
+  if cache_map_val==-1 {
+  }
+
+  loq_flag := false
 
   //DEBUG
   //
@@ -293,7 +626,50 @@ func Peel(cgf_bytes []byte, path, step int) {
     map_val,dn = dlug.ConvertUint64(ovf_map_b[map_offset_b:])
     map_offset_b+=uint64(dn)
 
-    fmt.Printf("... pos_entry %v (of %v), map_val %v\n", pos_entry, step, map_val)
+    fmt.Printf("... ovf_entry %v (del_overlfow %v), map_val %v\n", ovf_entry, del_overflow, map_val)
+  }
+
+  //fin_ovf_rec_n, fin_ovf_byte_len, fin_ovf_record_bytes,dn :=
+  //  PathFinalOverflowPeel(fin_ovf_bytes)
+  //n+=dn
+
+  //loq_count,loq_code,loq_stride,loq_offset_bytes,loq_step_pos_bytes,loq_hom_flag_bytes,loq_info_byte_count,loq_bytes,dn :=
+  //  PathLowQualityPeel(loq_info_bytes)
+
+  if map_val==1024 {
+
+    // spanning
+    //
+    fmt.Printf("Spanning? (map_val %v)\n", map_val)
+    return
+
+  } else if map_val==1025 {
+
+    // Final overflow lookup
+    //
+    fmt.Printf("FinalOvf? (map_val %v)\n", map_val)
+
+    _ = fin_ovf_record_bytes
+
+    knot_zipper := PathFinalOverflowKnotFromBytes(fin_ovf_rec_n, fin_ovf_bytes, uint64(step))
+
+    if knot_zipper != nil {
+
+      //DEBUG
+      fmt.Printf("fin_ovf_len %d, fin_ovf_rec_n %d, fin_ovf_byte_len %d\n",
+        fin_ovf_rec_n, fin_ovf_byte_len, dn)
+      fmt.Printf("cache overflow (%d)\n", cache_map_val)
+      fmt.Printf("knot_zipper: %v\n", knot_zipper)
+
+    } else {
+
+      // parse fastj
+      //
+
+      fmt.Printf("FastJ output?\n")
+
+    }
+
   }
 
   //var _dn int
@@ -326,6 +702,31 @@ func Peel(cgf_bytes []byte, path, step int) {
 
   }
 
+  // LOW QUALITY INFO
+  loq_flag = false
+  loq_q := step / 8
+  loq_r := step % 8
+  if loq_aux_flag_bytes[loq_q] & (1<<uint(loq_r)) > 0 { loq_flag = true }
+
+  if loq_flag { fmt.Printf("LOWQ\n") }
+
+  if loq_flag {
+    loq_knot_zipper := PathLowQualityKnotZipper(loq_info_bytes, uint64(step))
+
+    for i:=0; i<len(loq_knot_zipper); i++ {
+      for j:=0; j<len(loq_knot_zipper[i]); j++ {
+        fmt.Printf("[%d][%d]", i, j)
+        for k:=0; k<len(loq_knot_zipper[i][j]); k+=2 {
+          fmt.Printf(" {%d+%d}", loq_knot_zipper[i][j][k],  loq_knot_zipper[i][j][k+1])
+          //fmt.Printf("[%d][%d][%d] %d\n", i, j, k, loq_knot_zipper[i][j][k])
+        }
+        fmt.Printf("\n")
+      }
+    }
+  }
+
+  //DEBUG
+  fmt.Printf("\n")
 
 }
 

@@ -30,7 +30,7 @@ var gMemProfileFile string = "cgf.mprof"
 
 var gShowKnotNocallInfoFlag bool = true
 
-var use_SGLF bool = false
+var use_SGLF bool = true
 
 func _main( c *cli.Context ) {
   gShowKnotNocallInfoFlag = !c.Bool("hide-knot-low-quality")
@@ -71,6 +71,40 @@ func _main( c *cli.Context ) {
 
     return
 
+  } else if action == "tilemapentry" {
+    cglf_path := c.String("cglf")
+    if len(cglf_path)==0 {
+      fmt.Fprintf( os.Stderr, "Provide CGLF\n" )
+      cli.ShowAppHelp(c)
+      os.Exit(1)
+    }
+
+    cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))
+    if e!=nil { log.Fatal(e) }
+
+    hdri,dn := cgf.HeaderIntermediateFromBytes(cgf_bytes[:])
+    _ = hdri
+    _ = dn
+
+    path,ver,step,e := cgf.ParseTilepos(c.String("tilepos"))
+    if e!=nil { log.Fatal(e) }
+
+    _ = path
+    _ = ver
+    _ = step
+
+    if path<0 { log.Fatal("path must be positive") }
+    if step<0 { log.Fatal("step must be positive") }
+
+    if path >= len(hdri.StepPerPath) { log.Fatal("path out of range (max ", len(hdri.StepPerPath), " paths)") }
+    if step>= hdri.StepPerPath[path] { log.Fatal("step out of range (max ", hdri.StepPerPath[path], " steps)") }
+
+    pathi,_ := cgf.PathIntermediateFromBytes(hdri.PathBytes[path])
+
+    tme,sf,lqf,xf := cgf.GetSimpleTileMapEntry(hdri.TileMap, pathi, step)
+
+    fmt.Printf("tilemap %v, span %v, loq %v, complex %v\n", tme, sf, lqf, xf)
+    return
   } else if action == "knot" {
 
     cglf_path := c.String("cglf")
@@ -428,6 +462,21 @@ func _main( c *cli.Context ) {
 
     cgf.HeaderIntermediateAddPath(&hdri, path, PathBytes)
     cgf.WriteCGFFromIntermediate(c.String("output"), &hdri)
+
+    return
+  } else if action == "peel" {
+
+    path,ver,step,e := cgf.ParseTilepos(c.String("tilepos"))
+    if e!=nil { log.Fatal(e) }
+    _ = path ; _ = ver ; _ = step
+
+
+    cgf_bytes,e := ioutil.ReadFile(c.String("cgf"))
+    if e!=nil { log.Fatal(e) }
+
+    fmt.Printf("path %x, ver %x, step %x\n", path, ver, step)
+
+    cgf.Peel(cgf_bytes, path, step)
 
     return
   }

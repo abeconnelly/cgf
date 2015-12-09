@@ -425,11 +425,19 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
 
     ovf_stride := z
 
+    z = byte2uint64(path_b[tn:tn+8])
+    tn+=8
+    fmt.Printf("  Overflow.MapByteCount: %d\n", z)
+
+    map_byte_count := z ; _ = map_byte_count
+
+    map_byte_n := 0
+
     if ovf_len > 0 {
 
       n_pos := (ovf_len + ovf_stride - 1) / ovf_stride
       n_offset := n_pos
-      if (ovf_len%ovf_stride)!=0 { n_offset++ }
+      //if (ovf_len%ovf_stride)!=0 { n_offset++ }
 
       fmt.Printf("  Offset:")
       for i:=uint64(0); i<n_offset; i++ {
@@ -449,7 +457,8 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
       fmt.Printf("\n")
 
 
-      fmt.Printf("  Map(%d):", int(ovf_len) - (tn-path_byte_begin))
+      //fmt.Printf("  Map(%d):", int(ovf_len) - (tn-path_byte_begin))
+      fmt.Printf("  Map(# %d,b %d, e %d):", ovf_len, map_byte_count, (tn-path_byte_begin))
 
       //for uint64(tn - path_byte_begin) < ovf_len {
       for ele_count:=uint64(0) ; ele_count < ovf_len; ele_count++ {
@@ -459,11 +468,14 @@ func debug_unpack_bytes(cgf_bytes []byte) error {
 
         tn+=dn
 
+        map_byte_n+=dn
         fmt.Printf(" %x", map_ele)
       }
       fmt.Printf("\n")
 
     }
+
+    fmt.Printf("read map bytes: %d\n", map_byte_n)
 
 
     // Final Overflow
