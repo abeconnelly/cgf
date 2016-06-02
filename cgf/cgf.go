@@ -19,7 +19,7 @@ import "crypto/md5"
 import "github.com/abeconnelly/cgf"
 import "github.com/abeconnelly/cglf"
 
-var VERSION_STR string = "0.1.0"
+var VERSION_STR string = "0.2.0"
 var gVerboseFlag bool
 
 var gProfileFlag bool
@@ -39,8 +39,12 @@ func _main( c *cli.Context ) {
 
   cglf_lib_location := c.String("cglf")
 
+
   action := c.String("action")
-  if action == "debug" {
+  if action == "" {
+    cli.ShowAppHelp(c)
+    os.Exit(1)
+  } else if action == "debug" {
     cgf.DebugRead(c.String("cgf"))
     return
   } else if action == "headercheck" {
@@ -190,11 +194,11 @@ func _main( c *cli.Context ) {
 
     if use_SGLF {
       _sglf,e := cglf.LoadGenomeLibraryCSV(c.String("sglf"))
-      if e!=nil { log.Fatal(e) }
+      if e!=nil { log.Fatal(fmt.Sprintf("LoadGenomeLibraryCSV error (sglf): %v", e)) }
 
       for i:=0; i<len(inp_slice); i++ {
         e = cgf.PrintTileSGLF(inp_slice[i], tilepos_str, _sglf)
-        if e!=nil { log.Fatal(e) }
+        if e!=nil { log.Fatal(fmt.Sprintf("PrintTileSGLF error: %v", e)) }
       }
     } else {
       if len(c.String("cgf"))!=0 {
@@ -203,7 +207,7 @@ func _main( c *cli.Context ) {
 
       for i:=0; i<len(inp_slice); i++ {
         e := cgf.PrintTileCGLF(inp_slice[i], tilepos_str, cglf_lib_location)
-        if e!=nil { log.Fatal(e) }
+        if e!=nil { log.Fatal(fmt.Sprintf("PrintTileCGLF error: %v", e)) }
       }
 
     }
@@ -574,7 +578,7 @@ func main() {
   app := cli.NewApp()
   app.Name  = "cgf"
   app.Usage = "CGF"
-  app.Version = VERSION_STR
+  app.Version = VERSION_STR + " (cgf " + VERSION_STR + ")"
   app.Author = "Curoverse, Inc."
   app.Email = "info@curoverse.com"
   app.Action = func( c *cli.Context ) { _main(c) }
@@ -631,7 +635,7 @@ func main() {
     cli.StringFlag{
       Name: "action, A",
       Value: "",
-      Usage: "(help|fastj2cgf|inspect)",
+      Usage: "(help|debug|headercheck|header|tilemapentry|knot|knot-2|knot-z|fastj|fastj-range|fastj2cgf|sglfbarf|append|peel)",
     },
 
     cli.IntFlag{

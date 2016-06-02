@@ -7,7 +7,7 @@ import "strings"
 import "github.com/abeconnelly/cglf"
 
 
-var VERSION_STR string = "0.1.0"
+var VERSION_STR string = "0.2.0"
 var gVerboseFlag bool
 
 var gProfileFlag bool
@@ -111,6 +111,14 @@ func lookup_variant_index(seq string, var_lib []string) (int,error) {
       return var_idx,nil
     }
   }
+
+  //DEBUG
+  //fmt.Printf("??? >>>>> %d\n", len(var_lib));
+  //for z:=0; z< len(var_lib); z++ {
+  //  fmt.Printf(">>>>> %s\n", var_lib[z])
+  //}
+
+
   return -1,fmt.Errorf("could not find tile element in library for sequence '%s'", seq)
 }
 

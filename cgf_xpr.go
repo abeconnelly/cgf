@@ -1549,13 +1549,17 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
 
     if span_sum >= 0 {
       s,e := _add_knot(&knot, 0, step_idx0, allele_path[0][step_idx0], sglf)
-      if e!=nil { panic(e) }
+      if e!=nil {
+        panic(e)
+      }
 
       step_idx0++
       span_sum -= s
     } else {
       s,e := _add_knot(&knot, 1, step_idx1, allele_path[1][step_idx1], sglf)
-      if e!=nil { panic(e) }
+      if e!=nil {
+        panic(e)
+      }
 
       step_idx1++
       span_sum += s

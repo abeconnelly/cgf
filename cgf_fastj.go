@@ -54,6 +54,15 @@ func emit_fastj_tile(path,step,span int, pretag string, seq []byte, suftag  stri
   return ti
 }
 
+func _noc_cmp(a,b string) bool {
+  if len(a)!=len(b) { return false; }
+  for i:=0; i<len(a); i++ {
+    if a[i]=='n' || a[i]=='N' || b[i]=='n' || b[i]=='N' { continue; }
+    if a[i] != b[i] { return false; }
+  }
+  return true
+}
+
 func LoadSampleFastj(scan *autoio.AutoioHandle) ([][]TileInfo, error) {
   line_no:=0
 
