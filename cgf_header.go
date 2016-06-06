@@ -51,7 +51,7 @@ func WriteCGFFromIntermediate(ofn string, hdri *HeaderIntermediate) {
 //func headerintermediate_add_path(hdri *headerintermediate, path int, PathBytes []byte) {
 func HeaderIntermediateAddPath(hdri *HeaderIntermediate, path int, PathBytes []byte) {
 
-  if len(hdri.StepPerPath)<path {
+  if len(hdri.StepPerPath)<=path {
 
     prev_off :=0
     if len(hdri.StepPerPath)>0 {
@@ -72,6 +72,9 @@ func HeaderIntermediateAddPath(hdri *HeaderIntermediate, path int, PathBytes []b
   //pathi,dn := pathintermediate_from_bytes(PathBytes)
   pathi,dn := PathIntermediateFromBytes(PathBytes)
   _ = dn
+
+  //DEBUG
+  //fmt.Printf(">> HeaderIntermediateAddPath len(hdri.StepPerPath) %v, path %v, pathi.ntile %v\n", len(hdri.StepPerPath), path, pathi.ntile)
 
   hdri.StepPerPath[path] = pathi.ntile
   hdri.PathBytes[path] = PathBytes

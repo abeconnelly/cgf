@@ -2,6 +2,8 @@
 package cgf
 
 import "fmt"
+//import "crypto/md5"
+
 import "github.com/abeconnelly/dlug"
 
 import "github.com/abeconnelly/cglf"
@@ -149,13 +151,42 @@ func _add_knot(knot *CGFIntermediate, allele, step_idx int, ti TileInfo, sglf *c
   //
   if step_idx>0 {
     sglf_info,ok = sglf.PfxTagLookup[ti.PfxTag]
+
+  //} else if (ti.SfxTag == "") && (len(sglf.Lib)==1) {
+  } else if (ti.PfxTag == "") && (ti.SfxTag == "") {
+
+    found := false
+    for p := range sglf.Lib {
+      for s := range sglf.Lib[p] {
+
+        for k:=0; k<len(sglf.Lib[p][s]); k++ {
+          found = tile_cmp(ti.Seq, sglf.Lib[p][s][k])
+
+          //fmt.Printf(">>> cp p%d, s%d, k%d, found %v\n", p, s, k, found)
+
+          if found {
+            ok = true
+            sglf_info = sglf.LibInfo[p][s][k]
+            break
+          }
+
+        }
+
+      }
+      if found { break }
+    }
+
   } else {
     sglf_info,ok = sglf.SfxTagLookup[ti.SfxTag]
   }
 
   if !ok {
-    return -1,fmt.Errorf("could not find prefix (%s) in sglf (allele_idx %d, step_idx %d (%x))\n",
-      ti.PfxTag, 0, step_idx, step_idx)
+
+    //DEBUG
+    //for k,v := range sglf.SfxTagLookup { fmt.Printf(">>> %v %v\n", k, v) }
+
+    return -1,fmt.Errorf("could not find prefix/suffix (%s/%s) in sglf (allele_idx %d, step_idx %d (%x))\n",
+      ti.PfxTag, ti.SfxTag, 0, step_idx, step_idx)
   }
 
   path := sglf_info.Path
@@ -1543,27 +1574,61 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
 
   tileKnot := make([]CGFIntermediate, 0, 1024)
 
+  /*
+  //DEBUG
+  fmt.Printf(">>> len (%d, %d) len sglf.LibInfo (%d)\n", len(allele_path[0]), len(allele_path[1]), len(sglf.LibInfo))
+  for k := range sglf.LibInfo {
+    fmt.Printf("  len sglf.LibInfo (%d)\n", len(sglf.LibInfo[k]))
+  }
+  */
+
+
   // Construct the intermediate string of knots
   //
   for (step_idx0<len(allele_path[0])) || (step_idx1<len(allele_path[1])) {
+  //for (step_idx0<len(allele_path[0])) && (step_idx1<len(allele_path[1])) {
+
+  /*
+    //DEBUG
+    fmt.Printf(">> step_idx0 %d (step %d %x (+%d)) step_idx1 %d (step %d %x (+%d))\n",
+      step_idx0,
+      allele_path[0][step_idx0].Step, allele_path[0][step_idx0].Step, allele_path[0][step_idx0].Span,
+      step_idx1,
+      allele_path[1][step_idx1].Step, allele_path[1][step_idx1].Step, allele_path[1][step_idx1].Span)
+    fmt.Printf("  span_sum %d (before)\n", span_sum)
+    */
 
     if span_sum >= 0 {
-      s,e := _add_knot(&knot, 0, step_idx0, allele_path[0][step_idx0], sglf)
+
+      //DEBUG
+      //fmt.Printf(">> step_idx0 %d (%d), step_idx1 %d (%d)\n", step_idx0, len(allele_path[0]), step_idx1, len(allele_path[1]))
+
+      span_count,e := _add_knot(&knot, 0, step_idx0, allele_path[0][step_idx0], sglf)
       if e!=nil {
         panic(e)
       }
 
       step_idx0++
-      span_sum -= s
+      span_sum -= span_count
     } else {
-      s,e := _add_knot(&knot, 1, step_idx1, allele_path[1][step_idx1], sglf)
+      span_count,e := _add_knot(&knot, 1, step_idx1, allele_path[1][step_idx1], sglf)
       if e!=nil {
         panic(e)
       }
 
       step_idx1++
-      span_sum += s
+      span_sum += span_count
     }
+
+    /*
+    //DEBUG
+    fmt.Printf("  (after) step_idx0 %d (step %d %x (+%d)) step_idx1 %d (step %d %x (+%d))\n",
+      step_idx0,
+      allele_path[0][step_idx0].Step, allele_path[0][step_idx0].Step, allele_path[0][step_idx0].Span,
+      step_idx1,
+      allele_path[1][step_idx1].Step, allele_path[1][step_idx1].Step, allele_path[1][step_idx1].Span)
+    fmt.Printf("  span_sum %d (after)\n", span_sum)
+    */
 
     if span_sum==0 {
 
@@ -1579,6 +1644,16 @@ func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]
       _init_knot(&knot)
     }
 
+  }
+
+  // Sanity check
+  if ( ((len(allele_path[0])-step_idx0) < 0) ||
+       ((len(allele_path[0])-step_idx0) > 1) ||
+       ((len(allele_path[1])-step_idx1) < 0) ||
+       ((len(allele_path[1])-step_idx1) > 1) ) {
+  //if (step_idx0 != len(allele_path[0])) || (step_idx1 != len(allele_path[1])) {
+    panic(fmt.Sprintf("step indexes do not match: step_idx0 %d != %d or step_idx1 %d != %d\n",
+      step_idx0, len(allele_path[0]), step_idx1, len(allele_path[1])))
   }
 
   // Prep for binary representation

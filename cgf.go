@@ -7,7 +7,7 @@ import "strings"
 import "github.com/abeconnelly/cglf"
 
 
-var VERSION_STR string = "0.2.0"
+var VERSION_STR string = "0.2.2"
 var gVerboseFlag bool
 
 var gProfileFlag bool

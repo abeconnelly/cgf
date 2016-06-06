@@ -426,6 +426,11 @@ func _main( c *cli.Context ) {
     _sglf,e := cglf.LoadGenomeLibraryCSV(c.String("sglf"))
     if e!=nil { log.Fatal(e) }
 
+    //DEBUG
+    //for k := range _sglf.PfxTagLookup {
+    //  fmt.Printf("sglf>> %v %v\n", k, _sglf.PfxTagLookup[k])
+    //}
+
     ain_slice := make([]autoio.AutoioHandle, 0, 8)
     for i:=0; i<len(inp_slice); i++ {
       inp_fn := inp_slice[i]
