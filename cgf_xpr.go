@@ -984,17 +984,26 @@ func LoqIntermediateFromBytes(b []byte) (LoqIntermediate,int) {
   rec_count := int(dummy)
   loqi.count = rec_count
 
+  //DEBUG
+  //fmt.Printf("# rec_count %v\n", rec_count)
+
   dummy = byte2uint64(b[n:n+8])
   n+=8
 
   code := int(dummy)
   loqi.code = code
 
+  //DEBUG
+  //fmt.Printf("# code %v\n", code)
+
   dummy = byte2uint64(b[n:n+8])
   n+=8
 
   stride := int(dummy)
   loqi.stride = stride
+
+  //DEBUG
+  //fmt.Printf("# stride %v\n", stride)
 
   offset_idx := make([]int, (rec_count+stride-1)/stride)
   for i:=0; i<(rec_count+stride-1)/stride; i++ {
@@ -1043,6 +1052,9 @@ func LoqIntermediateFromBytes(b []byte) (LoqIntermediate,int) {
 
   loqflag_bytecount := int(dummy)
 
+  //DEBUG
+  //fmt.Printf("# loqflag_bytecount %v\n", loqflag_bytecount)
+
   loq_flag_vec := b[n:n+loqflag_bytecount]
   n+=loqflag_bytecount
 
@@ -1060,21 +1072,36 @@ func LoqIntermediateFromBytes(b []byte) (LoqIntermediate,int) {
 
   loq_info_byte_count := int(dummy) ; _ = loq_info_byte_count
 
+  //DEBUG
+  //fmt.Printf("# loq_info_byte_count %v\n", loq_info_byte_count)
+
 
   // main loq array
   //
   loqi.loqi_info = make(map[int]CGFIntermediate)
 
   cur_step:=0
-  max_step := loq_info_byte_count*8
+  //max_step := loq_info_byte_count*8
+  max_step := len(loqi.loq_flag)
+
+  //DEBUG
+  //fmt.Printf("# loq max_step %d (0x%x)\n", max_step, max_step)
 
   rec_pos:=0
   byte_offset := 0
   for byte_offset < loq_info_byte_count {
 
+    //DEBUG
+    //fmt.Printf("#>> cp0: byte_offset %d, loq_info_byte_count %d, cur_step %d, max_step %d\n", byte_offset, loq_info_byte_count, cur_step, max_step)
+
     for (cur_step<max_step) && (!loqi.loq_flag[cur_step]) {
       cur_step++
     }
+
+    //DEBUG
+    //fmt.Printf("# len(loq_flag) %d\n", len(loqi.loq_flag))
+    //fmt.Printf("#>>> cur_step %d (/%d)\n", cur_step, max_step)
+
     if cur_step==max_step {
       panic( fmt.Sprintf("ERROR: cur_step (%d) == max_step (%d)\n", cur_step, max_step) )
     }
@@ -1560,6 +1587,7 @@ func construct_loq_map(loqi LoqIntermediate) map[int]map[int][]int {
 //func emit_PathBytes(ctx *CGFContext, path_idx int, allele_path [][]TileInfo) ([]byte, error) {
 func (ctx *CGFContext) EmitPathBytes(path_idx int, allele_path [][]TileInfo) ([]byte, error) {
   debug_output:=false
+  //debug_output:=true
 
   max_tile := 0
 
