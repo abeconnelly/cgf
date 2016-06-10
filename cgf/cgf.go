@@ -583,7 +583,7 @@ func main() {
   app := cli.NewApp()
   app.Name  = "cgf"
   app.Usage = "CGF"
-  app.Version = VERSION_STR + " (cgf " + VERSION_STR + ")"
+  app.Version = VERSION_STR + " (cgf " + cgf.VERSION_STR + ")"
   app.Author = "Curoverse, Inc."
   app.Email = "info@curoverse.com"
   app.Action = func( c *cli.Context ) { _main(c) }
