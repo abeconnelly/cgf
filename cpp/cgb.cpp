@@ -879,17 +879,16 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
     cgf_t *cgf_a, cgf_t *cgf_b,
     int tilepath, int start_step, int n_step) {
 
-  int i, j, k;
+  int i, j, k, bit_idx;
   int start_block, end_block, s;
   cgf_path_t *path_a, *path_b;
   uint64_t mask, z;
-  uint32_t u32, x32, y32;
+  uint32_t u32, x32, y32, fullx32, fully32;
   uint32_t lx32, ly32;
 
   uint32_t xor32, and32;
 
   uint64_t start_mask, end_mask;
-  int canonical_count=0;
 
   uint8_t hexit_a_n, hexit_a[8], hexit_b_n, hexit_b[8];
   int a_count, b_count;
@@ -897,46 +896,101 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
   int a_ovf_loq = 0, a_ovf_hiq=0, a_ovf_complex=0;
   int b_ovf_loq = 0, b_ovf_hiq=0, b_ovf_complex=0;
 
+  int canon_match_count=0, cache_match_count=0, ovf_count=0;
+  int loq_cache_count=0, cache_ovf_count=0;
+
+  unsigned char flag;
+
+  int s_mod, e_mod;
+  int skip_beg=0, use_end=32;
+
+  int local_debug=1;
+
   path_a = &(cgf_a->path[tilepath]);
   path_b = &(cgf_b->path[tilepath]);
 
+  /*
   u32 = (0xffffffff >> (start_step%32));
   start_mask = (uint64_t)u32 << 32;
 
   u32 = (0xffffffff << (32-((start_step+n_step)%32)));
   end_mask = (uint64_t)u32 << 32;
+  */
 
   start_block = start_step / 32;
   end_block = (start_step + n_step) / 32;
 
+  /*
   s = start_block;
 
   x32 = ((path_a->vec[s] & start_mask) >> 32);
   y32 = ((path_b->vec[s] & start_mask) >> 32);
   k = NumberOfSetBits(x32 & y32);
-  canonical_count += (32-(start_step%32)) - k;
+  canon_match_count += (32-(start_step%32)) - k;
+  */
 
   // We have some overflow to consider in the start slice
   //
-  if (k>0) {
-
-  }
+  //if (k>0) { }
 
 
 
-  for (s=start_block+1; s<end_block; s++) {
-    x32 = ((path_a->vec[s] & 0xffffffff00000000 ) >> 32);
-    y32 = ((path_b->vec[s] & 0xffffffff00000000 ) >> 32);
+  //for (s=start_block+1; s<end_block; s++) {
+  for (s=start_block; s<=end_block; s++) {
+
+    mask = 0xffffffff00000000;
+    skip_beg = 0;
+    use_end = 32;
+
+    if (s==start_block) {
+      u32 = (0xffffffff >> (start_step%32));
+      mask &= (uint64_t)u32 << 32;
+
+      skip_beg = start_step % 32;
+    }
+
+    if (s==end_block) {
+
+      u32 = (0xffffffff << (32-((start_step+n_step)%32)));
+      mask &= (uint64_t)u32 << 32;
+
+      use_end = (start_step + n_step) % 32;
+    }
+
+    fullx32 = ((path_a->vec[s] & 0xffffffff00000000 ) >> 32);
+    fully32 = ((path_b->vec[s] & 0xffffffff00000000 ) >> 32);
+
+    x32 = ((path_a->vec[s] & mask ) >> 32);
+    y32 = ((path_b->vec[s] & mask ) >> 32);
     k = NumberOfSetBits(x32 | y32);
-    canonical_count += 32 - k;
+    canon_match_count += (32-skip_beg-(32-use_end)) - k;
+
+    //DEBUG
+    if (local_debug) {
+      printf(">> s: %i, k: %i, x32: %08x (%08x), y32: %08x (%08x), skip_beg: %d, use_end: %d, mask: %016" PRIx64 "\n",
+          s, k,
+          (unsigned int)x32, (unsigned int)fullx32,
+          (unsigned int)y32, (unsigned int)fully32,
+          skip_beg, use_end, mask);
+    }
 
     if (k>0) {
+
+      // need full vector
+      //
+      x32 = ((path_a->vec[s] & 0xffffffff00000000 ) >> 32);
+      y32 = ((path_b->vec[s] & 0xffffffff00000000 ) >> 32);
 
       hexit_a_n = NumberOfSetBits(x32);
       hexit_b_n = NumberOfSetBits(y32);
 
       lx32 = path_a->vec[s] & 0xffffffff;
       ly32 = path_b->vec[s] & 0xffffffff;
+
+      //DEBUG
+      if (local_debug) {
+        printf("  lx32: %08x, ly32: %08x\n", (unsigned int)lx32, (unsigned int)ly32);
+      }
 
       for (i=0; i<8; i++) {
         hexit_a[7-i] = (uint8_t)((lx32 & (0xf << (4*i)))>>(4*i));
@@ -948,25 +1002,109 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
       and32 = x32 & y32;
 
       for (i=31; i>=0; i--) {
+        bit_idx = 31-i;
+
+        //DEBUG
+        if (local_debug) {
+          printf("  [%i(%i)] (%c,%c:%c) a_count %i, b_count %i\n",
+              i, bit_idx,
+              //i,
+              (x32&(1<<i)) ? '*' : '_',
+              (y32&(1<<i)) ? '*' : '_',
+              (and32&(1<<i)) ? '*' : '_', a_count, b_count);
+          if (and32 & (1<<i)) {
+            if (a_count<8) { printf("    a[%i]: %x\n", a_count, hexit_a[a_count]); }
+            if (b_count<8) { printf("    b[%i]: %x\n", b_count, hexit_b[b_count]); }
+          }
+        }
 
         if (and32 & (1<<i)) {
           if ((a_count<8) && (b_count<8) &&
               (hexit_a[a_count] > 0) && (hexit_a[a_count] < 0xd) &&
               (hexit_b[b_count] > 0) && (hexit_b[b_count] < 0xd)) {
-            ovf_count += ((hexit_a[a_count] == hexit_b[b_count]) ? 1 : 0);
+
+            if ((bit_idx >= skip_beg) && (bit_idx < use_end)) {
+              cache_match_count += ((hexit_a[a_count] == hexit_b[b_count]) ? 1 : 0);
+
+              //DEBUG
+              if (local_debug) {
+                printf("      cache_match_count++\n");
+              }
+
+            }
+            else if (local_debug) {
+              printf("      skipped (cache_match_count++)\n");
+            }
+
+
           }
           else {
+            flag = 0;
+
             if (a_count<8) {
-              if      (hexit_a[a_count] == 0xe) { a_ovf_loq++; }
-              else if (hexit_a[a_count] == 0xf) { a_ovf_hiq++; }
-              else if (hexit_a[a_count] == 0xd) { a_ovf_complex++; }
+              if      (hexit_a[a_count] == 0xe) { a_ovf_loq++; flag |= (1<<0); }
+              else if (hexit_a[a_count] == 0xf) { a_ovf_hiq++; flag |= (1<<1); }
+              else if (hexit_a[a_count] == 0xd) { a_ovf_complex++; flag |= (1<<2); }
             }
 
             if (b_count<8) {
-              if      (hexit_b[b_count] == 0xe) { b_ovf_loq++; }
-              else if (hexit_b[b_count] == 0xe) { b_ovf_hiq++; }
-              else if (hexit_b[b_count] == 0xd) { b_ovf_complex++; }
+              if      (hexit_b[b_count] == 0xe) { b_ovf_loq++; flag |= (1<<3); }
+              else if (hexit_b[b_count] == 0xf) { b_ovf_hiq++; flag |= (1<<4); }
+              else if (hexit_b[b_count] == 0xd) { b_ovf_complex++; flag |= (1<<5); }
             }
+
+            if ((a_count<8) && (b_count<8)) {
+              if (flag & ((1<<0) | (1<<3))) {
+
+                if ((bit_idx >= skip_beg) && (bit_idx < use_end)) {
+                  loq_cache_count++;
+
+                  //DEBUG
+                  if (local_debug) {
+                    printf("      loq_cache_count++\n");
+                  }
+
+                }
+                else if (local_debug) {
+                  printf("      skipped (loq_cache_count++)\n");
+                }
+
+              }
+              else if (flag & ((1<<1) | (1<<4))) {
+
+                if ((bit_idx >= skip_beg) && (bit_idx < use_end)) {
+                  ovf_count++;
+
+                  //DEBUG
+                  if (local_debug) {
+                    printf("      ovf_count++\n");
+                  }
+
+                }
+                else if (local_debug) {
+                    printf("      skipped (ovf_count++)\n");
+                }
+
+              }
+            }
+            else {
+
+              if ((bit_idx >= skip_beg) && (bit_idx < use_end)) {
+                cache_ovf_count++;
+
+                if (local_debug) {
+                  printf("        cache_ovf_count++\n");
+                }
+
+              }
+              else if (local_debug) {
+                printf("      skipped (cache_ovf_count++)\n");
+              }
+
+            }
+
+
+
           }
 
         }
@@ -980,23 +1118,253 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
 
   }
 
+  /*
   if (s==end_block) {
     x32 = ((path_a->vec[s] & end_mask) >> 32);
     y32 = ((path_b->vec[s] & end_mask) >> 32);
     k = NumberOfSetBits(x32 | y32);
-    canonical_count += ((start_step+n_step)%32) - k;
+    canon_match_count += ((start_step+n_step)%32) - k;
 
-    if (k>0) {
+    if (k>0) { }
+  }
+  */
+
+
+  *n_match = canon_match_count + cache_match_count;
+  *n_ovf = ovf_count;
+
+  return 0;
+}
+
+// Only consider either canonical tiles,
+// cached overflows or tile mapped overflows.
+// All otherws (final overflows, low quality
+// tiles, etc.) will be ignored.
+//
+int cgf_tile_concordance_2(int *n_match, int *n_ovf,
+    cgf_t *cgf_a, cgf_t *cgf_b,
+    int tilepath, int start_step, int n_step) {
+
+  int i, j, k, bit_idx;
+  int start_block, end_block, s;
+  cgf_path_t *path_a, *path_b;
+  uint64_t mask, z;
+  uint32_t u32, x32, y32, fullx32, fully32;
+  uint32_t lx32, ly32;
+
+  uint32_t xor32, and32;
+
+  uint64_t start_mask, end_mask;
+
+  uint8_t hexit_a_n, hexit_a[8], hexit_b_n, hexit_b[8];
+  int a_count, b_count;
+
+  int a_ovf_loq = 0, a_ovf_hiq=0, a_ovf_complex=0;
+  int b_ovf_loq = 0, b_ovf_hiq=0, b_ovf_complex=0;
+
+  int canon_match_count=0, cache_match_count=0, ovf_count=0;
+  int loq_cache_count=0, cache_ovf_count=0;
+
+  unsigned char flag;
+
+  int s_mod, e_mod;
+  int skip_beg=0, use_end=32;
+
+  int local_debug=1;
+
+  path_a = &(cgf_a->path[tilepath]);
+  path_b = &(cgf_b->path[tilepath]);
+
+  start_block = start_step / 32;
+  end_block = (start_step + n_step) / 32;
+
+  for (s=start_block; s<=end_block; s++) {
+
+    mask = 0xffffffff00000000;
+    skip_beg = 0;
+    use_end = 32;
+
+    if (s==start_block) {
+      u32 = (0xffffffff >> (start_step%32));
+      mask &= (uint64_t)u32 << 32;
+
+      skip_beg = start_step % 32;
     }
 
+    if (s==end_block) {
+
+      u32 = (0xffffffff << (32-((start_step+n_step)%32)));
+      mask &= (uint64_t)u32 << 32;
+
+      use_end = (start_step + n_step) % 32;
+    }
+
+    fullx32 = ((path_a->vec[s] & 0xffffffff00000000 ) >> 32);
+    fully32 = ((path_b->vec[s] & 0xffffffff00000000 ) >> 32);
+
+    x32 = ((path_a->vec[s] & mask ) >> 32);
+    y32 = ((path_b->vec[s] & mask ) >> 32);
+    k = NumberOfSetBits(x32 | y32);
+    canon_match_count += (32-skip_beg-(32-use_end)) - k;
+
+    //DEBUG
+    if (local_debug) {
+      printf(">> s: %i, k: %i, x32: %08x (%08x), y32: %08x (%08x), skip_beg: %d, use_end: %d, mask: %016" PRIx64 "\n",
+          s, k,
+          (unsigned int)x32, (unsigned int)fullx32,
+          (unsigned int)y32, (unsigned int)fully32,
+          skip_beg, use_end, mask);
+    }
+
+    if (k>0) {
+
+      // need full vector
+      //
+      x32 = ((path_a->vec[s] & 0xffffffff00000000 ) >> 32);
+      y32 = ((path_b->vec[s] & 0xffffffff00000000 ) >> 32);
+
+      hexit_a_n = NumberOfSetBits(x32);
+      hexit_b_n = NumberOfSetBits(y32);
+
+      lx32 = path_a->vec[s] & 0xffffffff;
+      ly32 = path_b->vec[s] & 0xffffffff;
+
+      //DEBUG
+      if (local_debug) {
+        printf("  lx32: %08x, ly32: %08x\n", (unsigned int)lx32, (unsigned int)ly32);
+      }
+
+      for (i=0; i<8; i++) {
+        hexit_a[7-i] = (uint8_t)((lx32 & (0xf << (4*i)))>>(4*i));
+        hexit_b[7-i] = (uint8_t)((ly32 & (0xf << (4*i)))>>(4*i));
+      }
+
+      a_count=0;
+      b_count=0;
+      and32 = x32 & y32;
+
+      for (i=31; i>=0; i--) {
+        bit_idx = 31-i;
+
+        //DEBUG
+        if (local_debug) {
+          printf("  [%i(%i)] (%c,%c:%c) a_count %i, b_count %i\n",
+              i, bit_idx,
+              //i,
+              (x32&(1<<i)) ? '*' : '_',
+              (y32&(1<<i)) ? '*' : '_',
+              (and32&(1<<i)) ? '*' : '_', a_count, b_count);
+          if (and32 & (1<<i)) {
+            if (a_count<8) { printf("    a[%i]: %x\n", a_count, hexit_a[a_count]); }
+            if (b_count<8) { printf("    b[%i]: %x\n", b_count, hexit_b[b_count]); }
+          }
+        }
+
+        if (and32 & (1<<i)) {
+          if ((a_count<8) && (b_count<8) &&
+              (hexit_a[a_count] > 0) && (hexit_a[a_count] < 0xd) &&
+              (hexit_b[b_count] > 0) && (hexit_b[b_count] < 0xd)) {
+
+            if ((bit_idx >= skip_beg) && (bit_idx < use_end)) {
+              cache_match_count += ((hexit_a[a_count] == hexit_b[b_count]) ? 1 : 0);
+
+              //DEBUG
+              if (local_debug) {
+                printf("      cache_match_count++\n");
+              }
+
+            }
+            else if (local_debug) {
+              printf("      skipped (cache_match_count++)\n");
+            }
+
+
+          }
+          else {
+            flag = 0;
+
+            if (a_count<8) {
+              if      (hexit_a[a_count] == 0xe) { a_ovf_loq++; flag |= (1<<0); }
+              else if (hexit_a[a_count] == 0xf) { a_ovf_hiq++; flag |= (1<<1); }
+              else if (hexit_a[a_count] == 0xd) { a_ovf_complex++; flag |= (1<<2); }
+            }
+
+            if (b_count<8) {
+              if      (hexit_b[b_count] == 0xe) { b_ovf_loq++; flag |= (1<<3); }
+              else if (hexit_b[b_count] == 0xf) { b_ovf_hiq++; flag |= (1<<4); }
+              else if (hexit_b[b_count] == 0xd) { b_ovf_complex++; flag |= (1<<5); }
+            }
+
+            if ((a_count<8) && (b_count<8)) {
+              if (flag & ((1<<0) | (1<<3))) {
+
+                if ((bit_idx >= skip_beg) && (bit_idx < use_end)) {
+                  loq_cache_count++;
+
+                  //DEBUG
+                  if (local_debug) {
+                    printf("      loq_cache_count++\n");
+                  }
+
+                }
+                else if (local_debug) {
+                  printf("      skipped (loq_cache_count++)\n");
+                }
+
+              }
+              else if (flag & ((1<<1) | (1<<4))) {
+
+                if ((bit_idx >= skip_beg) && (bit_idx < use_end)) {
+                  ovf_count++;
+
+                  //DEBUG
+                  if (local_debug) {
+                    printf("      ovf_count++\n");
+                  }
+
+                }
+                else if (local_debug) {
+                    printf("      skipped (ovf_count++)\n");
+                }
+
+              }
+            }
+            else {
+
+              if ((bit_idx >= skip_beg) && (bit_idx < use_end)) {
+                cache_ovf_count++;
+
+                if (local_debug) {
+                  printf("        cache_ovf_count++\n");
+                }
+
+              }
+              else if (local_debug) {
+                printf("      skipped (cache_ovf_count++)\n");
+              }
+
+            }
+
+
+
+          }
+
+        }
+
+        if (x32 & (1<<i)) { a_count++; }
+        if (y32 & (1<<i)) { b_count++; }
+
+      }
+
+    }
 
   }
 
 
-  *n_match = canonical_count;
+  *n_match = canon_match_count + cache_match_count;
+  *n_ovf = ovf_count;
 
   return 0;
-
 }
 
 int main(int argc, char **argv) {
@@ -1009,6 +1377,8 @@ int main(int argc, char **argv) {
 
   cgf_t **cgfa;
   int n_cgfa=3;
+
+  int n_match, n_ovf;
 
   while ((ch=getopt(argc, argv, "hvi:DS")) != -1) switch (ch) {
     case 'h':
@@ -1056,6 +1426,9 @@ int main(int argc, char **argv) {
   printf(">>> %d\n", k);
   */
 
+  // testing cgf_tile_concordance_0
+  //
+  /*
   j=0;
   for (i=0; i<cgf->path_count; i++) {
     cgf_tile_concordance_0(&k, cgf, cgf_b, i, 0, cgf->path[i].n_tile);
@@ -1064,6 +1437,33 @@ int main(int argc, char **argv) {
   }
 
   printf(">>>>> %i\n", j);
+  */
+
+  // testing cgf_tile_concordance_1
+  //
+  if (!debug_print) {
+    cgf_tile_concordance_0(&k, cgf, cgf_b, 1, 5607, 104);
+
+    cgf_tile_concordance_1(&n_match, &n_ovf,
+        cgf, cgf_b,
+        1, 5607, 104);
+        //1, 5607, 5);
+        //1, 5600, 100);
+    printf("canon_match: %i, n_match: %i, n_ovf: %i\n", k, n_match, n_ovf);
+  }
+
+  /*
+  j=0;
+  for (i=0; i<cgf->path_count; i++) {
+    cgf_tile_concordance_1(&n_match, &n_ovf,
+        cgf, cgf_b,
+        i, 0, cgf->path[i].n_tile);
+    printf(">>> %d\n", k);
+    j+=k;
+  }
+
+  printf(">>>>> %i\n", j);
+  */
 
 
 
