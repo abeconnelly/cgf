@@ -15,7 +15,19 @@ unsigned char dlug_pfx[]  = {0,0x80,0xc0,0xe0,0xe8,0xf0,0xf8,0xf9,0xfa,0xff};
 
 
 
+/*
 int dlug_index(unsigned char *d) {
+  int i;
+  for (i=0; i<9; i++) {
+    if ((d[0] & (0xff << (8-dlug_pfxbitlen[i]))) == dlug_pfx[i]) {
+      return i;
+    }
+  }
+  return -2;
+}
+*/
+
+inline int dlug_index(unsigned char *d) {
   int i;
   for (i=0; i<9; i++) {
     if ((d[0] & (0xff << (8-dlug_pfxbitlen[i]))) == dlug_pfx[i]) {

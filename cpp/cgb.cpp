@@ -22,7 +22,8 @@ void show_help() {
   printf("\n");
 }
 
-void ull_from_c8(uint64_t *b, unsigned char *c8) {
+/*
+inline void ull_from_c8(uint64_t *b, unsigned char *c8) {
   uint64_t t=0;
 
   t |= (uint64_t)((unsigned char)c8[0])<<0;
@@ -36,14 +37,18 @@ void ull_from_c8(uint64_t *b, unsigned char *c8) {
 
   *b = t;
 }
+*/
 
+/*
 int cgf_read_dlug(FILE *fp, unsigned char *buf) {
   int dn = 0;
 
   return -1;
 }
+*/
 
 
+/*
 int cgf_read_string(FILE *fp, cgf_string_t *s) {
   int i;
   int ch, n;
@@ -66,7 +71,10 @@ int cgf_read_string(FILE *fp, cgf_string_t *s) {
   //return s->s[n-1];
   return s->n + 1;
 }
+*/
 
+
+/*
 int cgf_read_uint64(FILE *fp, uint64_t *u) {
   int i, k;
 
@@ -81,6 +89,7 @@ int cgf_read_uint64(FILE *fp, uint64_t *u) {
   ull_from_c8(u, buf);
   return 0;
 }
+*/
 
 int cgf_print_tile_map(cgf_t *cgf) {
   int i, j, k;
@@ -193,6 +202,7 @@ int cgf_unpack_tile_map(cgf_t *cgf) {
 
 }
 
+/*
 int cgf_load_overflow(FILE *fp, cgf_overflow_t *ovf) {
   int i, j, k;
   int n, dn;
@@ -236,6 +246,7 @@ int cgf_load_overflow(FILE *fp, cgf_overflow_t *ovf) {
 
   return n;
 }
+*/
 
 void cgf_print_overflow(cgf_overflow_t *ovf, int tilepath) {
   int i, j, k;
@@ -283,6 +294,7 @@ void cgf_print_overflow(cgf_overflow_t *ovf, int tilepath) {
 
 //-----
 
+/*
 int cgf_load_final_overflow(FILE *fp, cgf_final_overflow_t *fin_ovf) {
   int i, j, k;
   uint64_t n_bytes;
@@ -319,6 +331,7 @@ int cgf_load_final_overflow(FILE *fp, cgf_final_overflow_t *fin_ovf) {
 
   return n;
 }
+*/
 
 void cgf_print_final_overflow(cgf_final_overflow_t *fin_ovf, int tilepath) {
   int i, j, k, n=0, dn, record = 0;
@@ -385,6 +398,7 @@ void cgf_print_final_overflow(cgf_final_overflow_t *fin_ovf, int tilepath) {
 
 //-----
 
+/*
 int cgf_load_low_quality_info(FILE *fp, cgf_low_quality_info_t *loq_info) {
   int i, j, k;
   uint64_t vec_n, index_length;
@@ -455,6 +469,7 @@ int cgf_load_low_quality_info(FILE *fp, cgf_low_quality_info_t *loq_info) {
 
   return n;
 }
+*/
 
 int cgf_print_low_quality_info(cgf_low_quality_info_t *loq_info, int tilepath) {
   int i, j, k;
@@ -514,6 +529,7 @@ int cgf_print_low_quality_info(cgf_low_quality_info_t *loq_info, int tilepath) {
 
 //-----
 
+/*
 cgf_t *load_cgf(FILE *fp) {
   int i, k;
   cgf_t *cgf=NULL;
@@ -659,6 +675,7 @@ load_cgf_cleanup:
   if (cgf) { free(cgf); }
   return NULL;
 }
+*/
 
 void debug_print_cgf(cgf_t *cgf) {
   int i, j, k;
@@ -782,6 +799,7 @@ void stats_print_cgf(cgf_t *cgf) {
 
 }
 
+/*
 cgf_t *load_cgf_fn(const char *fn) {
   FILE *fp;
   cgf_t *cgf;
@@ -790,6 +808,7 @@ cgf_t *load_cgf_fn(const char *fn) {
   fclose(fp);
   return cgf;
 }
+*/
 
 
 // http://stackoverflow.com/questions/109023/how-to-count-the-number-of-set-bits-in-a-32-bit-integer
@@ -811,6 +830,15 @@ int NumberOfSetBits(uint32_t u)
   u = u - ((u >> 1) & 0x55555555);
   u = (u & 0x33333333) + ((u >> 2) & 0x33333333);
   return (((u + (u >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+}
+
+
+int NumberOfSetBits8(uint8_t u)
+{
+  u = (u & 0x55) + ((u>>1) & 0x55);
+  u = (u & 0x33) + ((u>>2) & 0x33);
+  u = (u & 0x0f) + ((u>>4) & 0x0f);
+  return u;
 }
 
 
@@ -904,7 +932,7 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
   int s_mod, e_mod;
   int skip_beg=0, use_end=32;
 
-  int local_debug=1;
+  int local_debug=0;
 
   path_a = &(cgf_a->path[tilepath]);
   path_b = &(cgf_b->path[tilepath]);
@@ -1122,32 +1150,14 @@ int cgf_cache_map_val(uint64_t vec_val, int ofst) {
   unsigned char hx;
   uint64_t mask, x;
 
-  //printf("??? vec_val %016llx, ofst %i\n", (unsigned long long int)vec_val, ofst);
-
   // canonical tile
-  if ((vec_val & (((uint64_t)1)<<(32+ofst)))==0) {
-
-    /*
-    x = 1;
-    x = ((uint64_t)1)<<(32+ofst);
-    printf("????? %llu, %llu, %llu\n",
-        (unsigned long long int)x,
-        (unsigned long long int)vec_val & x,
-        (unsigned long long int)(vec_val & (((uint64_t)1)<<(32+ofst))));
-
-    printf("?????? canon??\n");
-    */
-
-    return 0;
-  }
+  if ((vec_val & (((uint64_t)1)<<(32+ofst)))==0) { return 0; }
 
   for (i=0, count=0; i<ofst; i++) {
     if (vec_val & (1<<(32+i))) { count++; }
   }
 
   if (count>=8) { return -1; }
-
-  //printf("?? count: %d\n", count);
 
   hx = (unsigned char)((vec_val & (0xf<<(count*4))) >> (count*4));
   return (int)hx;
@@ -1180,7 +1190,6 @@ int cgf_relative_overflow_count(uint64_t *vec, int step_start, int step_end) {
   return ovf_count;
 }
 
-//int cgf_overflow_variant_id(cgf_t *cgf, int tilepath, int step) {
 int cgf_map_variant_id(cgf_t *cgf, int tilepath, int step) {
   int i, j, k, dn;
   uint64_t nblock, stride, byte_tot;
@@ -1188,30 +1197,20 @@ int cgf_map_variant_id(cgf_t *cgf, int tilepath, int step) {
   int byte_offset=0;
   int map_skip_count;
 
-  //printf("cps>> %x %x\n", tilepath, step);
-
   cgf_path_t *path;
   cgf_overflow_t *ovf;
 
   path = &(cgf->path[tilepath]);
 
   k = cgf_cache_map_val(path->vec[step/32], step%32);
-  if ((k>=0) && (k<0xd)) {
-
-    //DEBUG
-    //printf("cp0>> %d (%x)\n", k, k);
-
-    return k;
-  }
-
-  //printf("k %d\n", k);
+  if ((k>=0) && (k<0xd)) { return k; }
 
   // complex tiles not supported
   //
   if (k==0xd) { return -2; }
 
   ovf = path->overflow;
-  nblock = ovf->length;
+  nblock = (ovf->length + ovf->stride - 1) / ovf->stride;
   stride = ovf->stride;
 
   byte_tot = ovf->map_byte_count;
@@ -1221,17 +1220,9 @@ int cgf_map_variant_id(cgf_t *cgf, int tilepath, int step) {
   }
   k--;
 
-  /*
-  printf("idx %d, offset[%d]: %llu, position[%d]: %llu\n", k,
-      k, (unsigned long long int)ovf->offset[k],
-      k, (unsigned long long int)ovf->position[k]);
-      */
-
   byte_offset = ovf->offset[k];
 
   map_skip_count = cgf_relative_overflow_count(path->vec, ovf->position[k], step);
-
-  //printf("map_skip_count: %d, byte_offset: %x\n", map_skip_count, (int)byte_offset);
 
   k = 0;
   while ((k < map_skip_count) && (byte_offset < byte_tot)) {
@@ -1239,31 +1230,140 @@ int cgf_map_variant_id(cgf_t *cgf, int tilepath, int step) {
     if (dn<=0) { return -1; }
     byte_offset += dn;
 
-    //printf("  [%d] %x\n", k, u32);
     k++;
   }
-
-  /*
-  dn = dlug_convert_uint32(ovf->map + byte_offset, &u32);
-  if (dn<=0) { return -1; }
-  byte_offset += dn;
-  */
-
-  //printf("?? %x\n", u32);
 
   return (int)u32;
 
 }
 
-int cgf_final_overflow_match(cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, int tilestep ) {
+int cgf_final_overflow_map0_peel(uint8_t *bytes,
+    int *anchor_step, int *n_allele,
+    std::vector<int> *allele) {
+  int i, j, k;
+  int dn, n=0;
+  int vid, span;
+  uint32_t u32, len, aa;
 
-  return 0;
+  dn = dlug_convert_uint32(bytes + n, &u32);
+  if (dn<=0) { return -1; }
+  n += dn;
+
+  *anchor_step = (int)u32;
+
+  dn = dlug_convert_uint32(bytes + n, &u32);
+  if (dn<=0) { return -1; }
+  n += dn;
+
+  *n_allele = (int)u32;
+  aa = u32;
+
+  for (i=0; i<aa; i++) {
+    dn = dlug_convert_uint32(bytes + n, &u32);
+    if (dn<=0) { return -1; }
+    n += dn;
+
+    len=u32;
+
+    for (j=0; j<len; j++) {
+      dn = dlug_convert_uint32(bytes + n, &u32);
+      if (dn<=0) { return -1; }
+      n += dn;
+
+      vid = (int)u32;
+
+      dn = dlug_convert_uint32(bytes + n, &u32);
+      if (dn<=0) { return -1; }
+      n += dn;
+
+      span = (int)u32;
+
+      allele[i].push_back(vid);
+      allele[i].push_back(span);
+    }
+  }
+
+  return n;
+}
+
+int cgf_final_overflow_match(cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, int tilestep ) {
+  int i, j, k;
+  uint64_t n_a, n_b, byte_len_a, byte_len_b;
+  uint8_t *code_a, *code_b;
+  uint8_t *map_a, *map_b;
+  int rec_a, rec_b;
+  int step_a, step_b;
+  int dn;
+  int byte_offset_a, byte_offset_b;
+  cgf_final_overflow_t *fin_ovf_a, *fin_ovf_b;
+
+  std::vector<int> knot_a[2], knot_b[2];
+
+  fin_ovf_a = cgf_a->path[tilepath].final_overflow;
+  fin_ovf_b = cgf_b->path[tilepath].final_overflow;
+
+  n_a = fin_ovf_a->data_record_n;
+  byte_len_a = fin_ovf_a->data_record_byte_len;
+
+  n_b = fin_ovf_b->data_record_n;
+  byte_len_b = fin_ovf_b->data_record_byte_len;
+
+  code_a = fin_ovf_a->data_record->code;
+  map_a  = fin_ovf_a->data_record->data;
+
+  code_b = fin_ovf_b->data_record->code;
+  map_b  = fin_ovf_b->data_record->data;
+
+  byte_offset_a = 0;
+  byte_offset_b = 0;
+
+  rec_a = 0;
+  step_a = -1;
+  while ((byte_offset_a < byte_len_a) && (step_a < tilestep) && (rec_a < n_a)) {
+
+    if (code_a[rec_a]==0) {
+      dn = cgf_final_overflow_map0_peel(map_a + byte_offset_a, &step_a, &k, knot_a);
+      if (dn<=0) { return 0; }
+      byte_offset_a += dn;
+
+      if (k!=2) { return 0; }
+    } else { return 0; }
+
+    rec_a++;
+  }
+
+  rec_b=0;
+  step_b = -1;
+  while ((byte_offset_b < byte_len_b) && (step_b < tilestep) && (rec_b < n_b)) {
+
+    if (code_b[rec_b]==0) {
+      dn = cgf_final_overflow_map0_peel(map_b + byte_offset_b, &step_b, &k, knot_b);
+      if (dn<=0) { return 0; }
+      byte_offset_b += dn;
+
+      if (k!=2) { return 0; }
+    } else { return 0; }
+
+    rec_b++;
+  }
+
+  if (step_a!=step_b) { return 0; }
+
+  for (i=0; i<2; i++) {
+    if (knot_a[i].size() != knot_b[i].size()) { return 0; }
+    for (j=0; j<knot_a[i].size(); j++) {
+      if (knot_a[i][j] != knot_b[i][j]) { return 0; }
+    }
+  }
+
+  return 1;
 }
 
 // ovf_step has [ step , codea, code b ]
 // where codeX is -1 for overflow, -2 for complex and has the code otherwise.
 //
-int cgf_overflow_concordance(int *n_match, int *n_fin_ovf,
+int cgf_overflow_concordance(int *n_match,
+    //int *n_fin_ovf,
     cgf_t *cgf_a, cgf_t *cgf_b,
     int tilepath,
     std::vector<int> &ovf_step) {
@@ -1271,6 +1371,8 @@ int cgf_overflow_concordance(int *n_match, int *n_fin_ovf,
   int var_a, var_b, step;
   std::vector<int> fin_ovf_step;
   int match_count=0, fin_ovf_count=0;
+
+  int local_debug=0;
 
   for (idx=0; idx<ovf_step.size(); idx+=3) {
     step = ovf_step[idx];
@@ -1293,7 +1395,9 @@ int cgf_overflow_concordance(int *n_match, int *n_fin_ovf,
       if (var_a==var_b) {
 
         //DEBUG
-        printf("%04x.%04x, ovf_conf++\n", tilepath, step);
+        if (local_debug) {
+          printf("%04x.%04x, ovf_conf++\n", tilepath, step);
+        }
 
         match_count++;
       }
@@ -1302,13 +1406,20 @@ int cgf_overflow_concordance(int *n_match, int *n_fin_ovf,
       fin_ovf_count++;
 
       //DEBUG
-      printf("%04x.%04x: fin_ovf queue\n", tilepath, step);
+      if (local_debug) {
+        printf("%04x.%04x: fin_ovf queue\n", tilepath, step);
+      }
     }
 
   }
 
   for (i=0; i<fin_ovf_step.size(); i++) {
     if (cgf_final_overflow_match(cgf_a, cgf_b, tilepath, fin_ovf_step[i])) {
+
+      if (local_debug) {
+        printf("%04x.%04x: fin_ovf_count++\n", tilepath, fin_ovf_step[i]);
+      }
+
       match_count++;
     }
   }
@@ -1330,12 +1441,14 @@ uint8_t cgf_loq_tile(cgf_t *cgf, int tilepath, int tilestep) {
 // All otherws (final overflows, low quality
 // tiles, etc.) will be ignored.
 //
-int cgf_tile_concordance_2(int *n_match, int *n_ovf,
+int cgf_tile_concordance_2(int *n_match,
+    //int *n_ovf,
+    int *n_loq,
     cgf_t *cgf_a, cgf_t *cgf_b,
     int tilepath, int start_step, int n_step) {
 
   int i, j, k, bit_idx;
-  int start_block, end_block, s;
+  int start_block, end_block, s, s_beg, s_end;
   cgf_path_t *path_a, *path_b;
   uint64_t mask, z;
   uint32_t u32, x32, y32, fullx32, fully32;
@@ -1359,14 +1472,33 @@ int cgf_tile_concordance_2(int *n_match, int *n_ovf,
   int s_mod, e_mod;
   int skip_beg=0, use_end=32;
 
-  int local_debug=1;
+  int local_debug=0;
+  int loq_count=0;
 
   uint8_t *loq_flag_a, *loq_flag_b;
+  uint8_t mask8;
 
   std::vector<int> ovf_info;
 
   path_a = &(cgf_a->path[tilepath]);
   path_b = &(cgf_b->path[tilepath]);
+
+  s_beg = start_step/8;
+  s_end = (start_step+n_step+7)/8;
+  for (s=s_beg; s<s_end; s++) {
+    mask8 = 0xff;
+    if (s==s_beg) {
+      mask8 = 0xff >> (start_step%8);
+    }
+
+    if (s==(s_end-1)) {
+      k = (start_step + n_step)%8;
+      mask8 &= 0xff << (7-k);
+    }
+
+    loq_count += NumberOfSetBits8(mask8 & (path_a->loq_info->loq_flag[s] | path_b->loq_info->loq_flag[s]));
+  }
+  *n_loq = loq_count;
 
   start_block = start_step / 32;
   end_block = (start_step + n_step) / 32;
@@ -1567,17 +1699,23 @@ int cgf_tile_concordance_2(int *n_match, int *n_ovf,
 
   }
 
-  for (i=0; i<ovf_info.size(); i++) {
-    printf("ovf_info[%i]: %x\n", i, ovf_info[i]);
+  if (local_debug) {
+    for (i=0; i<ovf_info.size(); i++) {
+      printf("ovf_info[%i]: %x\n", i, ovf_info[i]);
+    }
   }
 
-  cgf_overflow_concordance(&k, &j, cgf_a, cgf_b, tilepath, ovf_info);
+  //cgf_overflow_concordance(&k, &j, cgf_a, cgf_b, tilepath, ovf_info);
+  cgf_overflow_concordance(&k, cgf_a, cgf_b, tilepath, ovf_info);
 
-  printf(">>>> k %d, j %d\n", k, j);
+  if (local_debug) {
+    printf(">>>> overflow match %d\n", k);
+  }
 
 
-  *n_match = canon_match_count + cache_match_count;
-  *n_ovf = ovf_count;
+  //*n_match = canon_match_count + cache_match_count;
+  *n_match = canon_match_count + cache_match_count + k;
+  //*n_ovf = ovf_count;
 
   return 0;
 }
@@ -1598,7 +1736,11 @@ int main(int argc, char **argv) {
   int tilepath= -1, tilestep=-1;
   int tilevariant_flag = 0;
 
-  while ((ch=getopt(argc, argv, "hvi:DSVp:s:")) != -1) switch (ch) {
+  int n_loq=0, n_tot=0;
+  int lvl=0;
+
+
+  while ((ch=getopt(argc, argv, "hvi:DSVp:s:l:")) != -1) switch (ch) {
     case 'h':
       show_help();
       exit(0);
@@ -1613,6 +1755,10 @@ int main(int argc, char **argv) {
 
     case 'V':
       tilevariant_flag = 1;
+      break;
+
+    case 'l':
+      lvl = atoi(optarg);
       break;
 
     case 'D':
@@ -1644,9 +1790,13 @@ int main(int argc, char **argv) {
 
   //---
   //
-  cgf = load_cgf(fp);
+  //cgf = load_cgf(fp);
+  cgf = load_cgf_buf(fp);
 
   cgf_b = load_cgf_fn("data/hu826751-GS03052-DNA_B01.cgf");
+
+  printf(">>>>> %p\n", cgf_b);
+
   //cgf_b = load_cgf_fn("data/hu0211D6-GS01175-DNA_E02.cgf");
 
   /*
@@ -1690,26 +1840,92 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
+  /*
   if (!debug_print) {
-    cgf_tile_concordance_2(&n_match, &n_ovf,
+    //cgf_tile_concordance_2(&n_match, &n_ovf,
+    cgf_tile_concordance_2(&n_match, &n_loq,
         cgf, cgf_b,
+        //1, 0, 9000);
         1, 5607, 104);
         //1, 5607, 5);
         //1, 5600, 100);
-    printf("n_match: %i, n_ovf: %i\n", n_match, n_ovf);
+    //printf("n_match: %i, n_ovf: %i\n", n_match, n_ovf);
+    printf("n_match: %i, n_loq: %i\n", n_match, n_loq);
+  }
+  */
+
+  if (lvl==0) {
+
+    k=0;
+    for (i=0; i<cgf->path_count; i++) {
+      cgf_tile_concordance_0(&n_match, cgf, cgf_b, i, 0, cgf->path[i].n_tile);
+      k+=n_match;
+    }
+
+    printf("level: %i, canonical match: %i\n", lvl, k);
+  }
+
+  else if (lvl==1) {
+    j=0;
+    k=0;
+    for (i=0; i<cgf->path_count; i++) {
+      cgf_tile_concordance_1(&n_match, &n_loq,
+          cgf, cgf_b,
+          i, 0, cgf->path[i].n_tile);
+      //printf(">>> matched %d (loq %d)\n", n_match, n_loq);
+      k+=n_match;
+      j+=n_loq;
+    }
+
+    printf("level: %i, canonical+cache match: %i, loq: %d\n", lvl, k, j);
+
+  }
+
+  else if (lvl==2) {
+    j=0;
+    k=0;
+    for (i=0; i<cgf->path_count; i++) {
+      cgf_tile_concordance_2(&n_match, &n_loq,
+          cgf, cgf_b,
+          i, 0, cgf->path[i].n_tile);
+      //printf("level: %i, matched %d (loq %d)\n", lvl, n_match, n_loq);
+      k+=n_match;
+      j+=n_loq;
+    }
+
+    printf("level: %i, match: %i, loq: %d\n", lvl, k, j);
+
   }
 
   /*
+  j=0;
+  k=0;
+  for (i=0; i<cgf->path_count; i++) {
+  //for (i=0; i<20; i++) {
+    cgf_tile_concordance_2(&n_match, &n_loq,
+        cgf, cgf_b,
+        i, 0, cgf->path[i].n_tile);
+    printf(">>> matched %d (loq %d)\n", n_match, n_loq);
+    k+=n_match;
+    j+=n_loq;
+  }
+
+  printf(">>>>> tot: %i (loq: %d)\n", k, j);
+  */
+
+  /*
+  k=0;
   j=0;
   for (i=0; i<cgf->path_count; i++) {
     cgf_tile_concordance_1(&n_match, &n_ovf,
         cgf, cgf_b,
         i, 0, cgf->path[i].n_tile);
-    printf(">>> %d\n", k);
-    j+=k;
+    printf(">>> %d\n", n_match);
+    k+=n_match;
+    j+=n_ovf;
   }
 
-  printf(">>>>> %i\n", j);
+  printf(">>>>> x %i (ovf %d)\n", k, j);
   */
 
 

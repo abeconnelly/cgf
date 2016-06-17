@@ -94,4 +94,18 @@ typedef struct cgf_type {
 
 } cgf_t;
 
+int cgf_unpack_tile_map(cgf_t *cgf);
+
+
+int cgf_read_dlug(FILE *fp, unsigned char *buf);
+int cgf_read_string(FILE *fp, cgf_string_t *s);
+int cgf_read_uint64(FILE *fp, uint64_t *u);
+int cgf_load_overflow(FILE *fp, cgf_overflow_t *ovf);
+int cgf_load_final_overflow(FILE *fp, cgf_final_overflow_t *fin_ovf);
+int cgf_load_low_quality_info(FILE *fp, cgf_low_quality_info_t *loq_info);
+cgf_t *load_cgf(FILE *fp);
+cgf_t *load_cgf_buf(FILE *fp);
+cgf_t *load_cgf_fn(const char *fn);
+
 #endif
+
