@@ -33,6 +33,7 @@ int dlug_buf_peel(std::vector<char> &inp_buf, int inp_buf_pos, unsigned char *bu
 
 inline void ull_from_c8(uint64_t *b, unsigned char *c8) {
   uint64_t t=0;
+  uint64_t *p;
 
   /*
   t |= (uint64_t)((unsigned char)c8[0])<<0;
@@ -44,6 +45,8 @@ inline void ull_from_c8(uint64_t *b, unsigned char *c8) {
   t |= (uint64_t)((unsigned char)c8[6])<<48;
   t |= (uint64_t)((unsigned char)c8[7])<<56;
   */
+
+  /*
   t |=
     ((uint64_t)((unsigned char)c8[0])<<0) |
     ((uint64_t)((unsigned char)c8[1])<<8) |
@@ -53,6 +56,10 @@ inline void ull_from_c8(uint64_t *b, unsigned char *c8) {
     ((uint64_t)((unsigned char)c8[5])<<40) |
     ((uint64_t)((unsigned char)c8[6])<<48) |
     ((uint64_t)((unsigned char)c8[7])<<56);
+    */
+
+  p = (uint64_t *)c8;
+  t = *p;
 
   *b = t;
 }
@@ -116,6 +123,11 @@ int cgf_read_uint64(FILE *fp, uint64_t *u) {
 }
 
 inline int cgf_read_uint64_buf(std::vector<char> &inp_buf, int inp_buf_pos, uint64_t *u) {
+
+  ull_from_c8(u, (unsigned char *)(&(inp_buf[inp_buf_pos])));
+  return 8;
+
+
   //int i, k;
   unsigned char buf[8];
   //int orig_pos = inp_buf_pos;

@@ -71,6 +71,7 @@ func PrintKnotFastjSGLF(knot [][]TileInfo, sglf cglf.SGLF, path, ver uint64, hdr
         for ii:=0; ii<len(knot[i][j].NocallStartLen); ii+=2 {
           noc_count += knot[i][j].NocallStartLen[ii+1]
         }
+        fmt.Printf(", \"nocallCount\":%d", noc_count)
 
         fmt.Printf(", \"md5sum\":\"%s\"", noc_m5str)
 
@@ -106,6 +107,8 @@ func PrintKnotFastjSGLF(knot [][]TileInfo, sglf cglf.SGLF, path, ver uint64, hdr
       } else {
         m5str := Md5sum2str(md5.Sum([]byte(seq)))
         //fmt.Printf(" %s\n%s\n", m5str, seq)
+
+        fmt.Printf(", \"nocallCount\":0")
 
         fmt.Printf(", \"md5sum\":\"%s\"", m5str)
 

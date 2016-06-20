@@ -107,5 +107,16 @@ cgf_t *load_cgf(FILE *fp);
 cgf_t *load_cgf_buf(FILE *fp);
 cgf_t *load_cgf_fn(const char *fn);
 
+
+int cgf_print_tile_map(cgf_t *cgf);
+void cgf_print_overflow(cgf_overflow_t *ovf, int tilepath);
+void cgf_print_final_overflow(cgf_final_overflow_t *fin_ovf, int tilepath);
+int cgf_print_low_quality_info(cgf_low_quality_info_t *loq_info, int tilepath);
+void debug_print_cgf(cgf_t *cgf);
+void stats_print_cgf(cgf_t *cgf);
+
+void show_help(void);
+
+
 #endif
 
