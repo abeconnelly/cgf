@@ -38,7 +38,6 @@
 //     [ n_{idx_{N-1},1}, var_{idx_{N-1},1,0}, span_{idx_{N-1},1,0}, var_{idx_{N-1},1,1}, span_{idx_{N-1},1,1}, ..., var_{idx_{N-1},1,n-1}, span_{idx_{N-1},1,n-1} ],
 //   ]
 //
-/
 //
 int cgf_unpack_tile_map(cgf_t *cgf) {
   unsigned char *b;
