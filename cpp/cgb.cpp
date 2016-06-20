@@ -10,6 +10,36 @@
 #include "cgb.hpp"
 #include "dlug.h"
 
+// Unpacks the tile map stored as bytes in
+// `tile_map_bytes` into the `tile_map` structure.
+//
+// The `tile_map` holds the 'knot' information for each
+// of the first N tile variants.  The lowest level arrays
+// hold the length of the array as the first entry with
+// the subsequent entries alternating between the variant
+// and span.  For example:
+//
+// [idx_0]:
+//   [
+//     [ n_{idx_0,0}, var_{idx_0,0,0}, span_{idx_0,0,0}, var_{idx_0,0,1}, span_{idx_0,0,1}, ..., var_{idx_0,0,n-1}, span_{idx_0,0,n-1} ],
+//     [ n_{idx_0,1}, var_{idx_0,1,0}, span_{idx_0,1,0}, var_{idx_0,1,1}, span_{idx_0,1,1}, ..., var_{idx_0,1,n-1}, span_{idx_0,1,n-1} ],
+//   ],
+// [idx_1]:
+//   [
+//     [ n_{idx_1,0}, var_{idx_1,0,0}, span_{idx_1,0,0}, var_{idx_1,0,1}, span_{idx_1,0,1}, ..., var_{idx_1,0,n-1}, span_{idx_1,0,n-1} ],
+//     [ n_{idx_1,1}, var_{idx_1,1,0}, span_{idx_1,1,0}, var_{idx_1,1,1}, span_{idx_1,1,1}, ..., var_{idx_1,1,n-1}, span_{idx_1,1,n-1} ],
+//   ],
+//
+// ...
+//
+// [idx_{N-1}]:
+//   [
+//     [ n_{idx_{N-1},0}, var_{idx_{N-1},0,0}, span_{idx_{N-1},0,0}, var_{idx_{N-1},0,1}, span_{idx_{N-1},0,1}, ..., var_{idx_{N-1},0,n-1}, span_{idx_{N-1},0,n-1} ],
+//     [ n_{idx_{N-1},1}, var_{idx_{N-1},1,0}, span_{idx_{N-1},1,0}, var_{idx_{N-1},1,1}, span_{idx_{N-1},1,1}, ..., var_{idx_{N-1},1,n-1}, span_{idx_{N-1},1,n-1} ],
+//   ]
+//
+/
+//
 int cgf_unpack_tile_map(cgf_t *cgf) {
   unsigned char *b;
 
@@ -115,6 +145,8 @@ int NumberOfSetBits(uint32_t u)
 }
 
 
+// This is slower than the above but is more explicit
+//
 int NumberOfSetBits8(uint8_t u)
 {
   u = (u & 0x55) + ((u>>1) & 0x55);
@@ -411,6 +443,8 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
   return 0;
 }
 
+// Still in development
+//
 int cgf_final_overflow_scan_to_start(cgf_final_overflow_t *fin_ovf, int start_step) {
   int i, j, k, b;
   uint64_t tot_sz, data_sz;
@@ -520,6 +554,12 @@ int cgf_relative_overflow_count(uint64_t *vec, int step_start, int step_end) {
   return ovf_count;
 }
 
+// Find variant id of tilepath.tilestep in structure.
+// First determine whether it's a canonical tile or
+// resides in the cache and if it is, return the value.
+// Otherwise, start looking in the overflow and final
+// overflow structures.
+//
 int cgf_map_variant_id(cgf_t *cgf, int tilepath, int step) {
   int i, j, k, dn;
   uint64_t nblock, stride, byte_tot;
@@ -645,6 +685,8 @@ int cgf_final_overflow_map0_peel(uint8_t *bytes,
   return n;
 }
 
+// Determine if the tilepath.tilestep for cgf_a and cgf_b match.
+//
 int cgf_final_overflow_match(cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, int tilestep ) {
   int i, j, k;
   uint64_t n_a, n_b, byte_len_a, byte_len_b;
