@@ -985,6 +985,10 @@ int cgf_final_overflow_match(cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, int tiles
   byte_offset_a = 0;
   byte_offset_b = 0;
 
+  if (local_debug) {
+    printf(">>> cgf_fin_ovf_match %04x.%04x\n", tilepath, tilestep);
+  }
+
   rec_a = 0;
   step_a = -1;
   while ((byte_offset_a < byte_len_a) && (step_a < tilestep) && (rec_a < n_a)) {
@@ -1001,6 +1005,10 @@ int cgf_final_overflow_match(cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, int tiles
     } else { return 0; }
 
     rec_a++;
+  }
+
+  if (local_debug) {
+    printf(" cp0\n");
   }
 
   rec_b=0;
@@ -1071,7 +1079,7 @@ int cgf_overflow_concordance_2(int *n_match,
     int tilepath,
     std::vector<int> &ovf_step) {
   int i, j, k, idx;
-  int var_a, var_b, step;
+  int var_a, var_b;
   std::vector<int> fin_ovf_step;
   int match_count=0, fin_ovf_count=0;
 
@@ -1104,9 +1112,18 @@ int cgf_overflow_concordance_2(int *n_match,
     var_a = varids_a[idx];
     var_b = varids_b[idx];
 
+    if (local_debug) {
+      printf("ovf_conc_2: %04x.%04x var_a %x, var_b %x\n", tilepath, steps[idx], var_a, var_b);
+    }
+
     if ((var_a < 1024) && (var_b < 1024)) {
 
       if (var_a==var_b) {
+
+        if (local_debug) {
+          printf("mo: %04x.00.%04x\n", tilepath, steps[idx]);
+        }
+
         match_count++;
       }
 
@@ -1115,7 +1132,7 @@ int cgf_overflow_concordance_2(int *n_match,
       // 1024 is a spanning tile,
       // 1025 is a final overflow
       //
-      fin_ovf_step.push_back(step);
+      fin_ovf_step.push_back(steps[idx]);
       fin_ovf_count++;
     }
 
@@ -1123,6 +1140,11 @@ int cgf_overflow_concordance_2(int *n_match,
 
   for (i=0; i<fin_ovf_step.size(); i++) {
     if (cgf_final_overflow_match(cgf_a, cgf_b, tilepath, fin_ovf_step[i])) {
+
+      if (local_debug) {
+        printf("mf: %04x.00.%04x\n", tilepath, fin_ovf_step[i]);
+      }
+
       match_count++;
     }
   }
@@ -1371,7 +1393,7 @@ int cgf_tile_concordance_2(int *n_match,
         if ((debug32 & (1<<ii))==0) {
 
           if (s==end_block) {
-            printf("?? s: %i, skip_beg %i, use_end %i, debug32 %08x mask %016" PRIx64 "\n", s, skip_beg, use_end, (unsigned int)debug32, mask);
+            //printf("?? s: %i, skip_beg %i, use_end %i, debug32 %08x mask %016" PRIx64 "\n", s, skip_beg, use_end, (unsigned int)debug32, mask);
           }
 
           printf("mc: %04x.00.%04x\n", tilepath, 32*s + ii);
@@ -1571,8 +1593,8 @@ int cgf_tile_concordance_2(int *n_match,
   }
 
   //cgf_overflow_concordance(&k, &j, cgf_a, cgf_b, tilepath, ovf_info);
-  cgf_overflow_concordance(&k, cgf_a, cgf_b, tilepath, ovf_info);
-  //cgf_overflow_concordance_2(&k, cgf_a, cgf_b, tilepath, ovf_info);
+  //cgf_overflow_concordance(&k, cgf_a, cgf_b, tilepath, ovf_info);
+  cgf_overflow_concordance_2(&k, cgf_a, cgf_b, tilepath, ovf_info);
 
   if (local_debug) {
     printf(">>>> overflow match %d\n", k);
