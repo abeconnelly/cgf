@@ -629,6 +629,145 @@ int is_canonical_tile(uint64_t vec_val, int ofst) {
 //
 // x
 //
+int cgf_map_variant_ids(cgf_t *cgf, int tilepath, std::vector<int> &step_vec, std::vector<int> &step_varid) {
+  int i, j, k, dn;
+  uint64_t nblock, stride, byte_tot;
+  uint32_t u32;
+  int byte_offset=0;
+  int map_skip_count;
+
+  int local_debug = 0;
+  int step, prev_ovf_step;
+
+  int actual_ovf_count=0;
+  int step_idx;
+
+  cgf_path_t *path;
+  cgf_overflow_t *ovf;
+
+  path = &(cgf->path[tilepath]);
+
+  for (step_idx=0; step_idx<step_vec.size(); step_idx++) {
+
+    step = step_vec[step_idx];
+
+    if (is_canonical_tile(path->vec[step/32], (step%32))) {
+      step_varid.push_back(0);
+
+      printf("  canon: step %x\n", step);
+
+      //prev_step = step;
+      continue;
+    }
+
+    k = cgf_cache_map_val(path->vec[step/32], step%32);
+
+    // canonical tile
+    //
+    if (k==-1) {
+      step_varid.push_back(0);
+      //prev_step = step;
+      continue;
+    }
+
+    if ((k>=0) && (k<0xd)) {
+
+      if (local_debug) {
+        printf("  cgf_map_variant_id %x.%x got cache %x\n", tilepath, step, k);
+      }
+
+      //prev_step = step;
+
+      // trailing spanning tile
+      //
+
+      //printf("  cache: step %x (%x)\n", step, (k==0) ? -1 : k );
+
+      step_varid.push_back( (k==0) ? -1 : k );
+      continue;
+    }
+
+
+    // complex tiles not supported
+    //
+    if (k==0xd) {
+      //prev_step = step;
+
+      //printf("  complex: step %x\n", step);
+
+      step_varid.push_back(-2);
+      continue;
+    }
+
+    if (actual_ovf_count==0) {
+
+      //printf("  >> first ovf step %x\n", step);
+
+      ovf = path->overflow;
+      nblock = (ovf->length + ovf->stride - 1) / ovf->stride;
+      stride = ovf->stride;
+
+      byte_tot = ovf->map_byte_count;
+
+      for (k=0; k<nblock; k++) {
+        if (step < ovf->position[k]) { break; }
+      }
+      k--;
+
+      if (local_debug) {
+        printf("k block %i (step %d (%x), position[%d] %d (%x))\n", k, step, step, k, (int)ovf->position[k], (int)ovf->position[k]);
+      }
+
+      byte_offset = ovf->offset[k];
+
+      prev_ovf_step = ovf->position[k];
+    }
+
+    if (local_debug) {
+      printf("byte offset %d (%x)\n", (int)byte_offset, (int)byte_offset);
+    }
+
+    //map_skip_count = cgf_relative_overflow_count(path->vec, ovf->position[k], step);
+    map_skip_count = cgf_relative_overflow_count(path->vec, prev_ovf_step, step);
+
+    if (local_debug) {
+      printf("  cgf_map_variant_id %x.%x map_skip_count %d\n", tilepath, step, map_skip_count);
+    }
+
+    k = 0;
+    while ((k < map_skip_count) && (byte_offset < byte_tot)) {
+      dn = dlug_convert_uint32(ovf->map + byte_offset, &u32);
+      if (dn<=0) { return -1; }
+
+      if (local_debug) { printf("  map[%d(%x)] %i, k:%d\n", (int)byte_offset, (int)byte_offset, (int)u32, k); }
+
+      byte_offset += dn;
+
+      k++;
+    }
+
+    if (local_debug) {
+      printf("  cgf_map_variant_id %x.%x mapval %i (skipped %d)\n", tilepath, step, (int)u32, k);
+    }
+
+    actual_ovf_count++;
+
+    prev_ovf_step = step+1;
+    step_varid.push_back((int)u32);
+  }
+
+  return actual_ovf_count;
+
+}
+
+// Find variant id of tilepath.tilestep in structure.
+// First determine whether it's a canonical tile or
+// resides in the cache and if it is, return the value.
+// Otherwise, start looking in the overflow and final
+// overflow structures.
+//
+// x
+//
 int cgf_map_variant_id(cgf_t *cgf, int tilepath, int step) {
   int i, j, k, dn;
   uint64_t nblock, stride, byte_tot;
@@ -908,11 +1047,10 @@ int cgf_final_overflow_match(cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, int tiles
   return 1;
 }
 
-// ovf_step has [ step , codea, code b ]
+// ovf_step has [ step , code a, code b ]
 // where codeX is -1 for overflow, -2 for complex and has the code otherwise.
 //
-int cgf_overflow_concordance(int *n_match,
-    //int *n_fin_ovf,
+int cgf_overflow_concordance_2(int *n_match,
     cgf_t *cgf_a, cgf_t *cgf_b,
     int tilepath,
     std::vector<int> &ovf_step) {
@@ -922,6 +1060,104 @@ int cgf_overflow_concordance(int *n_match,
   int match_count=0, fin_ovf_count=0;
 
   int local_debug = 0;
+
+  std::vector<int> steps;
+  std::vector<int> varids_a, varids_b;
+
+  for (i=0; i<ovf_step.size(); i+=3) { steps.push_back(ovf_step[i]); }
+
+  cgf_map_variant_ids(cgf_a, tilepath, steps, varids_a);
+  cgf_map_variant_ids(cgf_b, tilepath, steps, varids_b);
+
+  /*
+  printf(">>>> cgf_overflow_concordance...\n");
+  printf(" ovf_step %i, varids_a %i:\n", (int)steps.size(), (int)varids_a.size());
+  for (i=0; i<steps.size(); i++) {
+    printf("  [%i] %x %x\n", i, steps[i], varids_a[i]);
+  }
+  printf("\n");
+
+  printf(" ovf_step %d, varids_b %d:\n", (int)ovf_step.size(), (int)varids_b.size());
+  for (i=0; i<steps.size(); i++) {
+    printf("  [%i] %x %x\n", i, steps[i], varids_b[i]);
+  }
+  printf("\n");
+  */
+
+  for (idx=0; idx<steps.size(); idx++) {
+    var_a = varids_a[idx];
+    var_b = varids_b[idx];
+
+    if ((var_a < 1024) && (var_b < 1024)) {
+
+      if (var_a==var_b) {
+        match_count++;
+      }
+
+    } else if ((var_a>1024) && (var_b>1024)) {
+
+      // 1024 is a spanning tile,
+      // 1025 is a final overflow
+      //
+      fin_ovf_step.push_back(step);
+      fin_ovf_count++;
+    }
+
+  }
+
+  for (i=0; i<fin_ovf_step.size(); i++) {
+    if (cgf_final_overflow_match(cgf_a, cgf_b, tilepath, fin_ovf_step[i])) {
+      match_count++;
+    }
+  }
+
+  *n_match = match_count;
+
+  return 0;
+
+
+}
+
+// ovf_step has [ step , code a, code b ]
+// where codeX is -1 for overflow, -2 for complex and has the code otherwise.
+//
+int cgf_overflow_concordance(int *n_match,
+    cgf_t *cgf_a, cgf_t *cgf_b,
+    int tilepath,
+    std::vector<int> &ovf_step) {
+  int i, j, k, idx;
+  int var_a, var_b, step;
+  std::vector<int> fin_ovf_step;
+  int match_count=0, fin_ovf_count=0;
+
+  int local_debug = 0;
+
+  /*
+
+  std::vector<int> steps;
+  std::vector<int> varids_a, varids_b;
+
+  for (i=0; i<ovf_step.size(); i+=3) {
+    steps.push_back(ovf_step[i]);
+  }
+
+  cgf_map_variant_ids(cgf_a, tilepath, steps, varids_a);
+  cgf_map_variant_ids(cgf_b, tilepath, steps, varids_b);
+
+  printf(">>>> cgf_overflow_concordance...\n");
+  printf(" ovf_step %i, varids_a %i:\n", (int)steps.size(), (int)varids_a.size());
+  for (i=0; i<steps.size(); i++) {
+    printf("  [%i] %x %x\n", i, steps[i], varids_a[i]);
+  }
+  printf("\n");
+
+  printf(" ovf_step %d, varids_b %d:\n", (int)ovf_step.size(), (int)varids_b.size());
+  for (i=0; i<steps.size(); i++) {
+    printf("  [%i] %x %x\n", i, steps[i], varids_b[i]);
+  }
+  printf("\n");
+  */
+
 
   for (idx=0; idx<ovf_step.size(); idx+=3) {
     step = ovf_step[idx];
@@ -987,7 +1223,6 @@ int cgf_overflow_concordance(int *n_match,
         printf("%04x.%04x: fin_ovf_count++\n", tilepath, fin_ovf_step[i]);
         printf("mf: %04x.00.%04x\n", tilepath, fin_ovf_step[i]);
       }
-
 
       match_count++;
     }
@@ -1320,7 +1555,8 @@ int cgf_tile_concordance_2(int *n_match,
   }
 
   //cgf_overflow_concordance(&k, &j, cgf_a, cgf_b, tilepath, ovf_info);
-  cgf_overflow_concordance(&k, cgf_a, cgf_b, tilepath, ovf_info);
+  //cgf_overflow_concordance(&k, cgf_a, cgf_b, tilepath, ovf_info);
+  cgf_overflow_concordance_2(&k, cgf_a, cgf_b, tilepath, ovf_info);
 
   if (local_debug) {
     printf(">>>> overflow match %d\n", k);
@@ -1738,8 +1974,8 @@ int main(int argc, char **argv) {
             cgf, cgf_b,
             tilepath, 0, cgf->path[tilepath].n_tile);
         match_tot += n_match;
-        printf("#[%x] level: %i, matched %d (loq %d)\n", tilepath, lvl, n_match, n_loq);
-        printf("%04x %d\n", tilepath, n_match);
+        //printf("#[%x] level: %i, matched %d (loq %d)\n", tilepath, lvl, n_match, n_loq);
+        //printf("%04x %d\n", tilepath, n_match);
       }
 
       printf("#match_tot: %i\n", match_tot);
