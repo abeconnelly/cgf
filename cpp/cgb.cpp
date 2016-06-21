@@ -136,7 +136,7 @@ int cgf_unpack_tile_map(cgf_t *cgf) {
 //   return x;
 // }
 //
-int NumberOfSetBits(uint32_t u)
+inline int NumberOfSetBits(uint32_t u)
 {
   u = u - ((u >> 1) & 0x55555555);
   u = (u & 0x33333333) + ((u >> 2) & 0x33333333);
@@ -146,7 +146,7 @@ int NumberOfSetBits(uint32_t u)
 
 // This is slower than the above but is more explicit
 //
-int NumberOfSetBits8(uint8_t u)
+inline int NumberOfSetBits8(uint8_t u)
 {
   u = (u & 0x55) + ((u>>1) & 0x55);
   u = (u & 0x33) + ((u>>2) & 0x33);
@@ -490,6 +490,9 @@ int cgf_cache_map_val(uint64_t vec_val, int ofst) {
   uint64_t mask, x;
   int local_debug = 0;
 
+  uint32_t u32, mask32;
+  //int alt_count=0;
+
 
   // canonical tile
   if ((vec_val & (((uint64_t)1)<<(32+ofst)))==0) { return -1; }
@@ -498,10 +501,31 @@ int cgf_cache_map_val(uint64_t vec_val, int ofst) {
     printf("    vec_val %016" PRIx64 ", ofst %i\n", vec_val, ofst);
   }
 
-  //for (i=0, count=-1; i<=ofst; i++) {
+  /*
   for (i=0, count=0; i<=ofst; i++) {
     if (vec_val & (((uint64_t)1)<<(32+i))) { count++; }
   }
+  */
+
+  // updates...
+  u32 = (uint32_t)(vec_val>>32);
+  mask32 = (((uint32_t)0xffffffff)>>(31-ofst));
+  u32 &= mask32;
+
+  //alt_count = NumberOfSetBits(u32);
+  count = NumberOfSetBits(u32);
+
+  /*
+  if (count!=alt_count) {
+    u32 = (uint32_t)(vec_val>>32);
+    printf("vec_val %016" PRIx64 ", mask32 %08x, ofst %i, u32 %08x\n", vec_val, mask32, ofst, u32);
+
+    printf("wtf? %i!=%i\n", count, alt_count);
+    exit(1);
+  }
+  */
+
+
 
   if (local_debug) {
     printf("    count %i\n", count);
@@ -516,10 +540,6 @@ int cgf_cache_map_val(uint64_t vec_val, int ofst) {
   if (count<=0) { return -3; }
 
   shft=count-1;
-
-  //hx = (unsigned char)((vec_val & (0xf<<(count*4))) >> (count*4));
-  //return (int)hx;
-
   mask = 0xf;
   mask = mask<<(shft*4);
   mask = vec_val & mask;
@@ -531,10 +551,6 @@ int cgf_cache_map_val(uint64_t vec_val, int ofst) {
 
   mask = mask >> (shft*4);
   hx = (unsigned char)(mask & 0xf);
-
-  // this location is the later portion of a spanning tile
-  //
-  //if (hx==0) { return -3; }
 
   return (int)hx;
 }
@@ -1555,8 +1571,8 @@ int cgf_tile_concordance_2(int *n_match,
   }
 
   //cgf_overflow_concordance(&k, &j, cgf_a, cgf_b, tilepath, ovf_info);
-  //cgf_overflow_concordance(&k, cgf_a, cgf_b, tilepath, ovf_info);
-  cgf_overflow_concordance_2(&k, cgf_a, cgf_b, tilepath, ovf_info);
+  cgf_overflow_concordance(&k, cgf_a, cgf_b, tilepath, ovf_info);
+  //cgf_overflow_concordance_2(&k, cgf_a, cgf_b, tilepath, ovf_info);
 
   if (local_debug) {
     printf(">>>> overflow match %d\n", k);
