@@ -1258,6 +1258,11 @@ int cgf_tile_concordance_2(int *n_match,
       use_end = (start_step + n_step) % 32;
     }
 
+    // A little sloppy but skip this last block if
+    // there are no bits to consider.
+    //
+    if (use_end==0) { continue; }
+
     x32 = ((path_a->vec[s] & mask ) >> 32);
     y32 = ((path_b->vec[s] & mask ) >> 32);
     k = NumberOfSetBits(x32 | y32);
