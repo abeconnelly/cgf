@@ -128,7 +128,9 @@ int main(int argc, char **argv) {
     std::vector<int> allele[2];
     cgf_tile_band(cgf, tilepath, tilestep, n_tilestep, allele);
 
-    printf("{\n  \"%04x\":[\n", tilepath);
+    printf("{\n");
+    printf("  \"start_tilestep\":%i,\n", tilestep);
+    printf("  \"%04x\":[\n", tilepath);
     for (i=0; i<2; i++) {
       printf("    [ ");
       for (j=0; j<allele[i].size(); j++) {
