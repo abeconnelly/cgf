@@ -22,6 +22,31 @@ void show_help() {
   printf("\n");
 }
 
+int cgf_json_info_print(cgf_t *cgf) {
+  int i, n;
+
+  printf("{\n");
+  printf("  \"CGFVersion\":\"%s\",\n", cgf->cgf_version.s);
+  printf("  \"CGFLibraryVersion\":\"%s\",\n", cgf->lib_version.s);
+  printf("  \"PathCount\":%" PRId64 ",\n", cgf->path_count);
+  printf("  \"StepPerPath\":[");
+
+  for (i=0; i<cgf->path_count; i++) {
+    if (i>0) { printf(","); }
+
+    if ((i%16)==0) {
+      printf("\n");
+      printf("    ");
+    } else {
+      printf(" ");
+    }
+
+    printf("%" PRId64, cgf->step_per_path[i]);
+  }
+  printf("\n  ]\n");
+  printf("}\n");
+}
+
 int cgf_print_tile_map(cgf_t *cgf) {
   int i, j, k;
   char allele[] = "ab";

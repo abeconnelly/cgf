@@ -3,7 +3,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <string.h>
+
 #include <stdint.h>
+#include <inttypes.h>
+
+#include <vector>
+
+#include "dlug.h"
+
 
 typedef struct cgf_string_type  {
   int n;
@@ -115,8 +125,35 @@ int cgf_print_low_quality_info(cgf_low_quality_info_t *loq_info, int tilepath);
 void debug_print_cgf(cgf_t *cgf);
 void stats_print_cgf(cgf_t *cgf);
 
+
+int cgf_json_info_print(cgf_t *cgf);
+
+
 void show_help(void);
 
 
+int cgf_unpack_tile_map(cgf_t *cgf);
+int cgf_tile_concordance_0(int *n_match, cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, int start_step, int n_step);
+
+
+int cgf_tile_concordance_1(int *n_match, int *n_ovf, cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, int start_step, int n_step);
+
+
+int cgf_final_overflow_scan_to_start(cgf_final_overflow_t *fin_ovf, int start_step);
+int cgf_cache_map_val(uint64_t vec_val, int ofst);
+int cgf_relative_overflow_count(uint64_t *vec, int step_start, int step_end);
+int is_canonical_tile(uint64_t vec_val, int ofst);
+int cgf_map_variant_ids(cgf_t *cgf, int tilepath, std::vector<int> &step_vec, std::vector<int> &step_varid);
+int cgf_map_variant_id(cgf_t *cgf, int tilepath, int step);
+int cgf_final_overflow_map0_peel(uint8_t *bytes, int *anchor_step, int *n_allele, std::vector<int> *allele);
+int cgf_final_overflow_match(cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, int tilestep);
+int cgf_overflow_concordance_2(int *n_match, cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, std::vector<int> &ovf_step);
+int cgf_overflow_concordance(int *n_match, cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, std::vector<int> &ovf_step);
+uint8_t cgf_loq_tile(cgf_t *cgf, int tilepath, int tilestep);
+int cgf_tile_concordance_2(int *n_match, int *n_loq, cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, int start_step, int n_step);
+int cgf_final_overflow_step_offset(cgf_t *cgf, int tilepath, int tilestep);
+void test_lvl2(cgf_t *cgf, cgf_t *cgf_b);
+
 #endif
+
 
