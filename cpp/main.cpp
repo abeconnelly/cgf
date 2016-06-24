@@ -31,9 +31,10 @@ int main(int argc, char **argv) {
   int lvl=0;
 
   int single_path_concordance=-1;
+  int band_flag = 0;
 
 
-  while ((ch=getopt(argc, argv, "hvi:DSVp:s:l:C:n:j")) != -1) switch (ch) {
+  while ((ch=getopt(argc, argv, "hvi:DSVp:s:l:C:n:jB")) != -1) switch (ch) {
     case 'h':
       show_help();
       exit(0);
@@ -51,6 +52,10 @@ int main(int argc, char **argv) {
 
     case 'n':
       n_tilestep = atoi(optarg);
+      break;
+
+    case 'B':
+      band_flag = 1;
       break;
 
     case 'V':
@@ -97,6 +102,49 @@ int main(int argc, char **argv) {
   //cgf = load_cgf(fp);
   cgf = load_cgf_buf(fp);
   if (fp!=stdin) { fclose(fp); }
+
+  if (band_flag) {
+
+    if ((tilepath<0) || (tilepath > cgf->path_count)) {
+      printf("tilepath out of range (must be within [0,%i])\n", (int)cgf->path_count);
+      show_help();
+      exit(1);
+    }
+
+    if ((tilestep<0) || (tilestep >= cgf->step_per_path[tilepath])) {
+      printf("tilestep out of range (must be within [0,%i])\n", (int)cgf->step_per_path[tilepath]);
+      show_help();
+      exit(1);
+    }
+
+    if ((n_tilestep<0) || ((tilestep+n_tilestep) > cgf->step_per_path[tilepath])) {
+      n_tilestep = cgf->step_per_path[tilepath] - tilestep;
+    }
+
+    //printf(">>>> tilepath %i, tilestep %i, n_tilestep %i\n", tilepath, tilestep, n_tilestep);
+
+    int fold_w = 32;
+
+    std::vector<int> allele[2];
+    cgf_tile_band(cgf, tilepath, tilestep, n_tilestep, allele);
+
+    printf("{\n  \"%04x\":[\n", tilepath);
+    for (i=0; i<2; i++) {
+      printf("    [ ");
+      for (j=0; j<allele[i].size(); j++) {
+        if (j>0) { printf(", "); }
+        if ((j>0) && ((j%fold_w)==0)) { printf("\n      "); }
+        printf("%3i", allele[i][j]);
+      }
+      printf(" ]");
+      if (i<(2-1)) { printf(",\n"); }
+      else { printf("\n"); }
+    }
+    printf("  ]\n");
+    printf("}\n");
+
+    exit(0);
+  }
 
   cgf_b = load_cgf_fn("data/hu826751-GS03052-DNA_B01.cgf");
 

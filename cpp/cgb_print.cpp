@@ -16,8 +16,15 @@ void show_help() {
   printf("\n");
   printf("usage:\n");
   printf("  -i cgf        input cgf file\n");
+  printf("  [-l lvl]      concordance level (0,1,2)\n");
+  printf("  [-p tilepath] tile path\n");
+  printf("  [-s tilestep] tile step\n");
+  printf("  [-n n_step]   n tile steps\n");
+  printf("  [-B]          band flag\n");
+  printf("  [-C]          single tile path concordance\n");
   printf("  [-D]          debug print\n");
   printf("  [-S]          stats print\n");
+  printf("  [-j]          print JSON info\n");
   printf("  [-h]          help\n");
   printf("\n");
 }

@@ -117,6 +117,8 @@ cgf_t *load_cgf(FILE *fp);
 cgf_t *load_cgf_buf(FILE *fp);
 cgf_t *load_cgf_fn(const char *fn);
 
+int cgf_tile_band(cgf_t *cgf, int tilepath, int tilestep_beg, int tilestep_n, std::vector<int> *allele);
+
 
 int cgf_print_tile_map(cgf_t *cgf);
 void cgf_print_overflow(cgf_overflow_t *ovf, int tilepath);

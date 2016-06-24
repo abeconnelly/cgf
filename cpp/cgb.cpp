@@ -884,6 +884,62 @@ int cgf_final_overflow_map0_peel(uint8_t *bytes,
   return n;
 }
 
+int cgf_final_overflow_knot(cgf_t *cgf, int tilepath, int tilestep, std::vector<int> *knot) {
+  int i, j, k;
+  uint64_t n, byte_len;
+  uint8_t *code;
+  uint8_t *map;
+  int rec;
+  int step;
+  int dn;
+  int byte_offset;
+  cgf_final_overflow_t *fin_ovf;
+
+  int local_debug = 0;
+
+  knot[0].clear();
+  knot[1].clear();
+
+  fin_ovf = cgf->path[tilepath].final_overflow;
+
+  n = fin_ovf->data_record_n;
+  byte_len = fin_ovf->data_record_byte_len;
+
+  code = fin_ovf->data_record->code;
+  map  = fin_ovf->data_record->data;
+
+  byte_offset = 0;
+
+  if (local_debug) {
+    printf(">>> cgf_fin_ovf_knot %04x.%04x\n", tilepath, tilestep);
+  }
+
+  rec = 0;
+  step = -1;
+  while ((byte_offset < byte_len) && (step < tilestep) && (rec < n)) {
+
+    knot[0].clear();
+    knot[1].clear();
+
+    if (code[rec]==0) {
+      dn = cgf_final_overflow_map0_peel(map + byte_offset, &step, &k, knot);
+      if (dn<=0) { return 0; }
+      byte_offset += dn;
+
+      if (k!=2) { return 0; }
+    } else { return 0; }
+
+    rec++;
+  }
+
+  if (local_debug) {
+    printf("fin: %04x.%04x: fin ovf: rec %i, (step %x)\n", tilepath, tilestep, rec, step );
+  }
+
+  return 1;
+
+}
+
 // Determine if the tilepath.tilestep for cgf_a and cgf_b match.
 //
 int cgf_final_overflow_match(cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, int tilestep) {
@@ -1472,6 +1528,156 @@ int cgf_tile_concordance_2(int *n_match,
   return 0;
 }
 
+int cgf_tile_band(cgf_t *cgf,
+    int tilepath, int tilestep_beg, int tilestep_n,
+    std::vector<int> *allele) {
+  int i, j, k;
+  int s, s_end;
+  int tilemap_id;
+  int **tilemap_entry;
+  int val, span, knot_span[2];
+
+  int local_debug = 0;
+  std::vector<int> knot[2];
+
+  allele[0].clear();
+  allele[1].clear();
+
+  s = tilestep_beg;
+  s_end = tilestep_beg + tilestep_n;
+
+  tilemap_id = cgf_map_variant_id(cgf, tilepath, tilestep_beg);
+
+  if (tilemap_id<0) {
+    for (; (tilemap_id<0) && (tilestep_beg<s_end); tilestep_beg++) {
+
+      if (local_debug) {
+        printf("cgf_tile_band: start on spanning? (tilemap id %i), tilemap_beg (%i)\n",
+            tilemap_id, tilestep_beg);
+      }
+
+      tilemap_id = cgf_map_variant_id(cgf, tilepath, tilestep_beg);
+    }
+
+  }
+
+  if (local_debug) {
+    printf("cgf_tile_band: start tilemap_beg (%i), n %i (end %i)\n",
+            tilestep_beg, tilestep_n, s_end);
+  }
+
+  if (tilestep_beg==s_end) { return -1; }
+
+  for (s=tilestep_beg; s<s_end; ) {
+    tilemap_id = cgf_map_variant_id(cgf, tilepath, s);
+
+    if (local_debug) {
+      if (tilemap_id==-1) {
+        printf("TILEMAP_ID -1? %i, tilepath %i, s %i\n", tilemap_id, tilepath, s);
+      }
+      printf("%04x.%04x tilemap_id %i\n", tilepath, s, tilemap_id);
+    }
+
+    if (tilemap_id<0) { return -3; }
+
+    knot_span[0] = 0;
+    knot_span[1] = 0;
+
+    if ((tilemap_id>=0) && (tilemap_id<1024)) {
+
+      tilemap_entry = cgf->tile_map[tilemap_id];
+
+      for (i=0; i<tilemap_entry[0][0]; i++) {
+        val = tilemap_entry[0][2*i+1];
+        span = tilemap_entry[0][2*i+2];
+
+        knot_span[0]+=span;
+
+        allele[0].push_back(val);
+        for (j=1; j<span; j++) {
+          allele[0].push_back(-1);
+        }
+      }
+
+      for (i=0; i<tilemap_entry[1][0]; i++) {
+        val = tilemap_entry[1][2*i+1];
+        span = tilemap_entry[1][2*i+2];
+
+        knot_span[1]+=span;
+
+        allele[1].push_back(val);
+        for (j=1; j<span; j++) {
+          allele[1].push_back(-1);
+        }
+      }
+
+      if (local_debug) {
+        printf("knot_span (%x.%x) tilemap_id:%i, %i %i\n", tilepath, s, tilemap_id, knot_span[0], knot_span[1]);
+      }
+
+      if (knot_span[0] != knot_span[1]) { return -1; }
+      if (knot_span[0] <= 0) { return -2 ; }
+      s += knot_span[0];
+
+    }
+    else {
+      //DEBUG
+      if (local_debug) {
+        printf("adding step %i val %i\n", s, tilemap_id);
+      }
+
+      k = cgf_final_overflow_knot(cgf, tilepath, s, knot);
+
+      knot_span[0] = 0;
+      knot_span[1] = 0;
+
+      if (local_debug) {
+        printf("k %i\n", k);
+
+        printf(">>> knot[0]:");
+        for (i=0; i<knot[0].size(); i++) printf(" %i", knot[0][i]);
+        printf("\n");
+
+        printf(">>> knot[1]:");
+        for (i=0; i<knot[1].size(); i++) printf(" %i", knot[1][i]);
+        printf("\n");
+      }
+
+      for (i=0; i<knot[0].size(); i+=2) {
+        allele[0].push_back(knot[0][i]);
+        knot_span[0] += knot[0][i+1];
+        for (j=1; j<knot[0][i + 1]; j++) {
+          allele[0].push_back(-1);
+        }
+      }
+
+      for (i=0; i<knot[1].size(); i+=2) {
+        allele[1].push_back(knot[1][i]);
+        knot_span[1] += knot[1][i+1];
+        for (j=1; j<knot[1][i + 1]; j++) {
+          allele[1].push_back(-1);
+        }
+      }
+
+      //allele[0].push_back(tilemap_id);
+      //allele[1].push_back(tilemap_id);
+
+      if (knot_span[0] != knot_span[1]) { return -1; }
+      if (knot_span[0] <= 0) { return -2 ; }
+      s += knot_span[0];
+
+
+      //return -1;
+    }
+
+  }
+
+  return 0;
+}
+
+// Return byte offset of tilestep in tilepath final overflow data bytes,
+// -1 on step not found
+//
 int cgf_final_overflow_step_offset(cgf_t *cgf, int tilepath, int tilestep) {
   uint64_t prev_byte_offset, byte_offset, byte_len, n_rec, data_byte_len;
   int n, dn;
@@ -1642,3 +1848,5 @@ void test_lvl2(cgf_t *cgf, cgf_t *cgf_b) {
 
   printf("level: %i, match: %i, loq: %d\n", lvl, k, j);
 }
+
+
