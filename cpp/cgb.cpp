@@ -1528,6 +1528,451 @@ int cgf_tile_concordance_2(int *n_match,
   return 0;
 }
 
+//----
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+int cgf_loq_count(cgf_t *cgf, int tilepath, int start_tilestep, int n_tilestep) {
+  int i, j, k;
+  int beg_block, end_block;
+  uint8_t u8, mask;
+  int loq_count=0;
+
+  beg_block = start_tilestep/8;
+  end_block = (start_tilestep + n_tilestep)/8;
+
+  u8 = cgf->path[tilepath].loq_info->loq_flag[beg_block];
+
+  mask = (uint8_t)(((uint8_t)0xff) << (start_tilestep%8) );
+
+  if (end_block == beg_block) {
+    k = ((start_tilestep + n_tilestep)%8);
+    mask &= ((uint8_t)0xff) >> (8-k);
+  }
+
+  loq_count += NumberOfSetBits8( u8 & mask );
+
+  if (end_block > beg_block) { mask = 0xff; }
+
+  for (i=(beg_block+1); i<end_block; i++) {
+    loq_count += NumberOfSetBits8( cgf->path[tilepath].loq_info->loq_flag[i] );
+  }
+
+  if ( (end_block > beg_block) &&
+      (((start_tilestep + n_tilestep)%8) > 0) ) {
+    k = ((start_tilestep + n_tilestep)%8);
+    mask &= ((uint8_t)0xff) >> (8-k);
+
+    u8 = cgf->path[tilepath].loq_info->loq_flag[end_block];
+    loq_count += NumberOfSetBits8( u8 & mask );
+  }
+
+  return loq_count;
+}
+
+int cgf_loq_block(cgf_t *cgf, int tilepath, int tilestep) {
+  int b;
+  uint64_t stride=0, byte_offset, n_loq_block;
+  cgf_low_quality_info_t *loq_info;
+
+  loq_info = cgf->path[tilepath].loq_info;
+
+  stride = loq_info->stride;
+  if (stride==0) { return -1; }
+  n_loq_block = (loq_info->count + stride - 1) / stride;
+
+  for (b=1; b<n_loq_block; b++) {
+    if (tilestep < loq_info->step_position[b]) { break; }
+  }
+  b--;
+
+  return b;
+}
+
+int cgf_loq_offset_2(cgf_t *cgf, int tilepath, int tilestep) {
+  int i, j, k;
+  int b, n_loq_block = -1;
+  uint64_t stride=0, byte_offset;
+  int block_startstep;
+  int loq_count=0;
+  cgf_low_quality_info_t *loq_info;
+
+  loq_info = cgf->path[tilepath].loq_info;
+
+  b = cgf_loq_block(cgf, tilepath, tilestep);
+
+  printf("  b %i\n", b);
+
+  byte_offset = loq_info->offset[b];
+  block_startstep = (int)loq_info->step_position[b];
+
+  printf("  byte_offset %i, block_startstep: %i\n", (int)byte_offset, (int)block_startstep);
+
+  if (tilestep < block_startstep) { return 0; }
+
+  printf("  dn: %i\n", tilestep - (int)block_startstep);
+
+  loq_count = cgf_loq_count(cgf, tilepath, block_startstep, tilestep - (int)block_startstep);
+  return loq_count;
+}
+
+int cgf_loq_offset(cgf_t *cgf, int tilepath, int tilestep) {
+  int i;
+  int q, r;
+  int loq_count=0;
+
+  q = tilestep / 8;
+  r = tilestep % 8;
+
+  for (i=0; i<q; i++) {
+    loq_count += NumberOfSetBits8(cgf->path[tilepath].loq_info->loq_flag[i]);
+  }
+
+  for (i=0; i<r; i++) {
+    if (cgf->path[tilepath].loq_info->loq_flag[q] & (1<<i)) { loq_count++; }
+  }
+
+  return loq_count;
+}
+
+uint8_t cgf_loq_is_hom(cgf_t *cgf, int tilepath, int loq_idx) {
+  return cgf->path[tilepath].loq_info->hom_flag[loq_idx/8] & (1<<(loq_idx%8));
+}
+
+int cgf_expand_loq_info(cgf_t *cgf, int tilepath, int tilestep, std::vector< std::vector<int> > *v) {
+  int i, j, k, dn;
+  int loq_offset=0;
+  uint8_t u8;
+  int block, loq_rel_count;
+  uint64_t block_startstep;
+  uint64_t byte_offset;
+  uint64_t n_byte;
+  cgf_low_quality_info_t *loq_info;
+  uint8_t hom_flag;
+  uint8_t *loq_bytes;
+
+  uint32_t ntile[2], loq_ent_len, delpos, loqlen;
+  int a, cur_loq_idx;
+
+  int local_debug=0;
+  std::vector<int> tv;
+
+  v[0].clear();
+  v[1].clear();
+
+  loq_info = cgf->path[tilepath].loq_info;
+  loq_bytes = loq_info->loq_info;
+
+  block = cgf_loq_block(cgf, tilepath, tilestep);
+
+  byte_offset = loq_info->offset[block];
+  block_startstep = loq_info->step_position[block];
+
+  if (!cgf_loq_tile(cgf, tilepath, tilestep)) {
+
+    //DEBUG
+    if (local_debug) {
+      printf("not a loq tile\n");
+    }
+
+    tv.clear();
+    v[0].push_back(tv);
+    v[1].push_back(tv);
+
+    return -1;
+  }
+
+  //DEBUG
+  if (local_debug) {
+    printf("  block %i, byte_offset %i, block_startstep %i\n", (int)block, (int)byte_offset, (int)block_startstep);
+  }
+
+  loq_rel_count = cgf_loq_count(cgf, tilepath, block_startstep, tilestep - (int)block_startstep);
+
+  n_byte = loq_info->loq_info_byte_count;
+
+  if (local_debug) {
+    printf(">>>> loq_rel_count %i (block_startstep %i, tilestep - block_startstep %i), n_byte %i\n",
+        (int)loq_rel_count,
+        (int)block_startstep,
+        tilestep - (int)block_startstep,
+        (int)n_byte);
+  }
+
+  cur_loq_idx = 0;
+  while ((byte_offset < n_byte) && (cur_loq_idx <= loq_rel_count)) {
+
+    hom_flag = cgf_loq_is_hom(cgf, tilepath, (loq_info->stride)*block + cur_loq_idx);
+
+    //DEBUG
+    if (local_debug) {
+      printf("byte_offset %i (%i), cur_loq_idx %i, loq_rel_count %i, hom %02x\n", (int)byte_offset, (int)n_byte, (int)cur_loq_idx, (int)loq_rel_count, hom_flag); 
+    }
+
+    if (hom_flag) {
+
+      dn = dlug_convert_uint32(loq_bytes + byte_offset, &(ntile[0]));
+      if (dn<0) { return -1; }
+      byte_offset += dn;
+
+      //DEBUG
+      if (local_debug) {
+        printf("hom:");
+      }
+
+
+      for (i=0; i<ntile[0]; i++) {
+
+        if (cur_loq_idx == loq_rel_count) {
+          tv.clear();
+          v[0].push_back(tv);
+          v[1].push_back(tv);
+        }
+
+        dn = dlug_convert_uint32(loq_bytes + byte_offset, &loq_ent_len);
+        if (dn<0) { return -1; }
+        byte_offset += dn;
+
+        //DEBUG
+        if (local_debug) {
+          printf("[");
+        }
+
+        for (j=0; j<loq_ent_len; j+=2) {
+          dn = dlug_convert_uint32(loq_bytes + byte_offset, &delpos);
+          if (dn<0) { return -1; }
+          byte_offset += dn;
+
+          dn = dlug_convert_uint32(loq_bytes + byte_offset, &loqlen);
+          if (dn<0) { return -1; }
+          byte_offset += dn;
+
+          if (cur_loq_idx == loq_rel_count) {
+            v[0][i].push_back((int)delpos);
+            v[0][i].push_back((int)loqlen);
+            v[1][i].push_back((int)delpos);
+            v[1][i].push_back((int)loqlen);
+          }
+
+
+          //DEBUG
+          if (local_debug) {
+            printf(" %i+%i", (int)delpos, (int)loqlen);
+          }
+
+        }
+
+        //DEBUG
+        if (local_debug) {
+          printf(" ]");
+        }
+
+      }
+
+      //DEBUG
+      if (local_debug) {
+        printf("\n");
+      }
+
+    } else {
+
+      dn = dlug_convert_uint32(loq_bytes + byte_offset, &(ntile[0]));
+      if (dn<0) { return -1; }
+      byte_offset += dn;
+
+      dn = dlug_convert_uint32(loq_bytes + byte_offset, &(ntile[1]));
+      if (dn<0) { return -1; }
+      byte_offset += dn;
+
+      //DEBUG
+      if (local_debug) {
+        printf("het:");
+      }
+
+      for (a=0; a<2; a++) {
+
+        //DEBUG
+        if (local_debug) {
+          printf("\n  ");
+        }
+
+        for (i=0; i<ntile[a]; i++) {
+
+          if (cur_loq_idx == loq_rel_count) {
+            tv.clear();
+            v[a].push_back(tv);
+          }
+
+
+          dn = dlug_convert_uint32(loq_bytes + byte_offset, &loq_ent_len);
+          if (dn<0) { return -1; }
+          byte_offset += dn;
+
+          //DEBUG
+          if (local_debug) {
+            printf("[");
+          }
+
+          for (j=0; j<loq_ent_len; j+=2) {
+            dn = dlug_convert_uint32(loq_bytes + byte_offset, &delpos);
+            if (dn<0) { return -1; }
+            byte_offset += dn;
+
+            dn = dlug_convert_uint32(loq_bytes + byte_offset, &loqlen);
+            if (dn<0) { return -1; }
+            byte_offset += dn;
+
+            if (cur_loq_idx == loq_rel_count) {
+              v[a][i].push_back((int)delpos);
+              v[a][i].push_back((int)loqlen);
+            }
+
+            //DEBUG
+            if (local_debug) {
+              printf(" %i+%i", (int)delpos, (int)loqlen);
+            }
+
+          }
+
+          //DEBUG
+          if (local_debug) {
+            printf(" ]");
+          }
+
+        }
+
+      }
+
+      //DEBUG
+      if (local_debug) {
+        printf("\n");
+      }
+
+    }
+
+    cur_loq_idx++;
+
+
+  }
+
+  if (local_debug) {
+    printf("!!!!\n");
+  }
+
+
+  /*
+  u8 = cgf_loq_tile(cgf, tilepath, tilestep);
+
+  //DEBUG
+  printf("??? %04x\n", u8);
+  printf("    %04x %04x %04x\n",
+      cgf->path[tilepath].loq_info->loq_flag[tilestep/8],
+      1<<(tilestep%8),
+      cgf->path[tilepath].loq_info->loq_flag[tilestep/8] & (1<<(tilestep%8)));
+      */
+
+  if (cgf_loq_tile(cgf, tilepath, tilestep)==0) { return -1; }
+
+  loq_offset = cgf_loq_offset(cgf, tilepath, tilestep);
+
+  if (local_debug) {
+    printf(">>> %x.%x: loq_offset %i\n", tilepath, tilestep, loq_offset);
+  }
+
+  return 0;
+}
+
+int cgf_loq_tile_band(cgf_t *cgf,
+    int tilepath, int tilestep_beg, int tilestep_n,
+    std::vector<int> *allele,
+    std::vector< std::vector<int> > *loq_info) {
+  int i, j, k;
+  int s, s_end;
+  int tilemap_id;
+  int **tilemap_entry;
+  int val, span, knot_span[2];
+  int a, aa, curstep;
+
+  int local_debug = 0;
+  int loq_step_pos[2];
+  int step_idx;
+  std::vector<int> knot[2];
+  std::vector<int> t;
+  std::vector< std::vector<int> > loqv[2];
+
+  loq_info[0].clear();
+  loq_info[1].clear();
+
+  loq_step_pos[0] = tilestep_beg;
+  loq_step_pos[1] = tilestep_beg;
+  step_idx = 0;
+
+  while (step_idx < tilestep_n) {
+    loqv[0].clear();
+    loqv[1].clear();
+
+    // store loq info in loqv
+    //
+    k = cgf_expand_loq_info(cgf, tilepath, tilestep_beg + step_idx, loqv);
+
+    // add to loq_info
+    //
+    for (a=0; a<2; a++) {
+      int cur_idx = 0;
+
+      for (i=0; i<loqv[a].size(); i++) {
+        loq_info[a].push_back(loqv[a][i]);
+        cur_idx++;
+        while (((step_idx + cur_idx) < tilestep_n) &&
+               (allele[a][step_idx+cur_idx]<0)) {
+          cur_idx++;
+
+          t.clear();
+          loq_info[a].push_back(t);
+        }
+      }
+
+    }
+
+    // skip to next 'knot' (skip over spanning tiles until
+    // we reach next anchor tile)
+    //
+    do {
+      step_idx++;
+    } while ((step_idx < tilestep_n) &&
+        ((allele[0][step_idx] < 0) || (allele[1][step_idx] < 0)) );
+
+  }
+
+  /*
+  for (aa=0; aa<2; aa++) {
+    for (curstep=tilestep_beg; curstep<(tilestep_beg + tilestep_n); ) {
+
+      if (allele[aa][curstep]<0) { return -1; }
+
+      t.clear();
+      loq_info[aa].push_back(t);
+
+      if (cgf_loq_tile(cgf, tilepath, curstep)!=0) {
+        // find loq information and add it to current loq entry
+      }
+
+      t.clear();
+      for (curstep++; curstep<allele[aa].size(); curstep++) {
+        if (allele[aa][curstep] >= 0) { break; }
+        loq_info[aa].push_back(t);
+      }
+
+    }
+  }
+  */
+
+  return 0;
+}
+
+
 int cgf_tile_band(cgf_t *cgf,
     int tilepath, int tilestep_beg, int tilestep_n,
     std::vector<int> *allele) {

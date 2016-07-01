@@ -118,6 +118,7 @@ cgf_t *load_cgf_buf(FILE *fp);
 cgf_t *load_cgf_fn(const char *fn);
 
 int cgf_tile_band(cgf_t *cgf, int tilepath, int tilestep_beg, int tilestep_n, std::vector<int> *allele);
+int cgf_loq_tile_band(cgf_t *cgf, int tilepath, int tilestep_beg, int tilestep_n, std::vector<int> *allele, std::vector< std::vector<int> > *loq_allele);
 
 
 int cgf_print_tile_map(cgf_t *cgf);
@@ -151,10 +152,16 @@ int cgf_final_overflow_map0_peel(uint8_t *bytes, int *anchor_step, int *n_allele
 int cgf_final_overflow_match(cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, int tilestep);
 int cgf_overflow_concordance_2(int *n_match, cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, std::vector<int> &ovf_step);
 int cgf_overflow_concordance(int *n_match, cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, std::vector<int> &ovf_step);
-uint8_t cgf_loq_tile(cgf_t *cgf, int tilepath, int tilestep);
 int cgf_tile_concordance_2(int *n_match, int *n_loq, cgf_t *cgf_a, cgf_t *cgf_b, int tilepath, int start_step, int n_step);
 int cgf_final_overflow_step_offset(cgf_t *cgf, int tilepath, int tilestep);
 void test_lvl2(cgf_t *cgf, cgf_t *cgf_b);
+
+uint8_t cgf_loq_tile(cgf_t *cgf, int tilepath, int tilestep);
+int cgf_expand_loq_info(cgf_t *cgf, int tilepath, int tilestep, std::vector< std::vector<int> > *v);
+int cgf_loq_offset(cgf_t *cgf, int tilepath, int tilestep);
+int cgf_loq_offset_2(cgf_t *cgf, int tilepath, int tilestep);
+
+int cgf_loq_count(cgf_t *cgf, int tilepath, int tilestep, int n_tilestep);
 
 #endif
 
