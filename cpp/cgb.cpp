@@ -1895,6 +1895,8 @@ int cgf_loq_tile_band(cgf_t *cgf,
   int val, span, knot_span[2];
   int a, aa, curstep;
 
+  int add_empty_loq = 0;
+
   int local_debug = 0;
   int loq_step_pos[2];
   int step_idx;
@@ -1917,30 +1919,52 @@ int cgf_loq_tile_band(cgf_t *cgf,
     //
     k = cgf_expand_loq_info(cgf, tilepath, tilestep_beg + step_idx, loqv);
 
-    // add to loq_info
-    //
-    for (a=0; a<2; a++) {
-      int cur_idx = 0;
+    add_empty_loq = ((k<0) ? 1 : 0);
 
-      for (i=0; i<loqv[a].size(); i++) {
-        loq_info[a].push_back(loqv[a][i]);
-        cur_idx++;
-        while (((step_idx + cur_idx) < tilestep_n) &&
-               (allele[a][step_idx+cur_idx]<0)) {
+    if (!add_empty_loq) {
+
+      // add to loq_info
+      //
+      for (a=0; a<2; a++) {
+        int cur_idx = 0;
+
+        for (i=0; i<loqv[a].size(); i++) {
+          loq_info[a].push_back(loqv[a][i]);
           cur_idx++;
+          while (((step_idx + cur_idx) < tilestep_n) &&
+                 (allele[a][step_idx+cur_idx]<0)) {
+            cur_idx++;
 
+            t.clear();
+            loq_info[a].push_back(t);
+          }
+        }
+
+        /*
+        // Fill in remaining loq element positions with empty entries
+        //
+        while ((cur_idx < tilestep_n) && (allele[a][cur_idx]<0)) {
           t.clear();
           loq_info[a].push_back(t);
+          cur_idx++;
         }
-      }
+        */
 
+      }
     }
 
     // skip to next 'knot' (skip over spanning tiles until
     // we reach next anchor tile)
     //
+    t.clear();
     do {
       step_idx++;
+
+      if (add_empty_loq) {
+        loq_info[0].push_back(t);
+        loq_info[1].push_back(t);
+      }
+
     } while ((step_idx < tilestep_n) &&
         ((allele[0][step_idx] < 0) || (allele[1][step_idx] < 0)) );
 
