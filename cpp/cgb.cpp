@@ -2006,6 +2006,8 @@ int cgf_tile_band(cgf_t *cgf,
   int **tilemap_entry;
   int val, span, knot_span[2];
 
+  int tilestep_beg_actual, tilestep_n_actual;
+
   int local_debug = 0;
   std::vector<int> knot[2];
 
@@ -2015,17 +2017,22 @@ int cgf_tile_band(cgf_t *cgf,
   s = tilestep_beg;
   s_end = tilestep_beg + tilestep_n;
 
+  tilestep_beg_actual = tilestep_beg;
+  tilestep_n_actual = tilestep_n;
+
   tilemap_id = cgf_map_variant_id(cgf, tilepath, tilestep_beg);
 
   if (tilemap_id<0) {
-    for (; (tilemap_id<0) && (tilestep_beg<s_end); tilestep_beg++) {
+    //for (; (tilemap_id<0) && (tilestep_beg<s_end); tilestep_beg++) {
+    while ((tilemap_id<0) && (tilestep_beg>0)) {
+      tilestep_beg--;
+      tilemap_id = cgf_map_variant_id(cgf, tilepath, tilestep_beg);
 
       if (local_debug) {
         printf("cgf_tile_band: start on spanning? (tilemap id %i), tilemap_beg (%i)\n",
             tilemap_id, tilestep_beg);
       }
 
-      tilemap_id = cgf_map_variant_id(cgf, tilepath, tilestep_beg);
     }
 
   }
@@ -2036,6 +2043,8 @@ int cgf_tile_band(cgf_t *cgf,
   }
 
   if (tilestep_beg==s_end) { return -1; }
+
+  int del_s = 0;
 
   for (s=tilestep_beg; s<s_end; ) {
     tilemap_id = cgf_map_variant_id(cgf, tilepath, s);
@@ -2052,31 +2061,46 @@ int cgf_tile_band(cgf_t *cgf,
     knot_span[0] = 0;
     knot_span[1] = 0;
 
+
     if ((tilemap_id>=0) && (tilemap_id<1024)) {
 
       tilemap_entry = cgf->tile_map[tilemap_id];
 
+      del_s = 0;
       for (i=0; i<tilemap_entry[0][0]; i++) {
         val = tilemap_entry[0][2*i+1];
         span = tilemap_entry[0][2*i+2];
 
         knot_span[0]+=span;
 
-        allele[0].push_back(val);
+        if ((s + del_s) >= tilestep_beg_actual) {
+          allele[0].push_back(val);
+        }
+        del_s++;
         for (j=1; j<span; j++) {
-          allele[0].push_back(-1);
+          if ((s + del_s) >= tilestep_beg_actual) {
+            allele[0].push_back(-1);
+          }
+          del_s++;
         }
       }
 
+      del_s = 0;
       for (i=0; i<tilemap_entry[1][0]; i++) {
         val = tilemap_entry[1][2*i+1];
         span = tilemap_entry[1][2*i+2];
 
         knot_span[1]+=span;
 
-        allele[1].push_back(val);
+        if ((s + del_s) >= tilestep_beg_actual) {
+          allele[1].push_back(val);
+        }
+        del_s++;
         for (j=1; j<span; j++) {
-          allele[1].push_back(-1);
+          if ((s + del_s) >= tilestep_beg_actual) {
+            allele[1].push_back(-1);
+          }
+          del_s++;
         }
       }
 
@@ -2112,19 +2136,33 @@ int cgf_tile_band(cgf_t *cgf,
         printf("\n");
       }
 
+      del_s=0;
       for (i=0; i<knot[0].size(); i+=2) {
-        allele[0].push_back(knot[0][i]);
+        if ((s + del_s) >= tilestep_beg_actual) {
+          allele[0].push_back(knot[0][i]);
+        }
+        del_s++;
         knot_span[0] += knot[0][i+1];
         for (j=1; j<knot[0][i + 1]; j++) {
-          allele[0].push_back(-1);
+          if ((s + del_s) >= tilestep_beg_actual) {
+            allele[0].push_back(-1);
+          }
+          del_s++;
         }
       }
 
+      del_s=0;
       for (i=0; i<knot[1].size(); i+=2) {
-        allele[1].push_back(knot[1][i]);
+        if ((s + del_s) >= tilestep_beg_actual) {
+          allele[1].push_back(knot[1][i]);
+        }
+        del_s++;
         knot_span[1] += knot[1][i+1];
         for (j=1; j<knot[1][i + 1]; j++) {
-          allele[1].push_back(-1);
+          if ((s + del_s) >= tilestep_beg_actual) {
+            allele[1].push_back(-1);
+          }
+          del_s++;
         }
       }
 

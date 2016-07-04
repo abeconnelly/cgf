@@ -126,8 +126,6 @@ int main(int argc, char **argv) {
       exit(1);
     }
 
-
-    std::vector< std::vector<int> > loqv[2];
     /*
     for (i=0; i<cgf->path[tilepath].n_tile; i++) {
       printf("%04x.%04x ", tilepath, i);
@@ -135,19 +133,23 @@ int main(int argc, char **argv) {
     }
     */
 
+
+    /*
+    std::vector< std::vector<int> > loqv[2];
     for (tilepath=0; tilepath<863; tilepath++) {
       printf("%04x\n", tilepath);
       for (i=0; i<cgf->path[tilepath].n_tile; i++) {
         cgf_expand_loq_info(cgf, tilepath, i, loqv);
       }
     }
-
     exit(0);
+    */
 
     //test expand loq info
     //std::vector<int> loqv[2];
     //k = cgf_expand_loq_info(cgf, 0x2fb, 0x4, loqv);
 
+    /*
     for (i=0; i<cgf->path[tilepath].n_tile; i++) {
       printf("%04x.%04x: loq(%i,%i)\n", tilepath, i,
           cgf_loq_offset(cgf, tilepath, i),
@@ -155,18 +157,17 @@ int main(int argc, char **argv) {
     }
     printf("\n");
     exit(0);
+    */
 
-    k = cgf_expand_loq_info(cgf, tilepath, tilestep, loqv);
-
-    printf(">> got %i\n", k);
-
-    exit(0);
+    //k = cgf_expand_loq_info(cgf, tilepath, tilestep, loqv);
+    //printf(">> got %i\n", k);
+    //exit(0);
 
     std::vector<int> allele[2];
     std::vector< std::vector<int> > loq_allele[2];
 
-    cgf_tile_band(cgf, tilepath, tilestep, 10, allele);
-    cgf_loq_tile_band(cgf, tilepath, tilestep, 10, allele, loq_allele);
+    cgf_tile_band(cgf, tilepath, tilestep, n_tilestep, allele);
+    cgf_loq_tile_band(cgf, tilepath, tilestep, n_tilestep, allele, loq_allele);
 
     for (i=0; i<2; i++) {
       printf("[");
