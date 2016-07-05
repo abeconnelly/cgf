@@ -1945,28 +1945,27 @@ int cgf_loq_tile_band(cgf_t *cgf,
 
     //DEBUG
     //DEBUG
-    printf(">> loqv %i %i\n", (int)loqv[0].size(), (int)loqv[1].size());
-    for (i=0; i<loqv[0].size(); i++) {
-      printf(" [");
-      for (j=0; j<loqv[0][i].size(); j++) {
-        printf(" %i", loqv[0][i][j]);
+    if (local_debug) {
+      printf(">> loqv %i %i\n", (int)loqv[0].size(), (int)loqv[1].size());
+      for (i=0; i<loqv[0].size(); i++) {
+        printf(" [");
+        for (j=0; j<loqv[0][i].size(); j++) {
+          printf(" %i", loqv[0][i][j]);
+        }
+        printf("]");
       }
-      printf("]");
-    }
-    printf("\n");
-    for (i=0; i<loqv[1].size(); i++) {
-      printf(" [");
-      for (j=0; j<loqv[1][i].size(); j++) {
-        printf(" %i", loqv[1][i][j]);
+      printf("\n");
+      for (i=0; i<loqv[1].size(); i++) {
+        printf(" [");
+        for (j=0; j<loqv[1][i].size(); j++) {
+          printf(" %i", loqv[1][i][j]);
+        }
+        printf("]");
       }
-      printf("]");
+      printf("\n");
     }
-    printf("\n");
     //DEBUG
     //DEBUG
-
-
-
 
 
     //add_empty_loq = ((k<0) ? 1 : 0);
@@ -2068,7 +2067,7 @@ int cgf_tile_band(cgf_t *cgf,
 
   int tilestep_beg_actual, tilestep_n_actual;
 
-  int local_debug = 1;
+  int local_debug = 0;
   std::vector<int> knot[2];
 
   allele[0].clear();
