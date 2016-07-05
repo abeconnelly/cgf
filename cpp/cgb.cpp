@@ -1641,6 +1641,11 @@ uint8_t cgf_loq_is_hom(cgf_t *cgf, int tilepath, int loq_idx) {
   return cgf->path[tilepath].loq_info->hom_flag[loq_idx/8] & (1<<(loq_idx%8));
 }
 
+
+// This does not fill out spanning tile information with empty low quality tile information.
+// v is a two element array of vector of vectors, with each base vector holding an interleaved
+//   (start,length) tuple of low quality information.
+//
 int cgf_expand_loq_info(cgf_t *cgf, int tilepath, int tilestep, std::vector< std::vector<int> > *v) {
   int i, j, k, dn;
   int loq_offset=0;
@@ -1708,7 +1713,7 @@ int cgf_expand_loq_info(cgf_t *cgf, int tilepath, int tilestep, std::vector< std
 
     //DEBUG
     if (local_debug) {
-      printf("byte_offset %i (%i), cur_loq_idx %i, loq_rel_count %i, hom %02x\n", (int)byte_offset, (int)n_byte, (int)cur_loq_idx, (int)loq_rel_count, hom_flag); 
+      printf("byte_offset %i (%i), cur_loq_idx %i, loq_rel_count %i, hom %02x\n", (int)byte_offset, (int)n_byte, (int)cur_loq_idx, (int)loq_rel_count, hom_flag);
     }
 
     if (hom_flag) {
@@ -1884,6 +1889,25 @@ int cgf_expand_loq_info(cgf_t *cgf, int tilepath, int tilestep, std::vector< std
   return 0;
 }
 
+// Fill in loq_info with low quality information about each tile.
+// The base vector holds interleaved start position and length information
+// of the low quality tile.  For example:
+//
+//   [ [ [ 3, 5, 16, 1 ], [] ], [ [ 3, 5, 15, 2 ], [3,1] ] ]
+//
+// would indicate diploid entry with two tiles in each allele,
+// with the first having a nocall starting at 3 of 5 long, next
+// starting at 16 with 1 long and the second tile on the first
+// allele without any nocalls.  The second allele would have a nocall
+// on the first tile starting at 3 of 5 long, next starting at 15
+// with 2 long and the second tile on the second allele starting at 3 of
+// length 1.
+//
+// It is the callers responsibility to make sure the allele holds valid
+// information and that the first entry in each of the alleles is a non-spanning
+// tile.  If filtering needs to be done it should be done after the fact (after
+// the appopriate entries have been filled in here).
+//
 int cgf_loq_tile_band(cgf_t *cgf,
     int tilepath, int tilestep_beg, int tilestep_n,
     std::vector<int> *allele,
@@ -1895,7 +1919,7 @@ int cgf_loq_tile_band(cgf_t *cgf,
   int val, span, knot_span[2];
   int a, aa, curstep;
 
-  int add_empty_loq = 0;
+  //int add_empty_loq = 0;
 
   int local_debug = 0;
   int loq_step_pos[2];
@@ -1919,9 +1943,37 @@ int cgf_loq_tile_band(cgf_t *cgf,
     //
     k = cgf_expand_loq_info(cgf, tilepath, tilestep_beg + step_idx, loqv);
 
-    add_empty_loq = ((k<0) ? 1 : 0);
+    //DEBUG
+    //DEBUG
+    printf(">> loqv %i %i\n", (int)loqv[0].size(), (int)loqv[1].size());
+    for (i=0; i<loqv[0].size(); i++) {
+      printf(" [");
+      for (j=0; j<loqv[0][i].size(); j++) {
+        printf(" %i", loqv[0][i][j]);
+      }
+      printf("]");
+    }
+    printf("\n");
+    for (i=0; i<loqv[1].size(); i++) {
+      printf(" [");
+      for (j=0; j<loqv[1][i].size(); j++) {
+        printf(" %i", loqv[1][i][j]);
+      }
+      printf("]");
+    }
+    printf("\n");
+    //DEBUG
+    //DEBUG
 
-    if (!add_empty_loq) {
+
+
+
+
+    //add_empty_loq = ((k<0) ? 1 : 0);
+    //add_empty_loq = 0;
+
+
+    //if (!add_empty_loq) {
 
       // add to loq_info
       //
@@ -1929,12 +1981,15 @@ int cgf_loq_tile_band(cgf_t *cgf,
         int cur_idx = 0;
 
         for (i=0; i<loqv[a].size(); i++) {
-          loq_info[a].push_back(loqv[a][i]);
+
+          if ((step_idx + cur_idx) < tilestep_n) {
+            loq_info[a].push_back(loqv[a][i]);
+          }
+
           cur_idx++;
           while (((step_idx + cur_idx) < tilestep_n) &&
                  (allele[a][step_idx+cur_idx]<0)) {
             cur_idx++;
-
             t.clear();
             loq_info[a].push_back(t);
           }
@@ -1951,7 +2006,8 @@ int cgf_loq_tile_band(cgf_t *cgf,
         */
 
       }
-    }
+
+    //}
 
     // skip to next 'knot' (skip over spanning tiles until
     // we reach next anchor tile)
@@ -1960,10 +2016,14 @@ int cgf_loq_tile_band(cgf_t *cgf,
     do {
       step_idx++;
 
-      if (add_empty_loq) {
-        loq_info[0].push_back(t);
-        loq_info[1].push_back(t);
-      }
+      //if (add_empty_loq) {
+      /*
+        if (step_idx < tilestep_n) {
+          loq_info[0].push_back(t);
+          loq_info[1].push_back(t);
+        }
+        */
+      //}
 
     } while ((step_idx < tilestep_n) &&
         ((allele[0][step_idx] < 0) || (allele[1][step_idx] < 0)) );
@@ -2008,7 +2068,7 @@ int cgf_tile_band(cgf_t *cgf,
 
   int tilestep_beg_actual, tilestep_n_actual;
 
-  int local_debug = 0;
+  int local_debug = 1;
   std::vector<int> knot[2];
 
   allele[0].clear();
@@ -2021,6 +2081,14 @@ int cgf_tile_band(cgf_t *cgf,
   tilestep_n_actual = tilestep_n;
 
   tilemap_id = cgf_map_variant_id(cgf, tilepath, tilestep_beg);
+
+  if (local_debug) {
+    if (tilemap_id<0) {
+      printf("cgf_tile_band: start on spanning? (tilemap id %i), tilemap_beg (%i)\n",
+          tilemap_id, tilestep_beg);
+    }
+  }
+
 
   if (tilemap_id<0) {
     //for (; (tilemap_id<0) && (tilestep_beg<s_end); tilestep_beg++) {
@@ -2036,6 +2104,9 @@ int cgf_tile_band(cgf_t *cgf,
     }
 
   }
+
+  //DEBUG
+  tilestep_beg_actual = tilestep_beg;
 
   if (local_debug) {
     printf("cgf_tile_band: start tilemap_beg (%i), n %i (end %i)\n",
@@ -2073,12 +2144,14 @@ int cgf_tile_band(cgf_t *cgf,
 
         knot_span[0]+=span;
 
-        if ((s + del_s) >= tilestep_beg_actual) {
+        //if ((s + del_s) >= tilestep_beg_actual) {
+        if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
           allele[0].push_back(val);
         }
         del_s++;
         for (j=1; j<span; j++) {
-          if ((s + del_s) >= tilestep_beg_actual) {
+          //if ((s + del_s) >= tilestep_beg_actual) {
+          if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
             allele[0].push_back(-1);
           }
           del_s++;
@@ -2092,12 +2165,14 @@ int cgf_tile_band(cgf_t *cgf,
 
         knot_span[1]+=span;
 
-        if ((s + del_s) >= tilestep_beg_actual) {
+        //if ((s + del_s) >= tilestep_beg_actual) {
+        if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
           allele[1].push_back(val);
         }
         del_s++;
         for (j=1; j<span; j++) {
-          if ((s + del_s) >= tilestep_beg_actual) {
+          //if ((s + del_s) >= tilestep_beg_actual) {
+          if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
             allele[1].push_back(-1);
           }
           del_s++;
@@ -2138,13 +2213,14 @@ int cgf_tile_band(cgf_t *cgf,
 
       del_s=0;
       for (i=0; i<knot[0].size(); i+=2) {
-        if ((s + del_s) >= tilestep_beg_actual) {
+        if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
           allele[0].push_back(knot[0][i]);
         }
         del_s++;
         knot_span[0] += knot[0][i+1];
         for (j=1; j<knot[0][i + 1]; j++) {
-          if ((s + del_s) >= tilestep_beg_actual) {
+          //if ((s + del_s) >= tilestep_beg_actual) {
+          if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
             allele[0].push_back(-1);
           }
           del_s++;
@@ -2153,13 +2229,15 @@ int cgf_tile_band(cgf_t *cgf,
 
       del_s=0;
       for (i=0; i<knot[1].size(); i+=2) {
-        if ((s + del_s) >= tilestep_beg_actual) {
+        //if ((s + del_s) >= tilestep_beg_actual) {
+        if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
           allele[1].push_back(knot[1][i]);
         }
         del_s++;
         knot_span[1] += knot[1][i+1];
         for (j=1; j<knot[1][i + 1]; j++) {
-          if ((s + del_s) >= tilestep_beg_actual) {
+          //if ((s + del_s) >= tilestep_beg_actual) {
+          if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
             allele[1].push_back(-1);
           }
           del_s++;
