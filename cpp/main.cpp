@@ -263,10 +263,11 @@ int main(int argc, char **argv) {
 
 
     printf("{\n");
-    printf("  \"start_tilestep\":%i,\n", tilestep);
-    printf("  \"%04x\":[\n", tilepath);
+    printf("  \"%04x\":{\n", tilepath);
+    printf("    \"start_tilestep\":%i,\n", tilestep);
+    printf("    \"allele\":[\n");
     for (i=0; i<2; i++) {
-      printf("    [ ");
+      printf("      [ ");
       //for (j=0; j<allele[i].size(); j++) {
       for (j=0; j<(allele[i].size()-backup_step); j++) {
         int ele = j+backup_step;
@@ -279,19 +280,21 @@ int main(int argc, char **argv) {
       if (i<(2-1)) { printf(",\n"); }
       else { printf("\n"); }
     }
-    printf("  ]\n");
+    printf("    ]");
 
-    if (loq_flag) {
+    if (!loq_flag) {
+      printf("\n");
+    } else if (loq_flag) {
       printf(",\n");
-      printf("  \"loq_info\":[\n");
+      printf("    \"loq_info\":[\n");
 
       for (i=0; i<2; i++) {
-        printf("    [ ");
+        printf("      [ ");
         //for (j=0; j<loq_allele[i].size(); j++) {
         for (j=0; j<(loq_allele[i].size()-backup_step); j++) {
           int ele = j+backup_step;
           if (j>0) { printf(", "); }
-          if ((j>0) && ((j%fold_w)==0)) { printf("\n      "); }
+          if ((j>0) && ((j%fold_w)==0)) { printf("\n        "); }
 
           printf("[");
           for (k=0; k<loq_allele[i][ele].size(); k++) {
@@ -301,16 +304,15 @@ int main(int argc, char **argv) {
           printf(" ]");
 
         }
-        printf("    ]");
+        printf(" ]");
         if (i<(2-1)) { printf(",\n"); }
         else { printf("\n"); }
       }
-
-      printf("  ]\n");
+      printf("    ]\n");
     }
 
+    printf("  }\n");
     printf("}\n");
-
     exit(0);
   }
 
