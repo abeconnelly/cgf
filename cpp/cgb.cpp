@@ -1939,6 +1939,22 @@ int cgf_loq_tile_band(cgf_t *cgf,
     loqv[0].clear();
     loqv[1].clear();
 
+    // It's a high quality tile, consider it as a special case.
+    // Fill in the appropriate empty low quality vectors based
+    // on the 'knot'.
+    //
+    if (cgf_loq_tile(cgf, tilepath, tilestep_beg + step_idx)==0) {
+      t.clear();
+
+      do {
+        loq_info[0].push_back(t);
+        loq_info[1].push_back(t);
+        step_idx++;
+      } while ((step_idx < tilestep_n) &&
+             ( (allele[0][tilestep_beg+step_idx]<0) || (allele[1][tilestep_beg+step_idx]<0) ) );
+      continue;
+    }
+
     // store loq info in loqv
     //
     k = cgf_expand_loq_info(cgf, tilepath, tilestep_beg + step_idx, loqv);
@@ -1946,7 +1962,7 @@ int cgf_loq_tile_band(cgf_t *cgf,
     //DEBUG
     //DEBUG
     if (local_debug) {
-      printf(">> loqv %i %i\n", (int)loqv[0].size(), (int)loqv[1].size());
+      printf(">> loqv %i %i, step_idx %i (%i)\n", (int)loqv[0].size(), (int)loqv[1].size(), step_idx, tilestep_n);
       for (i=0; i<loqv[0].size(); i++) {
         printf(" [");
         for (j=0; j<loqv[0][i].size(); j++) {

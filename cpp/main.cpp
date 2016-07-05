@@ -241,10 +241,8 @@ int main(int argc, char **argv) {
     printf("\n");
     for (i=0; i<allele[1].size(); i++) { printf(" %i", allele[1][i]); }
     printf("\n");
-    */
 
-    //printf("-- %i %i\n", (int)loq_allele[0].size(), (int)loq_allele[1].size());
-    /*
+    printf("-- %i %i\n", (int)loq_allele[0].size(), (int)loq_allele[1].size());
     for (i=0; i<loq_allele[0].size(); i++) {
       printf(" [");
       for (j=0; j<loq_allele[0][i].size(); j++) { printf(" %i", loq_allele[0][i][j]); }
