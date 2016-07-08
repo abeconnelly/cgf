@@ -1660,6 +1660,7 @@ int cgf_expand_loq_info(cgf_t *cgf, int tilepath, int tilestep, std::vector< std
 
   uint32_t ntile[2], loq_ent_len, delpos, loqlen;
   int a, cur_loq_idx;
+  int prev_off=0;
 
   int local_debug=0;
   std::vector<int> tv;
@@ -1745,6 +1746,7 @@ int cgf_expand_loq_info(cgf_t *cgf, int tilepath, int tilestep, std::vector< std
           printf("[");
         }
 
+        prev_off = 0;
         for (j=0; j<loq_ent_len; j+=2) {
           dn = dlug_convert_uint32(loq_bytes + byte_offset, &delpos);
           if (dn<0) { return -1; }
@@ -1755,17 +1757,21 @@ int cgf_expand_loq_info(cgf_t *cgf, int tilepath, int tilestep, std::vector< std
           byte_offset += dn;
 
           if (cur_loq_idx == loq_rel_count) {
-            v[0][i].push_back((int)delpos);
+            v[0][i].push_back(((int)delpos) + prev_off);
             v[0][i].push_back((int)loqlen);
-            v[1][i].push_back((int)delpos);
+            v[1][i].push_back(((int)delpos) + prev_off);
             v[1][i].push_back((int)loqlen);
           }
 
 
+
+
           //DEBUG
           if (local_debug) {
-            printf(" %i+%i", (int)delpos, (int)loqlen);
+            printf(" %i+%i", ((int)delpos)+prev_off, (int)loqlen);
           }
+
+          prev_off += (int)delpos;
 
         }
 
@@ -1820,6 +1826,7 @@ int cgf_expand_loq_info(cgf_t *cgf, int tilepath, int tilestep, std::vector< std
             printf("[");
           }
 
+          prev_off = 0;
           for (j=0; j<loq_ent_len; j+=2) {
             dn = dlug_convert_uint32(loq_bytes + byte_offset, &delpos);
             if (dn<0) { return -1; }
@@ -1830,15 +1837,16 @@ int cgf_expand_loq_info(cgf_t *cgf, int tilepath, int tilestep, std::vector< std
             byte_offset += dn;
 
             if (cur_loq_idx == loq_rel_count) {
-              v[a][i].push_back((int)delpos);
+              v[a][i].push_back(((int)delpos) + prev_off);
               v[a][i].push_back((int)loqlen);
             }
 
             //DEBUG
             if (local_debug) {
-              printf(" %i+%i", (int)delpos, (int)loqlen);
+              printf(" %i+%i", ((int)delpos) + prev_off, (int)loqlen);
             }
 
+            prev_off += (int)delpos;
           }
 
           //DEBUG

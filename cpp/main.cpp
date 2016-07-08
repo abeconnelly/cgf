@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+#include <vector>
+
 #include "cgb.hpp"
 #include "dlug.h"
 
@@ -35,6 +37,8 @@ int main(int argc, char **argv) {
   int loq_flag = 0;
   int knot_flag = 0;
 
+  std::vector<int> tilepath_v;
+
 
   while ((ch=getopt(argc, argv, "hvi:DSVp:s:l:C:n:jBLk")) != -1) switch (ch) {
     case 'h':
@@ -47,6 +51,7 @@ int main(int argc, char **argv) {
 
     case 'p':
       tilepath = atoi(optarg);
+      tilepath_v.push_back(tilepath);
       break;
     case 's':
       tilestep = atoi(optarg);
@@ -199,117 +204,111 @@ int main(int argc, char **argv) {
 
   if (band_flag) {
 
-    if ((tilepath<0) || (tilepath > cgf->path_count)) {
-      printf("tilepath out of range (must be within [0,%i])\n", (int)cgf->path_count);
-      show_help();
-      exit(1);
-    }
+    for (i=0; i<tilepath_v.size(); i++) {
+      tilepath = tilepath_v[i];
 
-    if ((tilestep<0) || (tilestep >= cgf->step_per_path[tilepath])) {
-      printf("tilestep out of range (must be within [0,%i])\n", (int)cgf->step_per_path[tilepath]);
-      show_help();
-      exit(1);
-    }
-
-    if ((n_tilestep<0) || ((tilestep+n_tilestep) > cgf->step_per_path[tilepath])) {
-      n_tilestep = cgf->step_per_path[tilepath] - tilestep;
-    }
-
-    //printf(">>>> tilepath %i, tilestep %i, n_tilestep %i\n", tilepath, tilestep, n_tilestep);
-
-    int fold_w = 32;
-    int backup_step = 0;
-
-    std::vector<int> allele[2];
-    std::vector< std::vector<int> > loq_allele[2];
-    cgf_tile_band(cgf, tilepath, tilestep, n_tilestep, allele);
-
-    if (loq_flag) {
-
-      if (allele[0].size() > n_tilestep) {
-        backup_step = allele[0].size() - n_tilestep;
+      if ((tilepath<0) || (tilepath > cgf->path_count)) {
+        printf("tilepath out of range (must be within [0,%i])\n", (int)cgf->path_count);
+        show_help();
+        exit(1);
       }
 
-      cgf_loq_tile_band(cgf, tilepath, tilestep-backup_step, n_tilestep+backup_step, allele, loq_allele);
+      if ((tilestep<0) || (tilestep >= cgf->step_per_path[tilepath])) {
+        printf("tilestep out of range (must be within [0,%i])\n", (int)cgf->step_per_path[tilepath]);
+        show_help();
+        exit(1);
+      }
     }
 
-    //DEBUG
-    //print raw...
-    /*
-    printf(">> %i %i\n", (int)allele[0].size(), (int)allele[1].size());
-    for (i=0; i<allele[0].size(); i++) { printf(" %i", allele[0][i]); }
-    printf("\n");
-    for (i=0; i<allele[1].size(); i++) { printf(" %i", allele[1][i]); }
-    printf("\n");
-
-    printf("-- %i %i\n", (int)loq_allele[0].size(), (int)loq_allele[1].size());
-    for (i=0; i<loq_allele[0].size(); i++) {
-      printf(" [");
-      for (j=0; j<loq_allele[0][i].size(); j++) { printf(" %i", loq_allele[0][i][j]); }
-      printf("]");
-    }
-    printf("\n");
-    for (i=0; i<loq_allele[1].size(); i++) {
-      printf(" [");
-      for (j=0; j<loq_allele[1][i].size(); j++) { printf(" %i", loq_allele[1][i][j]); }
-      printf("]");
-    }
-    printf("\n");
-    */
-    //DEBUG
-
+    int idx;
+    int n_tilestep_actual;
+    std::vector<int> allele[2];
+    std::vector< std::vector<int> > loq_allele[2];
 
 
     printf("{\n");
-    printf("  \"%04x\":{\n", tilepath);
-    printf("    \"start_tilestep\":%i,\n", tilestep);
-    printf("    \"allele\":[\n");
-    for (i=0; i<2; i++) {
-      printf("      [ ");
-      //for (j=0; j<allele[i].size(); j++) {
-      for (j=0; j<(allele[i].size()-backup_step); j++) {
-        int ele = j+backup_step;
-        if (j>0) { printf(", "); }
-        if ((j>0) && ((j%fold_w)==0)) { printf("\n      "); }
+    for (idx=0; idx<tilepath_v.size(); idx++) {
+      tilepath = tilepath_v[idx];
 
-        printf("%i", allele[i][ele]);
+      if (idx>0) { printf("  ,\n"); }
+
+      n_tilestep_actual = n_tilestep;
+      if ((n_tilestep<0) || ((tilestep+n_tilestep) > cgf->step_per_path[tilepath])) {
+        n_tilestep_actual = cgf->step_per_path[tilepath] - tilestep;
       }
-      printf(" ]");
-      if (i<(2-1)) { printf(",\n"); }
-      else { printf("\n"); }
-    }
-    printf("    ]");
 
-    if (!loq_flag) {
-      printf("\n");
-    } else if (loq_flag) {
-      printf(",\n");
-      printf("    \"loq_info\":[\n");
 
+      allele[0].clear();
+      allele[1].clear();
+      loq_allele[0].clear();
+      loq_allele[1].clear();
+      cgf_tile_band(cgf, tilepath, tilestep, n_tilestep_actual, allele);
+
+      int fold_w = 32;
+      int backup_step = 0;
+
+      if (loq_flag) {
+
+        if (allele[0].size() > n_tilestep_actual) {
+          backup_step = allele[0].size() - n_tilestep_actual;
+        }
+
+        cgf_loq_tile_band(cgf, tilepath, tilestep-backup_step, n_tilestep_actual+backup_step, allele, loq_allele);
+      }
+
+      printf("  \"%04x\":{\n", tilepath);
+      printf("    \"tilepath\":%i,\n", tilepath);
+      printf("    \"start_tilestep\":%i,\n", tilestep);
+      printf("    \"allele\":[\n");
       for (i=0; i<2; i++) {
         printf("      [ ");
-        //for (j=0; j<loq_allele[i].size(); j++) {
-        for (j=0; j<(loq_allele[i].size()-backup_step); j++) {
+        //for (j=0; j<allele[i].size(); j++) {
+        for (j=0; j<(allele[i].size()-backup_step); j++) {
           int ele = j+backup_step;
           if (j>0) { printf(", "); }
-          if ((j>0) && ((j%fold_w)==0)) { printf("\n        "); }
+          if ((j>0) && ((j%fold_w)==0)) { printf("\n      "); }
 
-          printf("[");
-          for (k=0; k<loq_allele[i][ele].size(); k++) {
-            if (k>0) { printf(","); }
-            printf(" %i", loq_allele[i][ele][k]);
-          }
-          printf(" ]");
-
+          printf("%i", allele[i][ele]);
         }
         printf(" ]");
         if (i<(2-1)) { printf(",\n"); }
         else { printf("\n"); }
       }
-      printf("    ]\n");
+      printf("    ]");
+
+      if (!loq_flag) {
+        printf("\n");
+      } else if (loq_flag) {
+        printf(",\n");
+        printf("    \"loq_info\":[\n");
+
+        for (i=0; i<2; i++) {
+          printf("      [ ");
+          //for (j=0; j<loq_allele[i].size(); j++) {
+          for (j=0; j<(loq_allele[i].size()-backup_step); j++) {
+            int ele = j+backup_step;
+            if (j>0) { printf(", "); }
+            if ((j>0) && ((j%fold_w)==0)) { printf("\n        "); }
+
+            printf("[");
+            for (k=0; k<loq_allele[i][ele].size(); k++) {
+              if (k>0) { printf(","); }
+              printf(" %i", loq_allele[i][ele][k]);
+            }
+            printf(" ]");
+
+          }
+          printf(" ]");
+          if (i<(2-1)) { printf(",\n"); }
+          else { printf("\n"); }
+        }
+        printf("    ]\n");
+      }
+
+      printf("  }\n");
+
     }
 
-    printf("  }\n");
     printf("}\n");
     exit(0);
   }
