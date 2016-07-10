@@ -226,6 +226,10 @@ int muduk_init_context(duk_context **duk_ctx) {
   duk_push_c_function(ctx, muduk_native_tile_pair_concordance, 6);
   duk_put_prop_string(ctx, -2, "muduk_pair_conc");
 
+  duk_push_global_object(ctx);
+  duk_push_c_function(ctx, muduk_native_tile_band, 4);
+  duk_put_prop_string(ctx, -2, "muduk_tile_band");
+
   *duk_ctx = ctx;
 
   return 0;

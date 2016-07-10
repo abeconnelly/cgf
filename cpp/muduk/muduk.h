@@ -50,6 +50,7 @@ duk_ret_t muduk_native_z(duk_context *ctx);
 duk_ret_t muduk_native_exit(duk_context *ctx);
 
 duk_ret_t muduk_native_tile_pair_concordance(duk_context *ctx);
+duk_ret_t muduk_native_tile_band(duk_context *ctx);
 
 int muduk_init(duk_context **duk_ctx);
 int muduk_cgf_init(glob_ctx_t *ctx);

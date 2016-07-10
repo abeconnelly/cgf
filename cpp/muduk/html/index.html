@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8">
 
-		<title>Your Name</title>
+		<title>CGF Server</title>
 
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -149,22 +149,275 @@ Copyright (c) 2012 Dan Eden
 }
     </style>
 
+<script>
+
+var g_saved_req = [];
+var g_saved_req_pos = 0;
+
+var g_start_timer = new Date();
+var g_end_timer = new Date();
+
+function historic_req_dec() {
+  if (g_saved_req_pos > 0) { g_saved_req_pos--; }
+  if (g_saved_req_pos < g_saved_req.length) {
+    document.getElementById("text").value = g_saved_req[g_saved_req_pos];
+  }
+}
+
+function historic_req_inc() {
+  if (g_saved_req_pos < (g_saved_req.length-1)) { g_saved_req_pos++; }
+  if (g_saved_req_pos < g_saved_req.length) {
+    document.getElementById("text").value = g_saved_req[g_saved_req_pos];
+  } else {
+    document.getElementById("text").value = "";
+  }
+}
+
+function clear_textarea() {
+    var v = document.getElementById("text").value = "";
+}
+
+
+function sendreq() {
+  var v = document.getElementById("text").value;
+  var url = "http://localhost:8888";
+
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function() {
+    if ((xhr.readyState == 4) && (xhr.status == 200)) {
+      var resp = xhr.responseText;
+
+      //quick and dirty formatting
+      //
+      var fmtd = resp.replace(/ /g, '&nbsp;').replace(/\n/g, ' <br> ');
+
+
+      //document.getElementById("result").innerHTML = xhr.responseText;
+      document.getElementById("result").innerHTML = fmtd;
+
+      g_end_timer = new Date();
+      var d_t = g_end_timer  - g_start_timer;
+      var str = "Request took " + (Math.abs(d_t)/1000).toString() + "s";
+      document.getElementById("status_text").innerHTML = str;
+
+
+
+    }
+  };
+  xhr.open("POST", url, true);
+  xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+  xhr.send(v);
+
+  g_saved_req = g_saved_req.slice(0, g_saved_req_pos+1);
+  g_saved_req.push(v);
+  g_saved_req_pos = g_saved_req.length-1;
+  if (g_saved_req_pos<0) { g_saved_req_pos=0; }
+
+  g_start_timer = new Date();
+  document.getElementById("status_text").innerHTML = "sending request...";
+}
+
+function sendreq_info() {
+  var txt = [
+    "muduk_return(cgf_info, '  ');"
+  ].join("\n");
+  var v = document.getElementById("text").value = txt;
+  sendreq();
+}
+
+function sendreq_conc0() {
+  var txt = [
+    'var res = { "match":0, "info":[] };',
+    'var match_count = 0;',
+    'try {',
+    '  for (var idx=0; idx<cgf_info.PathCount; idx++) {',
+    '    var x = JSON.parse(muduk_pair_conc(0,1, idx, 0, cgf_info.StepPerPath[idx], 0));',
+    '    var y = {',
+    '      "tilepath": idx,',
+    '      "match":x.match,',
+    '      "loq":x.low_quality,',
+    '      "n":cgf_info.StepPerPath[idx]',
+    '    };',
+    '',
+    '    res.info.push(y);',
+    '',
+    '    match_count += x.match;',
+    '  }',
+    '',
+    '  res.match = match_count;',
+    '',
+    '} catch(err) {',
+    '  res = err;',
+    '}',
+    '',
+    'muduk_return(res, "  ");'
+  ].join("\n");
+  var v = document.getElementById("text").value = txt;
+  sendreq();
+}
+
+
+function sendreq_conc_self() {
+  var txt = [
+
+    'var idx0=0;',
+    'var idx1=1;',
+    '',
+    'var res = { "match":0, "info":[] };',
+    'var match_count = 0;',
+    'try {',
+    '  for (var tilepath_idx=0; tilepath_idx<cgf_info.PathCount; tilepath_idx++) {',
+    '    var x = JSON.parse(muduk_pair_conc(idx0, idx1, tilepath_idx, 0, cgf_info.StepPerPath[tilepath_idx], 2));',
+    '    var y = {',
+    '      "tilepath": tilepath_idx,',
+    '      "match":x.match,',
+    '      "loq":x.low_quality,',
+    '      "n":cgf_info.StepPerPath[tilepath_idx]',
+    '    };',
+    '',
+    '    res.info.push(y);',
+    '',
+    '    match_count += x.match;',
+    '  }',
+    '',
+    '  res.match = match_count;',
+    '',
+    '} catch(err) {',
+    '  res = err;',
+    '}',
+    '',
+    'muduk_return(res, "  ");'
+
+  ].join("\n");
+  var v = document.getElementById("text").value = txt;
+  sendreq();
+}
+
+function sendreq_conc() {
+  var txt = [
+    'var res = { "match":0, "info":[] };',
+    'var match_count = 0;',
+    'try {',
+    '  for (var idx=0; idx<cgf_info.PathCount; idx++) {',
+    '    var x = JSON.parse(muduk_pair_conc(0,1, idx, 0, cgf_info.StepPerPath[idx], 2));',
+    '    var y = {',
+    '      "tilepath": idx,',
+    '      "match":x.match,',
+    '      "loq":x.low_quality,',
+    '      "n":cgf_info.StepPerPath[idx]',
+    '    };',
+    '',
+    '    res.info.push(y);',
+    '',
+    '    match_count += x.match;',
+    '  }',
+    '',
+    '  res.match = match_count;',
+    '',
+    '} catch(err) {',
+    '  res = err;',
+    '}',
+    '',
+    'muduk_return(res, "  ");'
+  ].join("\n");
+  var v = document.getElementById("text").value = txt;
+  sendreq();
+}
+
+function sendreq_band() {
+  var txt = [
+    'var cgf_idx = 0;',
+    'var tilepath= 0x2fb;',
+    'var tile_begstep= 30;',
+    'var tile_nstep= 10;',
+
+    'var x = muduk_tile_band(cgf_idx, tilepath, tile_begstep, tile_nstep);',
+    'var x_json = JSON.parse(x);',
+    '',
+    'muduk_return(x_json, "  ");'
+  ].join("\n");
+  var v = document.getElementById("text").value = txt;
+  sendreq();
+}
+
+function sendreq_z() {
+  var txt = [
+  ].join("\n");
+  var v = document.getElementById("text").value = txt;
+  sendreq();
+}
+
+
+</script>
+
 	</head>
 
   <body class="animated bounceInDown">
-		<div class="avatar"> <h1> CGF Server </h1> </div>
+    <div class="avatar">
+      <h1>CGF Server</h1>
+      <br>
+      <br>
+      <br>
+      <p><a href="#"><small>Feedback</small></a></p>
+    </div>
 
-		<div class="content">
-			<p>
-      <form action="/" method="POST">
-      <textarea id='text' name='text' rows="10" cols="50" >
-      </textarea>
+    <div class="content">
+      <a href='#' onclick='sendreq_info();' >example-info</a>
+      <br>
+
+      <a href='#' onclick='sendreq_conc0();' >example-tile-concordance-0</a>
+      <br>
+
+      <a href='#' onclick='sendreq_conc_self();' >example-tile-self-concordance</a>
+      <br>
+
+      <a href='#' onclick='sendreq_conc();' >example-tile-concordance</a>
+      <br>
+
+      <a href='#' onclick='sendreq_band();' >example-tile-band</a>
+      <br>
+
+<!--
+      <a href='#' onclick='sendreq_tilesequence();' >example-tilesequence</a>
+      <br>
+      <a href='#' onclick='sendreq_align();' >example-align</a>
+      <br>
+      <a href='#' onclick='sendreq_tiletogvcf();' >example-tiletogvcf</a>
+      <br>
+      <a href='#' onclick='sendreq_tiletogvcf(false);' >example-tiletogvcf-text</a>
+      <br>
+      <a href='#' onclick='sendreq_tiletag();' >example-tiletag</a>
+      <br>
+      <a href='#' onclick='sendreq_libvariants();' >example-libvariants</a>
+      <br>
+      <a href='#' onclick='sendreq_refinfo();' >example-refinfo</a>
+      <br>
+-->
+
+      <a href='#' onclick='clear_textarea();' >clear</a>
+      &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+      &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+      &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+      <a href='#' onclick='historic_req_dec();' >&lt;</a>
+      <a href='#' onclick='historic_req_inc();' >&gt;</a>
+      <p>
+      <!-- <form action="/u" method="POST"> -->
+      <textarea id='text' name='text' rows="10" cols="50" ></textarea>
       <br />
-      <input type='submit' value='send' />
-    </form>
-			</p>
-			<p><a href="#">Feedback</a></p>
-		</div>
-	</body>
+      <!-- <input type='submit' value='send' /> -->
+      <input type='button' value="send" onclick='sendreq();'> </input>
+      <!-- </form> -->
+      </p>
+
+      <p>
+      <div id='status_text'></div>
+      </p>
+
+      <p>
+      <div id='result'></div>
+      </p>
+    </div>
+  </body>
+
 </html>
 

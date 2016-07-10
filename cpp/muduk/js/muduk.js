@@ -142,12 +142,13 @@ function query(q) {
   return JSON.stringify(robj);
 }
 
-function muduk_return(q) {
+function muduk_return(q, indent) {
+  indent = ((typeof(indent)==="undefined") ? '' : indent);
   if (typeof(q)==="undefined") { return ""; }
   if (typeof(q)==="object") {
     var s = "";
     try {
-      s = JSON.stringify(q);
+      s = JSON.stringify(q, null, indent);
     } catch(err) {
     }
     return s;
