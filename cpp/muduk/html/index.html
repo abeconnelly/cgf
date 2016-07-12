@@ -180,7 +180,8 @@ function clear_textarea() {
 
 function sendreq() {
   var v = document.getElementById("text").value;
-  var url = "http://localhost:8888";
+  //var url = "http://localhost:8888";
+  var url = "http://localhost:8082";
 
   var xhr = new XMLHttpRequest();
   xhr.onreadystatechange = function() {

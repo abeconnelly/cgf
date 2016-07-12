@@ -18,7 +18,8 @@
 
 #include "cgb.hpp"
 
-#define PORT            8888
+//#define PORT            8888
+#define PORT            8082
 #define POSTBUFFERSIZE  512
 #define MAXNAMESIZE     20
 #define MAXANSWERSIZE   512
