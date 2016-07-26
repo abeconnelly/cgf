@@ -24,6 +24,8 @@ void show_help() {
   printf("  [-C]          single tile path concordance\n");
   printf("  [-D]          debug print\n");
   printf("  [-S]          stats print\n");
+  printf("  [-L]          low quality flag\n");
+  printf("  [-k]          knot flag\n");
   printf("  [-j]          print JSON info\n");
   printf("  [-h]          help\n");
   printf("\n");
