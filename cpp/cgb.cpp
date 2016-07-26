@@ -247,7 +247,7 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
     cgf_t *cgf_a, cgf_t *cgf_b,
     int tilepath, int start_step, int n_step) {
 
-  int i, j, k, bit_idx;
+  int i, j, k, bit_idx, t;
   int start_block, end_block, s;
   cgf_path_t *path_a, *path_b;
   uint64_t mask, z;
@@ -272,7 +272,9 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
   int s_mod, e_mod;
   int skip_beg=0, use_end=32;
 
-  int local_debug = 0;
+  uint32_t u32mask;
+
+  //int local_debug = 0;
 
   path_a = &(cgf_a->path[tilepath]);
   path_b = &(cgf_b->path[tilepath]);
@@ -306,6 +308,7 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
     k = NumberOfSetBits(x32 | y32);
     canon_match_count += (32-skip_beg-(32-use_end)) - k;
 
+    /*
     if (local_debug) {
 
       fullx32 = ((path_a->vec[s] & 0xffffffff00000000 ) >> 32);
@@ -317,6 +320,7 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
           (unsigned int)y32, (unsigned int)fully32,
           skip_beg, use_end, mask);
     }
+    */
 
     if (k>0) {
 
@@ -331,13 +335,14 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
       lx32 = path_a->vec[s] & 0xffffffff;
       ly32 = path_b->vec[s] & 0xffffffff;
 
-      if (local_debug) {
-        printf("  lx32: %08x, ly32: %08x\n", (unsigned int)lx32, (unsigned int)ly32);
-      }
+      //if (local_debug) { printf("  lx32: %08x, ly32: %08x\n", (unsigned int)lx32, (unsigned int)ly32); }
 
       for (i=0; i<8; i++) {
-        hexit_a[7-i] = (uint8_t)((lx32 & (0xf << (4*i)))>>(4*i));
-        hexit_b[7-i] = (uint8_t)((ly32 & (0xf << (4*i)))>>(4*i));
+        //hexit_a[7-i] = (uint8_t)((lx32 & (0xf << (4*i)))>>(4*i));
+        //hexit_b[7-i] = (uint8_t)((ly32 & (0xf << (4*i)))>>(4*i));
+        t = 4*i;
+        hexit_a[7-i] = (uint8_t)((lx32 & (0xf << (t)))>>(t));
+        hexit_b[7-i] = (uint8_t)((ly32 & (0xf << (t)))>>(t));
       }
 
       a_count=0;
@@ -347,6 +352,9 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
       for (i=31; i>=0; i--) {
         bit_idx = 31-i;
 
+        u32mask = (((uint32_t)1)<<i);
+
+        /*
         if (local_debug) {
           printf("  [%i(%i)] (%c,%c:%c) a_count %i, b_count %i\n",
               i, bit_idx,
@@ -358,8 +366,10 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
             if (b_count<8) { printf("    b[%i]: %x\n", b_count, hexit_b[b_count]); }
           }
         }
+        */
 
-        if (and32 & (1<<i)) {
+        //if (and32 & (1<<i)) {
+        if (and32 & u32mask) {
           if ((a_count<8) && (b_count<8) &&
               (hexit_a[a_count] > 0) && (hexit_a[a_count] < 0xd) &&
               (hexit_b[b_count] > 0) && (hexit_b[b_count] < 0xd)) {
@@ -367,14 +377,10 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
             if ((bit_idx >= skip_beg) && (bit_idx < use_end)) {
               cache_match_count += ((hexit_a[a_count] == hexit_b[b_count]) ? 1 : 0);
 
-              if (local_debug) {
-                printf("      cache_match_count++\n");
-              }
+              //if (local_debug) { printf("      cache_match_count++\n"); }
 
             }
-            else if (local_debug) {
-              printf("      skipped (cache_match_count++)\n");
-            }
+            //else if (local_debug) { printf("      skipped (cache_match_count++)\n"); }
 
 
           }
@@ -399,14 +405,10 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
                 if ((bit_idx >= skip_beg) && (bit_idx < use_end)) {
                   loq_cache_count++;
 
-                  if (local_debug) {
-                    printf("      loq_cache_count++\n");
-                  }
+                  //if (local_debug) { printf("      loq_cache_count++\n"); }
 
                 }
-                else if (local_debug) {
-                  printf("      skipped (loq_cache_count++)\n");
-                }
+                //else if (local_debug) { printf("      skipped (loq_cache_count++)\n"); }
 
               }
               else if (flag & ((1<<1) | (1<<4))) {
@@ -414,14 +416,10 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
                 if ((bit_idx >= skip_beg) && (bit_idx < use_end)) {
                   ovf_count++;
 
-                  if (local_debug) {
-                    printf("      ovf_count++\n");
-                  }
+                  //if (local_debug) { printf("      ovf_count++\n"); }
 
                 }
-                else if (local_debug) {
-                    printf("      skipped (ovf_count++)\n");
-                }
+                //else if (local_debug) { printf("      skipped (ovf_count++)\n"); }
 
               }
             }
@@ -430,25 +428,22 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
               if ((bit_idx >= skip_beg) && (bit_idx < use_end)) {
                 cache_ovf_count++;
 
-                if (local_debug) {
-                  printf("        cache_ovf_count++\n");
-                }
+                //if (local_debug) { printf("        cache_ovf_count++\n"); }
 
               }
-              else if (local_debug) {
-                printf("      skipped (cache_ovf_count++)\n");
-              }
+              //else if (local_debug) { printf("      skipped (cache_ovf_count++)\n"); }
 
             }
-
-
 
           }
 
         }
 
-        if (x32 & (1<<i)) { a_count++; }
-        if (y32 & (1<<i)) { b_count++; }
+        //if (x32 & (1<<i)) { a_count++; }
+        //if (y32 & (1<<i)) { b_count++; }
+
+        if (x32 & u32mask) { a_count++; }
+        if (y32 & u32mask) { b_count++; }
 
       }
 
