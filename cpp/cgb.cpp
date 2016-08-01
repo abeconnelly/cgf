@@ -43,8 +43,9 @@ int cgf_unpack_tile_map(cgf_t *cgf) {
   unsigned char *b;
 
   int n, dn, N;
-  uint32_t n0, n1, v, s, m[2];
-  int i, j, k, cur=0;
+  //uint32_t n0, n1;
+  uint32_t v, s, m[2];
+  int i, j, cur=0;
 
   N = cgf->tile_map_len;
   b = cgf->tile_map_bytes;
@@ -63,7 +64,7 @@ int cgf_unpack_tile_map(cgf_t *cgf) {
     cur++;
 
     for (j=0; j<2; j++) {
-      for (i=0; i<m[j]; i++) {
+      for (i=0; i<(int)m[j]; i++) {
         dn = dlug_convert_uint32(b + n, &v);
         if (dn<0) { return -1; }
         n+=dn;
@@ -100,7 +101,7 @@ int cgf_unpack_tile_map(cgf_t *cgf) {
     cgf->tile_map[cur][1][0] = m[1];
 
     for (j=0; j<2; j++) {
-      for (i=0; i<m[j]; i++) {
+      for (i=0; i<(int)m[j]; i++) {
         dn = dlug_convert_uint32(b + n, &v);
         if (dn<0) { return -1; }
         n+=dn;
@@ -191,10 +192,10 @@ int cgf_tile_concordance_0(int *n_match,
     cgf_t *cgf_a, cgf_t *cgf_b,
     int tilepath, int start_step, int n_step) {
 
-  int i, j, k;
+  int k;
   int start_block, end_block, s;
   cgf_path_t *path_a, *path_b;
-  uint64_t mask, z;
+  //uint64_t mask, z;
   uint32_t u32, x32, y32;
 
   uint64_t start_mask, end_mask;
@@ -247,16 +248,18 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
     cgf_t *cgf_a, cgf_t *cgf_b,
     int tilepath, int start_step, int n_step) {
 
-  int i, j, k, bit_idx, t;
+  int i, k, bit_idx, t;
   int start_block, end_block, s;
   cgf_path_t *path_a, *path_b;
-  uint64_t mask, z;
-  uint32_t u32, x32, y32, fullx32, fully32;
+  uint64_t mask;
+  uint32_t u32, x32, y32;
+  //uint32_t fullx32, fully32;
   uint32_t lx32, ly32;
 
-  uint32_t xor32, and32;
+  //uint32_t xor32;
+  uint32_t and32;
 
-  uint64_t start_mask, end_mask;
+  //uint64_t start_mask, end_mask;
 
   uint8_t hexit_a_n, hexit_a[8], hexit_b_n, hexit_b[8];
   int a_count, b_count;
@@ -269,7 +272,7 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
 
   unsigned char flag;
 
-  int s_mod, e_mod;
+  //int s_mod, e_mod;
   int skip_beg=0, use_end=32;
 
   uint32_t u32mask;
@@ -460,7 +463,7 @@ int cgf_tile_concordance_1(int *n_match, int *n_ovf,
 // Still in development
 //
 int cgf_final_overflow_scan_to_start(cgf_final_overflow_t *fin_ovf, int start_step) {
-  int i, j, k, b;
+  //int i, j, k, b;
   uint64_t tot_sz, data_sz;
   uint8_t *code, *data;
 
@@ -486,13 +489,13 @@ int cgf_final_overflow_scan_to_start(cgf_final_overflow_t *fin_ovf, int start_st
 // -2         : cache overflow
 //
 inline int cgf_cache_map_val(uint64_t vec_val, int ofst) {
-  int i, count, shft;
+  int count, shft;
   unsigned char hx;
-  uint64_t mask, x;
+  uint64_t mask;
   //int local_debug = 0;
 
   uint32_t u32, mask32;
-  uint32_t tst;
+  //uint32_t tst;
 
   u32 = (uint32_t)(vec_val>>32);
 
@@ -541,7 +544,7 @@ int cgf_relative_overflow_count(uint64_t *vec, int step_start, int step_end) {
   int cur_step, ovf_count=0;
   int cache_map_val;
   uint64_t vec_val;
-  uint32_t canon_bits, ovf_bits;
+  //uint32_t canon_bits, ovf_bits;
 
   //int local_debug = 0;
 
@@ -627,24 +630,24 @@ int is_canonical_tile(uint64_t vec_val, int ofst) {
 // overflow structures.
 //
 int cgf_map_variant_ids(cgf_t *cgf, int tilepath, std::vector<int> &step_vec, std::vector<int> &step_varid) {
-  int i, j, k, dn;
-  uint64_t nblock, stride, byte_tot;
+  int k, dn;
+  uint64_t nblock, stride, byte_tot=0;
   uint32_t u32;
   int byte_offset=0;
   int map_skip_count;
 
   //int local_debug = 0;
-  int step, prev_ovf_step;
+  int step, prev_ovf_step=-1;
 
   int actual_ovf_count=0;
   int step_idx;
 
   cgf_path_t *path;
-  cgf_overflow_t *ovf;
+  cgf_overflow_t *ovf=NULL;
 
   path = &(cgf->path[tilepath]);
 
-  for (step_idx=0; step_idx<step_vec.size(); step_idx++) {
+  for (step_idx=0; step_idx<(int)step_vec.size(); step_idx++) {
 
     step = step_vec[step_idx];
 
@@ -692,8 +695,8 @@ int cgf_map_variant_ids(cgf_t *cgf, int tilepath, std::vector<int> &step_vec, st
 
       byte_tot = ovf->map_byte_count;
 
-      for (k=0; k<nblock; k++) {
-        if (step < ovf->position[k]) { break; }
+      for (k=0; k<(int)nblock; k++) {
+        if (step < (int)ovf->position[k]) { break; }
       }
       k--;
 
@@ -723,7 +726,7 @@ int cgf_map_variant_ids(cgf_t *cgf, int tilepath, std::vector<int> &step_vec, st
     */
 
     k = 0;
-    while ((k < map_skip_count) && (byte_offset < byte_tot)) {
+    while ((k < map_skip_count) && (byte_offset < (int)byte_tot)) {
       dn = dlug_convert_uint32(ovf->map + byte_offset, &u32);
       if (dn<=0) { return -1; }
 
@@ -2370,7 +2373,7 @@ int cgf_tile_band(cgf_t *cgf,
 int cgf_final_overflow_step_offset(cgf_t *cgf, int tilepath, int tilestep) {
   uint64_t prev_byte_offset, byte_offset, byte_len, n_rec, data_byte_len;
   int n, dn;
-  int cur_step, n_allele, rec;
+  int cur_step=-1, n_allele, rec;
   uint8_t *code, *data;
   cgf_final_overflow_t *fin_ovf;
 

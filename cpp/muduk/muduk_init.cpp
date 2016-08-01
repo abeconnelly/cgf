@@ -252,14 +252,14 @@ int muduk_cgf_init(glob_ctx_t *ctx) {
 
   std::vector<std::string> cgf_fn;
 
-  for (i=0; i<ctx->cgf_name.size(); i++) {
+  for (i=0; i<(int)ctx->cgf_name.size(); i++) {
     cgf_fn.push_back( ctx->data_dir + "/" + ctx->cgf_locator[i] );
   }
 
 
   if (local_verbose) { printf("loading cgf...\n"); }
 
-  for (i=0; i<cgf_fn.size(); i++) {
+  for (i=0; i<(int)cgf_fn.size(); i++) {
     cgf = load_cgf_fn(cgf_fn[i].c_str());
 
     if (!cgf) {

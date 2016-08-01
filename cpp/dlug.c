@@ -6,11 +6,11 @@
 #include "dlug.h"
 
 //                       0 1 2 3 4 5 6 7 8
-int dlug_bytelen[]    = {1,2,3,4,5,6,8,9,17};
-int dlug_pfxbitlen[]  = {1,2,3,5,5,5,8,8,8};
+unsigned int dlug_bytelen[]    = {1,2,3,4,5,6,8,9,17};
+unsigned int dlug_pfxbitlen[]  = {1,2,3,5,5,5,8,8,8};
 
 //                           0   1    2    3    4    5    6    7   8
-int dlug_bitlen[]         = {7,  14,  21,  27,  35,  43,  56,  64, 128};
+unsigned int dlug_bitlen[]         = {7,  14,  21,  27,  35,  43,  56,  64, 128};
 unsigned char dlug_pfx[]  = {0,0x80,0xc0,0xe0,0xe8,0xf0,0xf8,0xf9,0xfa,0xff};
 
 
@@ -82,25 +82,25 @@ int dlug_append_uint8(std::vector<unsigned char> &v, uint8_t u) {
 }
 
 int dlug_append_uint32(std::vector<unsigned char> &v, uint32_t u) {
-  if (u < (1<<dlug_bitlen[0])) {
+  if (u < (1u<<dlug_bitlen[0])) {
     v.push_back((unsigned char)(u&0xff));
     return 1;
   }
 
-  if (u < (1<<dlug_bitlen[1])) {
+  if (u < (1u<<dlug_bitlen[1])) {
     v.push_back((unsigned char)((u>>8)&0xff) | dlug_pfx[1]);
     v.push_back((unsigned char)((u)&0xff));
     return 2;
   }
 
-  if (u < (1<<dlug_bitlen[2])) {
+  if (u < (1u<<dlug_bitlen[2])) {
     v.push_back((unsigned char)((u>>16)&0xff) | dlug_pfx[2]);
     v.push_back((unsigned char)((u>>8)&0xff));
     v.push_back((unsigned char)((u)&0xff));
     return 3;
   }
 
-  if (u < (1<<dlug_bitlen[3])) {
+  if (u < (1u<<dlug_bitlen[3])) {
     v.push_back((unsigned char)((u>>24)&0xff) | dlug_pfx[3]);
     v.push_back((unsigned char)((u>>16)&0xff));
     v.push_back((unsigned char)((u>>8)&0xff));
@@ -118,12 +118,12 @@ int dlug_append_uint32(std::vector<unsigned char> &v, uint32_t u) {
 }
 
 int dlug_append_uint16(std::vector<unsigned char> &v, uint32_t u) {
-  if (u < (1<<dlug_bitlen[0])) {
+  if (u < (1u<<dlug_bitlen[0])) {
     v.push_back((unsigned char)(u&0xff));
     return 1;
   }
 
-  if (u < (1<<dlug_bitlen[1])) {
+  if (u < (1u<<dlug_bitlen[1])) {
     v.push_back((unsigned char)((u>>8)&0xff) | dlug_pfx[1]);
     v.push_back((unsigned char)((u)&0xff));
     return 2;
@@ -138,25 +138,25 @@ int dlug_append_uint16(std::vector<unsigned char> &v, uint32_t u) {
 
 int dlug_append_uint64(std::vector<unsigned char> &v, uint64_t u) {
 
-  if (u < (1<<dlug_bitlen[0])) {
+  if (u < (1u<<dlug_bitlen[0])) {
     v.push_back((unsigned char)(u&0xff));
     return 1;
   }
 
-  if (u < (1<<dlug_bitlen[1])) {
+  if (u < (1u<<dlug_bitlen[1])) {
     v.push_back((unsigned char)((u>>8)&0xff) | dlug_pfx[1]);
     v.push_back((unsigned char)((u)&0xff));
     return 2;
   }
 
-  if (u < (1<<dlug_bitlen[2])) {
+  if (u < (1u<<dlug_bitlen[2])) {
     v.push_back((unsigned char)((u>>16)&0xff) | dlug_pfx[2]);
     v.push_back((unsigned char)((u>>8)&0xff));
     v.push_back((unsigned char)((u)&0xff));
     return 3;
   }
 
-  if (u < (1<<dlug_bitlen[3])) {
+  if (u < (1u<<dlug_bitlen[3])) {
     v.push_back((unsigned char)((u>>24)&0xff) | dlug_pfx[3]);
     v.push_back((unsigned char)((u>>16)&0xff));
     v.push_back((unsigned char)((u>>8)&0xff));
@@ -164,7 +164,7 @@ int dlug_append_uint64(std::vector<unsigned char> &v, uint64_t u) {
     return 4;
   }
 
-  if (u < (1<<dlug_bitlen[4])) {
+  if (u < (1u<<dlug_bitlen[4])) {
     v.push_back((unsigned char)((u>>32)&0xff) | dlug_pfx[4]);
     v.push_back((unsigned char)((u>>24)&0xff));
     v.push_back((unsigned char)((u>>16)&0xff));
@@ -174,7 +174,7 @@ int dlug_append_uint64(std::vector<unsigned char> &v, uint64_t u) {
     return 5;
   }
 
-  if (u < (1<<dlug_bitlen[5])) {
+  if (u < (1u<<dlug_bitlen[5])) {
     v.push_back((unsigned char)((u>>40)&0xff) | dlug_pfx[5]);
     v.push_back((unsigned char)((u>>32)&0xff));
     v.push_back((unsigned char)((u>>24)&0xff));
@@ -185,7 +185,7 @@ int dlug_append_uint64(std::vector<unsigned char> &v, uint64_t u) {
     return 6;
   }
 
-  if (u < (1<<dlug_bitlen[6])) {
+  if (u < (1u<<dlug_bitlen[6])) {
     v.push_back((unsigned char)((u>>56)&0xff) | dlug_pfx[6]);
     v.push_back((unsigned char)((u>>48)&0xff));
     v.push_back((unsigned char)((u>>40)&0xff));
@@ -250,7 +250,7 @@ int dlug_convert_uint16(unsigned char *d, uint16_t *u) {
 
   if (idx==2) {
     u32 = ((d[0] & (0xff >> dlug_pfxbitlen[idx])) << 16) + (d[1] << 8) + d[2];
-    if (u32 <= (1<<16-1)) {
+    if (u32 <= ((1<<16)-1)) {
       *u = u32;
       return 3;
     }
@@ -261,7 +261,7 @@ int dlug_convert_uint16(unsigned char *d, uint16_t *u) {
 
 int dlug_convert_uint32(unsigned char *d, uint32_t *u) {
   int idx;
-  uint32_t u64=0;
+  uint64_t u64=0;
   idx = dlug_index(d);
   if (idx<0) { return -1; }
   if (idx==0) {
@@ -281,8 +281,8 @@ int dlug_convert_uint32(unsigned char *d, uint32_t *u) {
 
   if (idx==3) {
     u64 = ((d[0] & (0xff >> dlug_pfxbitlen[idx])) << 24) + (d[1] << 16) + (d[2] << 8) + d[3];
-    if (u64 <= (1<<32-1)) {
-      *u = u64;
+    if (u64 <= ((1llu<<32)-1)) {
+      *u = (uint32_t)u64;
       return 4;
     }
   }
@@ -350,6 +350,9 @@ int dlug_cmp(unsigned char *d0, unsigned char *d1) {
   d0_len = dlug_len(d0);
   d1_len = dlug_len(d1);
 
+  nz0 = d0_len;
+  nz1 = d1_len;
+
   if ((d0_len<0) || (d1_len<0)) { return 0; }
 
   if (d0_len==d1_len) {
@@ -411,11 +414,12 @@ int dlug_cmp(unsigned char *d0, unsigned char *d1) {
 
 
 int dlug_test(void) {
-  int i, j, k;
+  int i, k;
   uint8_t u8[] = {0,  127, 128, 255};
-  uint16_t u16[] = {0, 127, 128, 1<<14 -1, 1<<14,1<<16-1};
-  uint32_t u32[] = {0, 1<<7-1, 1<<7, 1<<14-1, 1<<14, 1<<27-1, 1<<27, 1l<<32-1};
-  uint64_t u64[] = {0, 1<<7-1, 1<<7, 1<<14-1, 1<<14, 1<<27-1, 1<<27, 1l<<43-1, 1l<<43, 1l<<56-1, 1l<<56, 1l<<64-1};
+  uint16_t u16[] = {0, 127, 128, (1<<14) -1, 1<<14,(1<<16)-1};
+  uint32_t u32[] = {0, (1<<7)-1, 1<<7, (1<<14)-1, 1<<14, (1<<27)-1, 1<<27, (1l<<32)-1};
+  //uint64_t u64[] = {0, (1<<7)-1, 1<<7, (1<<14)-1, 1<<14, (1llu<<27)-1, 1<<27, (1llu<<43)-1, 1llu<<43, (1llu<<56)-1, 1llu<<56, (1llu<<64)-1};
+  uint64_t u64[] = {0, (1<<7)-1, 1<<7, (1<<14)-1, 1<<14, (1llu<<27)-1, 1<<27, (1llu<<43)-1, 1llu<<43, (1llu<<56)-1, 1llu<<56, (uint64_t)(0xffffffffffffffff) };
 
   std::vector<unsigned char> v;
 
@@ -424,7 +428,7 @@ int dlug_test(void) {
     v.clear();
     dlug_append_uint8(v, u8[i]);
 
-    for (k=0; k<v.size(); k++) {
+    for (k=0; k<(int)v.size(); k++) {
       printf("[%d] %d (%x)\n", k, v[k], v[k]);
     }
     printf("\n");
@@ -437,7 +441,7 @@ int dlug_test(void) {
     v.clear();
     dlug_append_uint16(v, u16[i]);
 
-    for (k=0; k<v.size(); k++) {
+    for (k=0; k<(int)v.size(); k++) {
       printf("[%d] %d (%x)\n", k, v[k], v[k]);
     }
     printf("\n");
@@ -451,7 +455,7 @@ int dlug_test(void) {
     k = dlug_append_uint32(v, u32[i]);
 
     printf(">> %d\n", k);
-    for (k=0; k<v.size(); k++) {
+    for (k=0; k<(int)v.size(); k++) {
       printf("[%d] %d (%x)\n", k, v[k], v[k]);
     }
     printf("\n");
@@ -465,7 +469,7 @@ int dlug_test(void) {
     k = dlug_append_uint64(v, u64[i]);
 
     printf(">> %d\n", k);
-    for (k=0; k<v.size(); k++) {
+    for (k=0; k<(int)v.size(); k++) {
       printf("[%d] %d (%x)\n", k, v[k], v[k]);
     }
     printf("\n");

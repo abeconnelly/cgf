@@ -69,8 +69,8 @@ static int iterate_post (
     const char *data, uint64_t off,
     size_t size)
 {
-  con_info_t *con_info = NULL;
-  con_info = (con_info_t *)coninfo_cls;
+  //con_info_t *con_info = NULL;
+  //con_info = (con_info_t *)coninfo_cls;
 
   printf("iterate_post >>> key: %s, filename: %s, content_type: %s, xfer_enc: %s\n", key, filename, content_type, transfer_encoding);
   printf("  size: %i, off %i\n", (int)size, (int)off);
@@ -92,7 +92,7 @@ static void request_completed (void *cls, struct MHD_Connection *connection, voi
 int muduk_find_conn_idx() {
   int i, ttid;
   ttid = (int)syscall(SYS_gettid);
-  for (i=0; i<glob_ctx.tid.size(); i++) {
+  for (i=0; i<(int)glob_ctx.tid.size(); i++) {
     if (glob_ctx.tid[i] == ttid) {
       return i;
     }
@@ -111,7 +111,7 @@ duk_context *muduk_find_conn() {
   if (glob_ctx.tid.size()==MUDUK_THREAD_POOL_SIZE) {
 
     ttid = (int)syscall(SYS_gettid);
-    for (i=0; i<glob_ctx.tid.size(); i++) {
+    for (i=0; i<(int)glob_ctx.tid.size(); i++) {
       if (glob_ctx.tid[i] == ttid) {
         return glob_ctx.duk_ctx[i];
       }
@@ -126,14 +126,14 @@ duk_context *muduk_find_conn() {
   if (glob_ctx.tid.size()<MUDUK_THREAD_POOL_SIZE) {
     ttid = (int)syscall(SYS_gettid);
 
-    for (i=0; i<glob_ctx.tid.size(); i++) {
+    for (i=0; i<(int)glob_ctx.tid.size(); i++) {
       if (ttid == glob_ctx.tid[i]) {
         duk_ctx = glob_ctx.duk_ctx[i];
         break;
       }
     }
 
-    if (i==glob_ctx.tid.size()) {
+    if (i==(int)glob_ctx.tid.size()) {
       muduk_init_context(&duk_ctx);
       glob_ctx.tid.push_back(ttid);
       glob_ctx.duk_ctx.push_back(duk_ctx);
@@ -148,7 +148,7 @@ duk_context *muduk_find_conn() {
 
 static int muduk_verbose = 1;
 
-int muduk_print_data(const char *data, int n) {
+void muduk_print_data(const char *data, int n) {
   int i;
   printf("data:\n----------\n");
   for (i=0; i<n; i++) { printf("%c", data[i]); }
@@ -251,7 +251,7 @@ void show_help() {
 }
 
 int main (int argc, char **argv) {
-  int i, j, k;
+  int i;
   int opt, port;
   struct MHD_Daemon *daemon;
   const char *data_dir;
@@ -297,7 +297,7 @@ int main (int argc, char **argv) {
   cfg_setting = config_lookup(&cfg, "cgf");
   if (cfg_setting != NULL) {
     unsigned int n = config_setting_length(cfg_setting);
-    for (i=0; i<n; i++) {
+    for (i=0; i<(int)n; i++) {
       const char *name, *locator;
       config_setting_t *x = config_setting_get_elem(cfg_setting, i);
       config_setting_lookup_string(x, "name", &name);

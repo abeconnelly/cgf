@@ -14,10 +14,10 @@
 
 duk_ret_t muduk_native_tile_band(duk_context *ctx) {
   int idx, i, j, k;
-  double d;
-  int n_match=-1, n_loq=-1;
+  //double d;
+  //int n_match=-1, n_loq=-1;
   int tilepath, tile_begstep, tile_nstep;
-  char *tbuf;
+  //char *tbuf;
   char sbuf[1024];
   int loq_flag = 1;
   int n_tilestep_actual;
@@ -39,7 +39,7 @@ duk_ret_t muduk_native_tile_band(duk_context *ctx) {
   cgf = glob_ctx.cgf[idx];
 
   n_tilestep_actual = tile_nstep;
-  if ((tile_nstep<0) || ((tile_begstep+tile_nstep) > cgf->step_per_path[tilepath])) {
+  if ((tile_nstep<0) || ((int)(tile_begstep+tile_nstep) > (int)cgf->step_per_path[tilepath])) {
     n_tilestep_actual = cgf->step_per_path[tilepath] - tile_begstep;
   }
 
@@ -48,7 +48,7 @@ duk_ret_t muduk_native_tile_band(duk_context *ctx) {
 
   if (loq_flag) {
 
-    if (allele[0].size() > n_tilestep_actual) {
+    if ((int)allele[0].size() > n_tilestep_actual) {
       backup_step = allele[0].size() - n_tilestep_actual;
     }
 
@@ -70,7 +70,7 @@ duk_ret_t muduk_native_tile_band(duk_context *ctx) {
     snprintf(sbuf,1024,"[");
     outs += sbuf;
     //for (j=0; j<allele[i].size(); j++) {
-    for (j=0; j<(allele[i].size()-backup_step); j++) {
+    for (j=0; j<(int)(allele[i].size()-backup_step); j++) {
       int ele = j+backup_step;
       if (j>0) {
         snprintf(sbuf,1024,",");
@@ -104,7 +104,7 @@ duk_ret_t muduk_native_tile_band(duk_context *ctx) {
       snprintf(sbuf,1024,"[");
       outs += sbuf;
       //for (j=0; j<loq_allele[i].size(); j++) {
-      for (j=0; j<(loq_allele[i].size()-backup_step); j++) {
+      for (j=0; j<(int)(loq_allele[i].size()-backup_step); j++) {
         int ele = j+backup_step;
         if (j>0) {
           snprintf(sbuf,1024,",");
@@ -114,7 +114,7 @@ duk_ret_t muduk_native_tile_band(duk_context *ctx) {
 
         snprintf(sbuf,1024,"[");
         outs += sbuf;
-        for (k=0; k<loq_allele[i][ele].size(); k++) {
+        for (k=0; k<(int)loq_allele[i][ele].size(); k++) {
           if (k>0) {
             snprintf(sbuf,1024,",");
             outs += sbuf;
@@ -164,7 +164,7 @@ duk_ret_t muduk_native_tile_band(duk_context *ctx) {
 duk_ret_t muduk_native_tile_pair_concordance(duk_context *ctx) {
   int k;
   int idx0, idx1;
-  double d_a, d_b;
+  //double d_a, d_b;
   int n_match=-1, n_loq=-1, n_ovf=-1;
   int tilepath, tile_begstep, tile_nstep;
   char *tbuf;
@@ -188,11 +188,11 @@ duk_ret_t muduk_native_tile_pair_concordance(duk_context *ctx) {
 
   cgf_canon = glob_ctx.cgf[0];
 
-  if ((idx0<0) || (idx0>=glob_ctx.cgf.size()) ||
-      (idx1<0) || (idx1>=glob_ctx.cgf.size()) ||
-      (tilepath<0) || (tilepath>=cgf_canon->path_count) ||
-      (tile_begstep<0) || (tile_begstep>=cgf_canon->step_per_path[tilepath]) ||
-      (tile_nstep<0) || ((tile_begstep+tile_nstep)>cgf_canon->step_per_path[tilepath]) ||
+  if ((idx0<0) || (idx0>=(int)glob_ctx.cgf.size()) ||
+      (idx1<0) || (idx1>=(int)glob_ctx.cgf.size()) ||
+      (tilepath<0) || (tilepath>=(int)cgf_canon->path_count) ||
+      (tile_begstep<0) || (tile_begstep>=(int)cgf_canon->step_per_path[tilepath]) ||
+      (tile_nstep<0) || ((tile_begstep+tile_nstep)>(int)cgf_canon->step_per_path[tilepath]) ||
       (lvl<0) || (lvl>2)) {
 
     printf("idx0 %i, idx1 %i, (%i) tilepath %i (%i), tile_begstep %i (%i), tile_nstep %i (%i)\n",

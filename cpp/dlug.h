@@ -18,11 +18,11 @@ int dlug_bitlen[]         = {7,  14,  21,  27,  35,  43,  56,  64, 128};
 unsigned char dlug_pfx[]  = {0,0x80,0xc0,0xe0,0xe8,0xf0,0xf8,0xf9,0xfa,0xff};
 */
 
-extern int dlug_bytelen[];
-extern int dlug_pfxbitlen[];
+extern unsigned int dlug_bytelen[];
+extern unsigned int dlug_pfxbitlen[];
 
 //                           0   1    2    3    4    5    6    7   8
-extern int dlug_bitlen[];
+extern unsigned int dlug_bitlen[];
 extern unsigned char dlug_pfx[];
 
 int dlug_index(unsigned char *d);

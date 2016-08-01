@@ -8,7 +8,7 @@
 
 int muduk_process(duk_context *duk_ctx, const char *data, int data_len, char **resp_str) {
   int ret=0;
-  char *query = NULL;
+  //char *query = NULL;
   char *cmd = NULL;
   const char *r=NULL;
   int local_verbose = 1;

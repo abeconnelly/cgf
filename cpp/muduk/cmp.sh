@@ -6,6 +6,8 @@ if [[ "$w" == "" ]] ; then
   w="srv"
 fi
 
+OPT_LEVEL="-O2"
+
 mkdir -p bin
 
 rm -f index-html.h
@@ -15,7 +17,8 @@ rm -f index_html
 
 if [[ "$w" == "srv" ]] || [[ "$w" == "both" ]] ; then
 
-  g++ -O3 \
+  #g++ -g \
+  g++ $OPT_LEVEL -W -Wall -std=c++11 \
     `pkg-config --cflags libconfig++` \
     -Ilib/duktape -I.. \
     -DDUK_OPT_INTERRUPT_COUNTER \

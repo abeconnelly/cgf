@@ -339,7 +339,7 @@ void debug_print_cgf(cgf_t *cgf) {
 
 void stats_print_cgf(cgf_t *cgf) {
   uint64_t vec_bytes=0, ovf_bytes=0, fin_ovf_bytes=0, loq_bytes=0;
-  int i, j, k;
+  //int i, j, k;
   int tilepath;
   cgf_path_t *path;
   cgf_overflow_t *ovf;

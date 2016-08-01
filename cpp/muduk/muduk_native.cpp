@@ -50,7 +50,7 @@ duk_ret_t muduk_native_info(duk_context *ctx) {
   std::string resp;
 
   printf("muduk_native_info..\n");
-  for (i=0; i<glob_ctx.tid.size(); i++) {
+  for (i=0; i<(int)glob_ctx.tid.size(); i++) {
     printf(" ttid: %i (duk_ctx %p)\n", glob_ctx.tid[i], glob_ctx.duk_ctx[i]);
   }
 
@@ -66,7 +66,7 @@ duk_ret_t muduk_native_info(duk_context *ctx) {
 
   resp += ",";
   resp += "\"thread\":[";
-  for (i=0; i<glob_ctx.tid.size(); i++) {
+  for (i=0; i<(int)glob_ctx.tid.size(); i++) {
     if (i>0) { resp += ","; }
     k = asprintf(&tbuf, "%i", glob_ctx.tid[i]);
     if (k<0) { return -1; }
@@ -99,6 +99,3 @@ duk_ret_t muduk_native_z(duk_context *ctx) {
 
   return 1;
 }
-
-
-
