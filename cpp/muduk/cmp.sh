@@ -16,6 +16,7 @@ rm -f index_html
 if [[ "$w" == "srv" ]] || [[ "$w" == "both" ]] ; then
 
   g++ -O3 \
+    `pkg-config --cflags libconfig++` \
     -Ilib/duktape -I.. \
     -DDUK_OPT_INTERRUPT_COUNTER \
     '-DDUK_OPT_EXEC_TIMEOUT_CHECK(udata)=muduk_timeout_check(udata)' \
@@ -24,7 +25,9 @@ if [[ "$w" == "srv" ]] || [[ "$w" == "both" ]] ; then
     muduk_process.cpp muduk_native.cpp muduk_init.cpp muduk_native_cgf.cpp lib/duktape/duktape.c \
     ../cgb.cpp ../cgb_read.cpp ../cgb_print.cpp ../dlug.c \
     -lmicrohttpd \
-    -o bin/muduk
+    -o bin/muduk \
+    `pkg-config --libs libconfig++`
+
 
 fi
 

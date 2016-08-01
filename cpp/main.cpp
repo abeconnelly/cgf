@@ -12,6 +12,28 @@
 #include "cgb.hpp"
 #include "dlug.h"
 
+void show_help() {
+  printf("\n");
+  printf("compact genome tool\n");
+  printf("\n");
+  printf("usage:\n");
+  printf("  -i cgf        input cgf file\n");
+  printf("  [-l lvl]      concordance level (0,1,2)\n");
+  printf("  [-p tilepath] tile path\n");
+  printf("  [-s tilestep] tile step\n");
+  printf("  [-n n_step]   n tile steps\n");
+  printf("  [-B]          band flag\n");
+  printf("  [-C]          single tile path concordance\n");
+  printf("  [-D]          debug print\n");
+  printf("  [-S]          stats print\n");
+  printf("  [-L]          low quality flag\n");
+  printf("  [-k]          knot flag\n");
+  printf("  [-j]          print JSON info\n");
+  printf("  [-h]          help\n");
+  printf("\n");
+}
+
+
 int main(int argc, char **argv) {
   int i, j, k;
   FILE *fp=stdin;

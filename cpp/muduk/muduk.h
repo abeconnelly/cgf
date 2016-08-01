@@ -25,11 +25,15 @@ typedef struct connection_info_struct
 } con_info_t;
 
 typedef struct global_context_t {
+  int port;
+  std::string cfg_fn;
+  std::string data_dir;
   std::vector<int> tid;
   std::vector<duk_context *> duk_ctx;
 
   std::vector<cgf_t *> cgf;
   std::vector<std::string> cgf_name;
+  std::vector<std::string> cgf_locator;
 } glob_ctx_t;
 
 extern glob_ctx_t glob_ctx;

@@ -1,17 +1,20 @@
 /* Feel free to use this example code in any way
    you see fit (Public Domain) */
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #include <sys/types.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <microhttpd.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
 #include <vector>
 
 #include <sys/syscall.h>
+
+#include <libconfig.h>
 
 
 #include "duktape.h"
@@ -19,7 +22,7 @@
 #include "cgb.hpp"
 
 //#define PORT            8888
-#define PORT            8082
+#define DEFAULT_PORT    8082
 #define POSTBUFFERSIZE  512
 #define MAXNAMESIZE     20
 #define MAXANSWERSIZE   512
@@ -243,15 +246,85 @@ static int answer_to_connection (
   return send_page (connection, errorpage);
 }
 
+void show_help() {
+  printf("usage:\n  muduk [-c config_file] [-p port] [-h]\n");
+}
+
 int main (int argc, char **argv) {
+  int i, j, k;
+  int opt, port;
   struct MHD_Daemon *daemon;
+  const char *data_dir;
+
+  config_t cfg;
+  config_setting_t *cfg_setting;
+
+  glob_ctx.cfg_fn = "muduk.cfg";
+  glob_ctx.port = -1;
+
+  while ((opt = getopt(argc, argv, "c:p:h"))!=-1) switch (opt) {
+    case 'c':
+      glob_ctx.cfg_fn = optarg;
+      break;
+    case 'p':
+      glob_ctx.port = atoi(optarg);
+      break;
+    case 'h':
+    default:
+      show_help();
+      exit(0);
+      break;
+  }
+
+  config_init(&cfg);
+  if (!config_read_file(&cfg, glob_ctx.cfg_fn.c_str())) {
+    fprintf(stderr, "could not load: %s\n", glob_ctx.cfg_fn.c_str());
+    exit(1);
+  }
+
+  if (config_lookup_int(&cfg, "port", &port)) {
+    if (glob_ctx.port < 0) {
+      glob_ctx.port = port;
+    }
+  }
+  if (glob_ctx.port < 0) { glob_ctx.port = DEFAULT_PORT; }
+
+  glob_ctx.data_dir = "/data/cgf";
+  if (config_lookup_string(&cfg, "data_dir", &data_dir)) {
+    glob_ctx.data_dir = data_dir;
+  }
+
+  cfg_setting = config_lookup(&cfg, "cgf");
+  if (cfg_setting != NULL) {
+    unsigned int n = config_setting_length(cfg_setting);
+    for (i=0; i<n; i++) {
+      const char *name, *locator;
+      config_setting_t *x = config_setting_get_elem(cfg_setting, i);
+      config_setting_lookup_string(x, "name", &name);
+      config_setting_lookup_string(x, "locator", &locator);
+
+      glob_ctx.cgf_locator.push_back(locator);
+      glob_ctx.cgf_name.push_back(name);
+    }
+  }
+
+  /*
+  printf("config: port:%i, data_dir:%s, [", glob_ctx.port, glob_ctx.data_dir.c_str());
+  for (i=0; i<glob_ctx.cgf_locator.size(); i++) {
+    printf(" (%s:%s)", glob_ctx.cgf_name[i].c_str(), glob_ctx.cgf_locator[i].c_str());
+  }
+  printf(" ]\n");
+
+  //DEBUG
+  exit(0);
+  */
 
   muduk_cgf_init(&glob_ctx);
 
   daemon =
     MHD_start_daemon(
         MHD_USE_SELECT_INTERNALLY,
-        PORT,
+        glob_ctx.port,
         NULL, NULL,
         &answer_to_connection, NULL,
         MHD_OPTION_THREAD_POOL_SIZE, MUDUK_THREAD_POOL_SIZE,

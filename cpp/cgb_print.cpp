@@ -10,6 +10,7 @@
 #include "cgb.hpp"
 #include "dlug.h"
 
+/*
 void show_help() {
   printf("\n");
   printf("compact genome tool\n");
@@ -30,6 +31,7 @@ void show_help() {
   printf("  [-h]          help\n");
   printf("\n");
 }
+*/
 
 int cgf_json_info_print(cgf_t *cgf) {
   int i, n;

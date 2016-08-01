@@ -132,7 +132,7 @@ void stats_print_cgf(cgf_t *cgf);
 int cgf_json_info_print(cgf_t *cgf);
 
 
-void show_help(void);
+//void show_help(void);
 
 
 int cgf_unpack_tile_map(cgf_t *cgf);

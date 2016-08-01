@@ -159,7 +159,7 @@ static void muduk_fatal(duk_hthread *udata, int k, const char *msg) {
 static time_t curr_pcall_start = 0;
 static long exec_timeout_check_counter = 0;
 
-static time_t TIMEOUT = 5;
+static time_t TIMEOUT = 500000;
 
 void muduk_set_timeout(time_t T) { TIMEOUT = T; }
 void muduk_start_timeout(void) { curr_pcall_start = time(NULL); }
@@ -251,13 +251,11 @@ int muduk_cgf_init(glob_ctx_t *ctx) {
   int local_verbose=1;
 
   std::vector<std::string> cgf_fn;
-  std::vector<std::string> cgf_name;
 
-  cgf_fn.push_back("../data/hu826751-GS03052-DNA_B01.cgf");
-  cgf_fn.push_back("../data/hu0211D6-GS01175-DNA_E02.cgf");
+  for (i=0; i<ctx->cgf_name.size(); i++) {
+    cgf_fn.push_back( ctx->data_dir + "/" + ctx->cgf_locator[i] );
+  }
 
-  cgf_name.push_back("hu826751-GS03052-DNA_B01");
-  cgf_name.push_back("hu0211D6-GS01175-DNA_E02");
 
   if (local_verbose) { printf("loading cgf...\n"); }
 
@@ -272,14 +270,8 @@ int muduk_cgf_init(glob_ctx_t *ctx) {
       printf("  %s loaded\n", cgf_fn[i].c_str());
     }
 
-    ctx->cgf_name.push_back(cgf_name[i]);
-
     ctx->cgf.push_back(cgf);
   }
-
-  //cgf = load_cgf_fn("../data/hu0211D6-GS01175-DNA_E02.cgf");
-  //if (!cgf) { return -1; }
-  //ctx->cgf.push_back(cgf);
 
   if (local_verbose) { printf("cgf loaded\n"); }
 
