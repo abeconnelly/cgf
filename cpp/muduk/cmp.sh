@@ -6,6 +6,8 @@ if [[ "$w" == "" ]] ; then
   w="srv"
 fi
 
+mkdir -p bin
+
 rm -f index-html.h
 cat html/index.html <( echo -e -n '\x0' ) > index_html
 xxd -i index_html > index-html.h
