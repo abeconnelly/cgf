@@ -1,12 +1,15 @@
 #!/bin/bash
 
+set -eo pipefail
+
 w="$1"
 
 if [[ "$w" == "" ]] ; then
   w="srv"
 fi
 
-OPT_LEVEL="-O2"
+OPT="-O2"
+#OPT="-O2 -W -Wall -std=c++11"
 
 mkdir -p bin
 
@@ -18,7 +21,7 @@ rm -f index_html
 if [[ "$w" == "srv" ]] || [[ "$w" == "both" ]] ; then
 
   #g++ -g \
-  g++ $OPT_LEVEL -W -Wall -std=c++11 \
+  g++ $OPT \
     `pkg-config --cflags libconfig++` \
     -Ilib/duktape -I.. \
     -DDUK_OPT_INTERRUPT_COUNTER \
