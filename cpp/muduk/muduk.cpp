@@ -254,7 +254,7 @@ int main (int argc, char **argv) {
   int i;
   int opt, port;
   struct MHD_Daemon *daemon;
-  const char *data_dir;
+  const char *data_dir, *js_init_fn;
 
   config_t cfg;
   config_setting_t *cfg_setting;
@@ -292,6 +292,11 @@ int main (int argc, char **argv) {
   glob_ctx.data_dir = "/data/cgf";
   if (config_lookup_string(&cfg, "data_dir", &data_dir)) {
     glob_ctx.data_dir = data_dir;
+  }
+
+  glob_ctx.js_init_fn = "./js/muduk.js";
+  if (config_lookup_string(&cfg, "js_init", &js_init_fn)) {
+    glob_ctx.js_init_fn = js_init_fn;
   }
 
   cfg_setting = config_lookup(&cfg, "cgf");

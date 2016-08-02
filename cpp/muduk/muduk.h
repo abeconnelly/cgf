@@ -28,6 +28,7 @@ typedef struct global_context_t {
   int port;
   std::string cfg_fn;
   std::string data_dir;
+  std::string js_init_fn;
   std::vector<int> tid;
   std::vector<duk_context *> duk_ctx;
 

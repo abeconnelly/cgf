@@ -199,7 +199,7 @@ int muduk_init_context(duk_context **duk_ctx) {
 
   // Load local script
   //
-  if (duk_peval_file(ctx, "js/muduk.js") != 0) {
+  if (duk_peval_file(ctx, glob_ctx.js_init_fn.c_str()) != 0) {
     printf("error: %s\n", duk_safe_to_string(ctx, -1));
     goto muduk_init_fail;
   }
