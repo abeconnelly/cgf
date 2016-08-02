@@ -20,9 +20,10 @@ function full_conc0(idx0, idx1) {
 
 var res = {};
 
-var n=2;
-for (var idx0=0; idx0<n; idx0++) {
-  for (var idx1=idx0+1; idx1<n; idx1++) {
+var n=95;
+var s = 247;
+for (var idx0=s; idx0<(s+n); idx0++) {
+  for (var idx1=idx0+1; idx1<(s+n); idx1++) {
     var r = full_conc0(idx0, idx1);
 
     res[ idx0 + ":" + idx1 ] = r.match;
