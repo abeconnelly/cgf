@@ -620,7 +620,14 @@ int cgf_relative_overflow_count(uint64_t *vec, int step_start, int step_end) {
 // represents a canonical tile.
 //
 int is_canonical_tile(uint64_t vec_val, int ofst) {
-  return (vec_val) & ( ((uint64_t)1)<<(32+ofst) );
+  uint64_t u64;
+  uint32_t u32;
+
+  u64 = vec_val >> 32;
+  u32 = (uint32_t)u64;
+  u32 = u32 & (((uint32_t)1)<<ofst);
+  if (u32!=0) return 0;
+  return 1;
 }
 
 // Find variant id of tilepath.tilestep in structure.
@@ -767,17 +774,31 @@ int cgf_map_variant_id(cgf_t *cgf, int tilepath, int step) {
   uint32_t u32;
   int byte_offset=0;
   int map_skip_count;
+  int ofst;
 
-  //int local_debug = 0;
+  int local_debug = 0;
 
   cgf_path_t *path;
   cgf_overflow_t *ovf;
 
   path = &(cgf->path[tilepath]);
 
-  if (is_canonical_tile(path->vec[step/32], (step%32))) { return 0; }
+  if (local_debug) { printf("\n"); }
+
+  if (is_canonical_tile(path->vec[step/32], (step%32))) {
+
+    if (local_debug) {
+      printf("  cgf_map_variant_id: canon tile (%x.%x)\n", tilepath, step);
+    }
+
+    return 0;
+  }
 
   k = cgf_cache_map_val(path->vec[step/32], step%32);
+
+  if (local_debug) {
+    printf("  cgf_map_variant_id: cgf_cache_map_val %i (%x.%x)\n", k, tilepath, step);
+  }
 
   // canonical tile
   //
@@ -785,11 +806,11 @@ int cgf_map_variant_id(cgf_t *cgf, int tilepath, int step) {
 
   if ((k>=0) && (k<0xd)) {
 
-    /*
+
     if (local_debug) {
       printf("  cgf_map_variant_id %x.%x got cache %x\n", tilepath, step, k);
     }
-    */
+
 
     // trailing spanning tile
     //
@@ -814,45 +835,45 @@ int cgf_map_variant_id(cgf_t *cgf, int tilepath, int step) {
   }
   k--;
 
-  /*
+
   if (local_debug) {
     printf("k block %i (step %d (%x), position[%d] %d (%x))\n", k, step, step, k, (int)ovf->position[k], (int)ovf->position[k]);
   }
-  */
+
 
   byte_offset = ovf->offset[k];
 
-  /*
+
   if (local_debug) {
     printf("byte offset %d (%x)\n", (int)byte_offset, (int)byte_offset);
   }
-  */
+
 
   map_skip_count = cgf_relative_overflow_count(path->vec, ovf->position[k], step);
 
-  /*
+
   if (local_debug) {
     printf("  cgf_map_variant_id %x.%x map_skip_count %d\n", tilepath, step, map_skip_count);
   }
-  */
+
 
   k = 0;
   while ((k < map_skip_count) && (byte_offset < byte_tot)) {
     dn = dlug_convert_uint32(ovf->map + byte_offset, &u32);
     if (dn<=0) { return -1; }
 
-    //if (local_debug) { printf("  map[%d(%x)] %i, k:%d\n", (int)byte_offset, (int)byte_offset, (int)u32, k); }
+    if (local_debug) { printf("  map[%d(%x)] %i, k:%d\n", (int)byte_offset, (int)byte_offset, (int)u32, k); }
 
     byte_offset += dn;
 
     k++;
   }
 
-  /*
+
   if (local_debug) {
     printf("  cgf_map_variant_id %x.%x mapval %i (skipped %d)\n", tilepath, step, (int)u32, k);
   }
-  */
+
 
   return (int)u32;
 
@@ -2043,7 +2064,8 @@ int cgf_loq_tile_band(cgf_t *cgf,
         loq_info[1].push_back(t);
         step_idx++;
       } while ((step_idx < tilestep_n) &&
-             ( (allele[0][tilestep_beg+step_idx]<0) || (allele[1][tilestep_beg+step_idx]<0) ) );
+             ( (allele[0][step_idx]<0) || (allele[1][step_idx]<0) ) );
+             //( (allele[0][tilestep_beg+step_idx]<0) || (allele[1][tilestep_beg+step_idx]<0) ) );
       continue;
     }
 
@@ -2163,6 +2185,27 @@ int cgf_loq_tile_band(cgf_t *cgf,
   return 0;
 }
 
+// Fill in the allele array vector with `tilestep_n`
+// encoded variant ids for each allele on
+// the tile path `tilepath`, starting at
+// `tilestep_beg`.
+// If `tilestep_n` exceeds the end, truncate.
+// The variant id will be filled in unless it's
+// a non-anchor spanning tile, in which case it will
+// have a value of -1.
+//
+// return values less than 0 are an error
+// return 0 on success
+//
+// note: This has the potential to be inefficient.
+//   Initially, we back up to find an anchor position
+//   that starts with a canonical tile or a tilemap id
+//   that's in the range of 0 to 1023 (inclusive).  If
+//   there's a case where there are tiles that overflow
+//   in a large contiguous block, this will keep backing
+//   up until a canonical tile or mappable tile is hit
+//   (or we reach the beginning of the path).
+//
 
 int cgf_tile_band(cgf_t *cgf,
     int tilepath, int tilestep_beg, int tilestep_n,
@@ -2190,16 +2233,33 @@ int cgf_tile_band(cgf_t *cgf,
   tilemap_id = cgf_map_variant_id(cgf, tilepath, tilestep_beg);
 
   if (local_debug) {
+
+    printf(">>> start tilemap_id: %i\n", tilemap_id);
+
     if (tilemap_id<0) {
       printf("cgf_tile_band: start on spanning? (tilemap id %i), tilemap_beg (%i)\n",
           tilemap_id, tilestep_beg);
+    } else if (tilemap_id >= 1024) {
+      k = cgf_final_overflow_knot(cgf, tilepath, s, knot);
+
+      printf("cgf_tile_band: start on overflow? (tilemap id %i), tilemap_beg (%i)\n",
+          tilemap_id, tilestep_beg);
+      printf("  got knot (k %i): [ [", k);
+      for (i=0; i<knot[0].size(); i++)  { printf(" %i", knot[0][i]); }
+      printf("], [");
+      for (i=0; i<knot[1].size(); i++)  { printf(" %i", knot[1][i]); }
+      printf("] ]\n");
     }
+
   }
 
 
-  if (tilemap_id<0) {
+  //if (tilemap_id<0) {
+  if ((tilemap_id<0) || (tilemap_id>=1024))  {
+
     //for (; (tilemap_id<0) && (tilestep_beg<s_end); tilestep_beg++) {
-    while ((tilemap_id<0) && (tilestep_beg>0)) {
+    //while ((tilemap_id<0) && (tilestep_beg>0)) {
+    while ( ((tilemap_id<0) || (tilemap_id>=1024)) && (tilestep_beg>0) ) {
       tilestep_beg--;
       tilemap_id = cgf_map_variant_id(cgf, tilepath, tilestep_beg);
 
@@ -2213,11 +2273,14 @@ int cgf_tile_band(cgf_t *cgf,
   }
 
   //DEBUG
-  tilestep_beg_actual = tilestep_beg;
+  //tilestep_beg_actual = tilestep_beg;
+
+
 
   if (local_debug) {
     printf("cgf_tile_band: start tilemap_beg (%i), n %i (end %i)\n",
             tilestep_beg, tilestep_n, s_end);
+    printf(" >> tilstep_beg_actual %i\n", tilestep_beg_actual);
   }
 
   if (tilestep_beg==s_end) { return -1; }
@@ -2251,13 +2314,11 @@ int cgf_tile_band(cgf_t *cgf,
 
         knot_span[0]+=span;
 
-        //if ((s + del_s) >= tilestep_beg_actual) {
         if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
           allele[0].push_back(val);
         }
         del_s++;
         for (j=1; j<span; j++) {
-          //if ((s + del_s) >= tilestep_beg_actual) {
           if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
             allele[0].push_back(-1);
           }
@@ -2272,13 +2333,11 @@ int cgf_tile_band(cgf_t *cgf,
 
         knot_span[1]+=span;
 
-        //if ((s + del_s) >= tilestep_beg_actual) {
         if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
           allele[1].push_back(val);
         }
         del_s++;
         for (j=1; j<span; j++) {
-          //if ((s + del_s) >= tilestep_beg_actual) {
           if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
             allele[1].push_back(-1);
           }
@@ -2326,7 +2385,6 @@ int cgf_tile_band(cgf_t *cgf,
         del_s++;
         knot_span[0] += knot[0][i+1];
         for (j=1; j<knot[0][i + 1]; j++) {
-          //if ((s + del_s) >= tilestep_beg_actual) {
           if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
             allele[0].push_back(-1);
           }
@@ -2336,14 +2394,12 @@ int cgf_tile_band(cgf_t *cgf,
 
       del_s=0;
       for (i=0; i<knot[1].size(); i+=2) {
-        //if ((s + del_s) >= tilestep_beg_actual) {
         if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
           allele[1].push_back(knot[1][i]);
         }
         del_s++;
         knot_span[1] += knot[1][i+1];
         for (j=1; j<knot[1][i + 1]; j++) {
-          //if ((s + del_s) >= tilestep_beg_actual) {
           if (((s + del_s) >= tilestep_beg_actual) && ((s+del_s)<s_end)) {
             allele[1].push_back(-1);
           }
@@ -2351,15 +2407,10 @@ int cgf_tile_band(cgf_t *cgf,
         }
       }
 
-      //allele[0].push_back(tilemap_id);
-      //allele[1].push_back(tilemap_id);
-
       if (knot_span[0] != knot_span[1]) { return -1; }
       if (knot_span[0] <= 0) { return -2 ; }
       s += knot_span[0];
 
-
-      //return -1;
     }
 
   }

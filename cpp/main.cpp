@@ -141,57 +141,30 @@ int main(int argc, char **argv) {
   if (fp!=stdin) { fclose(fp); }
 
   if (knot_flag) {
-    if ((tilepath<0) || (tilepath > cgf->path_count)) {
-      printf("tilepath out of range (must be within [0,%i])\n", (int)cgf->path_count);
+    if ((tilepath<0) || (tilepath >= cgf->path_count)) {
+      printf("tilepath out of range (must be within [0,%i])\n", ((int)cgf->path_count) - 1);
       show_help();
       exit(1);
     }
 
-    if ((tilestep<0) || (tilestep >= cgf->step_per_path[tilepath])) {
-      printf("tilestep out of range (must be within [0,%i])\n", (int)cgf->step_per_path[tilepath]);
+    if (tilestep<0) { tilestep = 0; }
+
+    if (tilestep >= cgf->step_per_path[tilepath]) {
+      printf("tilestep out of range (must be within [0,%i])\n", ((int)cgf->step_per_path[tilepath]) - 1);
       show_help();
       exit(1);
     }
-
-    /*
-    for (i=0; i<cgf->path[tilepath].n_tile; i++) {
-      printf("%04x.%04x ", tilepath, i);
-      cgf_expand_loq_info(cgf, tilepath, i, loqv);
-    }
-    */
-
-
-    /*
-    std::vector< std::vector<int> > loqv[2];
-    for (tilepath=0; tilepath<863; tilepath++) {
-      printf("%04x\n", tilepath);
-      for (i=0; i<cgf->path[tilepath].n_tile; i++) {
-        cgf_expand_loq_info(cgf, tilepath, i, loqv);
-      }
-    }
-    exit(0);
-    */
-
-    //test expand loq info
-    //std::vector<int> loqv[2];
-    //k = cgf_expand_loq_info(cgf, 0x2fb, 0x4, loqv);
-
-    /*
-    for (i=0; i<cgf->path[tilepath].n_tile; i++) {
-      printf("%04x.%04x: loq(%i,%i)\n", tilepath, i,
-          cgf_loq_offset(cgf, tilepath, i),
-          cgf_loq_offset_2(cgf, tilepath, i));
-    }
-    printf("\n");
-    exit(0);
-    */
-
-    //k = cgf_expand_loq_info(cgf, tilepath, tilestep, loqv);
-    //printf(">> got %i\n", k);
-    //exit(0);
 
     std::vector<int> allele[2];
     std::vector< std::vector<int> > loq_allele[2];
+
+    if (n_tilestep < 0) {
+      n_tilestep = ((int)cgf->step_per_path[tilepath]) - tilestep;
+    }
+
+    if ( (tilestep + n_tilestep) > ((int)cgf->step_per_path[tilepath]) ) {
+      n_tilestep = ((int)cgf->step_per_path[tilepath]) - tilestep;
+    }
 
     cgf_tile_band(cgf, tilepath, tilestep, n_tilestep, allele);
     cgf_loq_tile_band(cgf, tilepath, tilestep, n_tilestep, allele, loq_allele);
