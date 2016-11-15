@@ -637,6 +637,7 @@ cgf_t *load_cgf_buf(FILE *fp) {
     inp_buf_pos += k;
 
     vec_n = (path->n_tile+31)/32;
+
     path->vec = (uint64_t *)malloc(sizeof(uint64_t)*vec_n);
     for (i=0; i<vec_n; i++) {
       cgf_read_uint64_buf(inp_buf, inp_buf_pos, &(path->vec[i]));

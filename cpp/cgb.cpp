@@ -195,7 +195,6 @@ int cgf_tile_concordance_0(int *n_match,
   int k;
   int start_block, end_block, s;
   cgf_path_t *path_a, *path_b;
-  //uint64_t mask, z;
   uint32_t u32, x32, y32;
 
   uint64_t start_mask, end_mask;
@@ -207,11 +206,11 @@ int cgf_tile_concordance_0(int *n_match,
   u32 = (0xffffffff >> (start_step%32));
   start_mask = (uint64_t)u32 << 32;
 
-  u32 = (0xffffffff << (32-((start_step+n_step)%32)));
+  u32 = (0xffffffff << ((32-((start_step+n_step)%32))%32) );
   end_mask = (uint64_t)u32 << 32;
 
   start_block = start_step / 32;
-  end_block = (start_step + n_step) / 32;
+  end_block = (start_step + n_step-1) / 32;
 
   s = start_block;
 
@@ -227,6 +226,10 @@ int cgf_tile_concordance_0(int *n_match,
     canonical_count += 32 - k;
   }
 
+  // In the special case of start_block == end_block, even though the
+  // end_mask will be completely set, this block of code will be skipped
+  // as the for loop above ensures 's' is past 'start_block'.
+  //
   if (s==end_block) {
     x32 = ((path_a->vec[s] & end_mask) >> 32);
     y32 = ((path_b->vec[s] & end_mask) >> 32);

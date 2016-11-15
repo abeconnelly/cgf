@@ -8,6 +8,7 @@
 #include <inttypes.h>
 
 #include <vector>
+#include <string>
 
 #include "cgb.hpp"
 #include "dlug.h"
@@ -58,6 +59,8 @@ int main(int argc, char **argv) {
   int band_flag = 0;
   int loq_flag = 0;
   int knot_flag = 0;
+
+  std::vector<std::string> ifns;
 
   std::vector<int> tilepath_v;
 
@@ -114,6 +117,7 @@ int main(int argc, char **argv) {
       break;
     case 'i':
       input_fn = strdup(optarg);
+      ifns.push_back(input_fn);
       break;
     case 'v':
       break;
@@ -121,10 +125,11 @@ int main(int argc, char **argv) {
       break;
   }
 
-
-  if (input_fn!=NULL) {
-    if (!(fp = fopen(input_fn, "r"))) {
-      perror(input_fn);
+  //if (input_fn!=NULL) {
+  if (ifns.size() > 0) {
+    //if (!(fp = fopen(input_fn, "r"))) {
+    if (!(fp = fopen(ifns[0].c_str(), "r"))) {
+      perror(ifns[0].c_str());
       show_help();
       exit(1);
     }
@@ -138,6 +143,10 @@ int main(int argc, char **argv) {
   //
   //cgf = load_cgf(fp);
   cgf = load_cgf_buf(fp);
+  if (cgf==NULL) {
+    perror("error loading cgf");
+    exit(1);
+  }
   if (fp!=stdin) { fclose(fp); }
 
   if (knot_flag) {
@@ -308,7 +317,20 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
-  cgf_b = load_cgf_fn("data/hu826751-GS03052-DNA_B01.cgf");
+  //cgf_b = load_cgf_fn("data/hu826751-GS03052-DNA_B01.cgf");
+
+  if (ifns.size()>1) {
+    cgf_b = load_cgf_fn(ifns[1].c_str());
+    if (cgf_b==NULL) {
+      perror(ifns[1].c_str());
+      exit(1);
+    }
+
+  } else {
+    fprintf(stderr, "provide second cgf file");
+    exit(1);
+  }
+
 
   //cgf_b = load_cgf_fn("data/hu0211D6-GS01175-DNA_E02.cgf");
 
